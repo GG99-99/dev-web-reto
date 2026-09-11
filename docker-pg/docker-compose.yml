@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: mi-postgres2
+    restart: always
+    environment:
+      POSTGRES_USER: miusuario
+      POSTGRES_PASSWORD: 1234
+      POSTGRES_DB: midb2
+    ports:
+      - "5433:5433"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata2:
+

@@ -1,0 +1,3 @@
+
+
+DB_URL=postgresql://miusuario:1234@localhost:5432/midb2
