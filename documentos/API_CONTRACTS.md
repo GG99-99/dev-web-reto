@@ -25,20 +25,27 @@ reutilizando los tipos generados por Prisma Client (`@prisma/client`).
 ```ts
 import type { Prisma } from '@prisma/client';
 
-// Envoltorio estándar de toda respuesta exitosa
-interface ApiResponse<T> {
+// Envoltorio estándar de toda respuesta exitosa (2xx)
+interface ApiSuccessResponse<T> {
+  valid: true;
   data: T;
-  meta?: Record<string, unknown>;
+  error?: never;
 }
 
-// Envoltorio estándar de error (4xx/5xx)
-interface ApiError {
+// Envoltorio estándar de respuesta con error (4xx/5xx)
+interface ApiErrorResponse {
+  valid: false;
+  data?: never;
   error: {
     code: string;          // ej. "VALIDATION_ERROR", "NOT_FOUND", "UNAUTHORIZED"
     message: string;
     details?: unknown;
   };
 }
+
+// Todo endpoint responde con este discriminated union; el cliente puede
+// hacer `if (res.valid) { res.data... } else { res.error... }` sin castear.
+type ApiResponse<T> = ApiSuccessResponse<T> | ApiErrorResponse;
 
 // Query params comunes de listados
 interface PaginationQuery {
@@ -665,6 +672,8 @@ type Attachment = Prisma.AttachmentGetPayload<{}>;
 ---
 
 ## 18. Mapa de errores estándar
+
+Toda fila de esta tabla corresponde a un `ApiErrorResponse` (`valid: false`) con ese `error.code`.
 
 | Código | HTTP | Cuándo |
 |---|---|---|
