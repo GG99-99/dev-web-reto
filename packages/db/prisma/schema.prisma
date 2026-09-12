@@ -34,9 +34,9 @@ datasource db {
 model Person {
   personId Int    @id @default(autoincrement()) @map("person_id")
   name     String
-  cedula   String
+  cedula   String @unique
   phone    String
-  email    String
+  email    String @unique
 
   user        User?
   propietary  Propietary?

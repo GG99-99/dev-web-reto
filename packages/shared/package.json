@@ -9,6 +9,12 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
   "devEngines": {
     "packageManager": {
       "name": "pnpm",
@@ -17,5 +23,8 @@
     }
   },
   "packageManager": "pnpm@12.3.4",
-  "type": "module"
+  "type": "module",
+  "dependencies": {
+    "@reto/db": "workspace:*"
+  }
 }
