@@ -12,5 +12,6 @@
     "sourceMap": true,
     "composite": true,
     "resolveJsonModule": true,
+    
   }
 }

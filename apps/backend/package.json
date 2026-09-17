@@ -2,20 +2,30 @@
   "name": "@reto/backend",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "type": "module",
   "scripts": {
+    "dev": "nodemon --exec tsx src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "seed": "tsx src/lib/seeders/index.ts",
+    "seed:roles": "tsx src/seeders/roles.seeder.ts",
+    "seed:risk-rules": "tsx src/seeders/risk-rules.seeder.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "module",
   "devDependencies": {
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/morgan": "^1.9.10",
-    "@types/node": "^22.20.2"
+    "@types/node": "^22.20.2",
+    "@types/bcrypt": "^6.0.0",
+    "@types/multer": "^2.0.0",
+    "nodemon": "^3.1.11",
+    "tsx": "^4.21.0"
   },
   "dependencies": {
     "@reto/db": "workspace:*",
@@ -26,6 +36,8 @@
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
-    "morgan": "^1.12.1"
+    "morgan": "^1.12.1",
+    "multer": "^2.0.0",
+    "zod": "^4.6.2"
   }
 }

@@ -1,0 +1,680 @@
+===============================================================================
+BACKEND — Sistema PWA de Evaluación Basada en Riesgo (EBR/BPM)
+Bitácora de avance de implementación (contrato: documentos/API_CONTRACTS.md)
+===============================================================================
+Patrón seguido: el de apps/backend en el proyecto UNJ (Escritorio/UNJ_FORMS
+REMOTO) -> <modulo>.model.ts (Prisma) -> <modulo>.service.ts (lógica) ->
+<modulo>.controller.ts (HTTP) -> <modulo>.router.ts (rutas), con middlewares
+compartidos vía alias "#backend/middlewares" y errores centralizados en
+handlers/errorHandler.ts.
+
+-------------------------------------------------------------------------------
+⚠️  PASOS MANUALES REQUERIDOS ANTES DE CORRER EL BACKEND (no tengo terminal
+    en esta máquina, solo acceso a archivos vía el conector Filesystem)
+-------------------------------------------------------------------------------
+1. pnpm install
+   (agregué "tsx", "nodemon", "@types/bcrypt" a apps/backend/package.json y
+   "zod" como dependencia runtime; también agregué scripts "build" a
+   packages/db y packages/shared)
+
+2. pnpm build:packages
+   (= pnpm build:db && pnpm build:shared)
+   IMPRESCINDIBLE: @reto/db y @reto/shared se consumen desde su carpeta
+   dist/ (ver "exports" en sus package.json), NO desde src/. Cualquier
+   cambio en packages/db/src o packages/shared/src (incluido el que hice
+   hoy) no tiene efecto hasta reconstruir. Repetir este paso cada vez que
+   se toquen esos paquetes.
+
+3. pnpm --filter @reto/backend seed:roles
+   Crea (upsert) los 5 roles del enum UserRole (ADMIN, ADMIN_EMPRESA,
+   USUARIO_DELEGADO, COORDINADOR, TECNICO_EVALUADOR). Sin esto no hay
+   roleId válidos para /users/register.
+
+3b. pnpm --filter @reto/backend seed:risk-rules  (NUEVO, sesión 3)
+   Crea las 3 reglas por defecto de la matriz de riesgo. Sin esto,
+   POST /evaluations/:id/finish fallará con 500 INTERNAL_ERROR ("No hay
+   una RiskFrequencyRule que cubra el puntaje calculado") porque el motor
+   de riesgo no tiene con qué mapear el puntaje a nivel/frecuencia.
+
+4. pnpm dev:backend  (o: pnpm --filter @reto/backend dev)
+   Levanta con tsx+nodemon en http://localhost:3000, API bajo
+   http://localhost:3000/api/v1
+
+NOTA (sesión 2): agregué el módulo attachments, que usa `multer` para
+`multipart/form-data`. Esa dependencia se sumó recién a package.json, así
+ que el paso 1 (pnpm install) hay que volver a correrlo si ya lo habías
+ hecho antes de esta sesión. Sin `multer` instalado, cualquier ruta que use
+ `uploadSingleFile` (POST /attachments, POST /bpm-requests/:id/attachments)
+ fallará al arrancar ("Cannot find module 'multer'").
+
+Revisar .env / env-example.txt: agregué PORT, CORS_ORIGIN y los secretos
+JWT_ACCESS_SECRET / JWT_REFRESH_SECRET / *_EXPIRES_IN (valores dummy de
+desarrollo, cambiar antes de producción).
+
+-------------------------------------------------------------------------------
+CAMBIO EN PAQUETE COMPARTIDO (no era parte de un módulo, pero era bloqueante)
+-------------------------------------------------------------------------------
+packages/db/src/index.ts exportaba `Prisma` solo como *type*
+("export type {Prisma}"). Eso rompe en runtime cualquier uso de las clases
+de error de Prisma (ej. `Prisma.PrismaClientKnownRequestError`, usado en
+errorHandler.ts para distinguir P2002/P2025). Se cambió a
+`export { Prisma } from './generated/prisma/client.js'` (namespace, exporta
+valor + tipo). Requiere rebuild (paso 2 arriba).
+
+===============================================================================
+INFRAESTRUCTURA BASE — COMPLETA
+===============================================================================
+[x] apps/backend/src/types/express.d.ts
+      Augmentation de Express.Request: req.user (AccessTokenPayload),
+      req.validated (body/params/query ya parseados por zod).
+
+[x] apps/backend/src/lib/auth/jwt.ts
+      sign/verify de accessToken, refreshToken y tempToken (2FA).
+      El accessToken viaja en `Authorization: Bearer <token>` (sección 0.1
+      del contrato), NO en cookie (a diferencia de UNJ).
+
+[x] apps/backend/src/lib/auth/password.ts
+      hashPassword/comparePassword con bcrypt (10 salt rounds).
+
+[x] apps/backend/src/lib/auth/totp.ts
+      TOTP (RFC 6238) implementado a mano (HMAC-SHA1, 6 dígitos, ventana
+      ±30s) porque no hay otplib/speakeasy instalado en el monorepo.
+      Cubre RF-01 "doble factor de autenticación".
+
+[x] apps/backend/src/lib/common/ApiError.ts
+      Clase de error runtime. Mapea 1:1 ApiErrorCode -> status HTTP según
+      la tabla de la sección 18 del contrato. Helpers estáticos:
+      ApiError.validation/unauthorized/forbidden/notFound/conflict/internal.
+
+[x] apps/backend/src/lib/common/response.ts
+      ok(data), normalizePagination(query), paginate(items,total,pagination)
+      -> construyen ApiSuccessResponse<T> y PaginatedResponse<T> tal cual el
+      contrato (sección 0.1).
+
+[x] apps/backend/src/lib/common/schemas.ts
+      Schemas zod reutilizables: PaginationQuerySchema, IdParamSchema,
+      CasePrioritySchema.
+
+[x] apps/backend/src/middlewares/
+      validateJwt.ts   -> exige Authorization: Bearer, decodifica a req.user
+      validateReq.ts   -> valida body/query/params contra un schema zod
+      validateRole.ts  -> RBAC simple por UserRole (debe ir después de
+                          validateJwt)
+      index.middlewares.ts (barrel, alias "#backend/middlewares")
+
+[x] apps/backend/src/handlers/errorHandler.ts
+      Traduce ApiError, ZodError y Prisma.PrismaClientKnownRequestError
+      (P2002 duplicado -> 409, P2025 no encontrado -> 404) al envoltorio
+      ApiErrorResponse. Cualquier otro error -> 500 INTERNAL_ERROR.
+      Express 5 reenvía solo los rechazos de handlers async, no hace falta
+      envolver cada controller en try/catch.
+
+[x] apps/backend/src/api.router.ts
+      Router raíz. Monta auth/users/roles/catalogs/institutions. Tiene un
+      TODO explícito con los routers que faltan por montar.
+
+[x] apps/backend/src/app.ts (reescrito)
+      Monta apiRouter bajo "/api/v1" (antes no montaba nada), errorHandler
+      al final, catch-all SPA para el frontend.
+
+[x] apps/backend/src/index.ts (NUEVO — no existía)
+      Carga .env de la raíz del monorepo y hace app.listen(PORT).
+      Antes no había ningún entrypoint que iniciara el servidor.
+
+[x] apps/backend/src/seeders/roles.seeder.ts (NUEVO)
+      Upsert de los 5 roles. Correr con `pnpm --filter @reto/backend
+      seed:roles`.
+
+[x] apps/backend/tsconfig.json — agregado alias "#backend/middlewares"
+[x] apps/backend/package.json — scripts dev/build/start/seed:roles +
+      deps tsx, nodemon, zod, @types/bcrypt
+[x] packages/db/package.json, packages/shared/package.json — script "build"
+[x] package.json (raíz) — scripts build:db/build:shared/build:packages/
+      dev:backend
+[x] .env, env-example.txt — PORT, CORS_ORIGIN, JWT_* 
+
+===============================================================================
+MÓDULOS DE NEGOCIO
+===============================================================================
+
+[x] person (apps/backend/src/modules/person/)
+      person.model.ts, person.service.ts
+      Búsqueda por id/email/cédula (incl. con User+Role para auth),
+      creación transaccional (recibe `tx` opcional), update, y
+      assertIsNew(cedula,email) para validar duplicados en el registro.
+      No expone endpoints propios (es consumido por auth/users/institutions).
+
+[x] auth — RF-01 (sección 1 del contrato) — COMPLETO
+      auth.model.ts, auth.service.ts, auth.controller.ts, auth.router.ts,
+      auth.schemas.ts
+      Endpoints:
+        POST /auth/login             (público)
+        POST /auth/refresh           (público)
+        POST /auth/password/forgot   (público)
+        POST /auth/password/reset    (público)
+        POST /auth/2fa/verify        (público, requiere tempToken)
+        POST /auth/logout            (autenticado)
+        POST /auth/password/change   (autenticado)
+        POST /auth/2fa/enable        (autenticado)
+      Notas / decisiones tomadas por ambigüedad del contrato:
+      - LoginResponse.accessToken/refreshToken NO son opcionales en
+        @reto/shared/auth.ts pese a que el @remarks de esa misma interfaz
+        dice que deben ir ausentes cuando requiresTwoFactor=true. Se
+        devuelven como string vacío en ese caso para no romper el tipo.
+        (revisar si conviene marcar esos campos `?` en el contrato)
+      - `usuario` del login acepta email O cédula (se prueban ambos).
+      - POST /auth/2fa/enable genera y activa el secret inmediatamente
+        (no hay un paso de "confirmar setup" separado en el contrato).
+      - POST /auth/logout es best-effort: los tokens son JWT sin estado
+        (no existe tabla de sesiones/refresh-tokens vigentes en el schema),
+        por lo que NO se pueden invalidar de verdad server-side todavía.
+        TODO: agregar tabla `RefreshToken` (o usar Redis) si se necesita
+        revocación real.
+      - POST /auth/password/forgot no envía email de verdad (no hay
+        proveedor de correo en el monorepo): el token se loguea por
+        consola. TODO: integrar un proveedor (Resend/Nodemailer/SES...).
+
+[x] users + roles — RF-02 / RNF-02 (sección 2 del contrato) — COMPLETO
+      modules/users/{users.model,users.service,users.controller,
+        users.router,users.schemas}.ts
+      modules/roles/{roles.model,roles.service,roles.controller,
+        roles.router}.ts
+      Endpoints:
+        GET    /users              (ADMIN)
+        GET    /users/:id          (ADMIN o el propio usuario)
+        POST   /users/register     (público)
+        PATCH  /users/:id          (ADMIN o el propio usuario)
+        PATCH  /users/:id/status   (ADMIN)
+        DELETE /users/:id          (ADMIN, soft delete vía isActive=false)
+        GET    /roles              (ADMIN)
+      Notas:
+      - UpdateUserStatusRequest.motivoRechazo no tiene columna en el
+        schema de Prisma (User no tiene ese campo). Se resolvió creando
+        una Notification (title/message) para el usuario en vez de
+        perder el dato — así además queda visible vía el futuro
+        GET /notifications (sección 16).
+      - "propio usuario" se resuelve comparando req.user.userId contra
+        el :id de la ruta dentro del controller (no es expresable con un
+        middleware genérico de rol).
+
+[x] catalogs — sección 3 (parcial) y sección 17 del contrato — COMPLETO
+      modules/catalogs/{catalogs.model,catalogs.service,catalogs.controller,
+        catalogs.router,catalogs.schemas}.ts
+      Endpoints (todos solo requieren estar autenticado):
+        GET /catalogs/provinces
+        GET /catalogs/municipalities?provinceId=
+        GET /catalogs/health-areas
+        GET /catalogs/categories
+        GET /catalogs/categories/:id/subcategories
+        GET /catalogs/foods?categoryId=
+      Nota: son catálogos de solo lectura; faltan poblarlos con datos reales
+      (provincias/municipios de RD, categorías de alimentos, matriz de
+      riesgo). No se generó data ficticia para no inventar el contenido de
+      negocio real. TODO: seeder de catálogos con datos oficiales.
+
+[x] institutions — RF-03 (sección 3 del contrato) — COMPLETO
+      modules/institutions/{institutions.model,institutions.service,
+        institutions.controller,institutions.router,institutions.schemas}.ts
+      Endpoints:
+        GET    /institutions                       (ADMIN, COORDINADOR)
+        GET    /institutions/:id                    (ver nota de acceso)
+        GET    /institutions/:id/history             (ver nota de acceso)
+        GET    /institutions/:id/evaluations          (ver nota de acceso)
+        POST   /institutions                        (ADMIN_EMPRESA)
+        PATCH  /institutions/:id                    (ADMIN_EMPRESA dueño, o ADMIN)
+        POST   /institutions/:id/representatives     (ADMIN_EMPRESA dueño)
+        PATCH  /representatives/:id                  (ADMIN_EMPRESA dueño)
+        DELETE /representatives/:id                  (ADMIN_EMPRESA dueño)
+      Notas / decisiones:
+      - "Todos los roles con acceso a la empresa" (contrato) se implementó
+        en institutionsService.assertAccess(): ADMIN/COORDINADOR/
+        TECNICO_EVALUADOR tienen lectura general; ADMIN_EMPRESA/
+        USUARIO_DELEGADO solo si su Person es la Propietary o un Represent
+        de esa institución. Se aplicó también a PATCH de institución y a
+        PATCH/DELETE de representantes (verificando el institutionId real
+        del represent, no solo el rol del token).
+      - CreateInstitutionRequest no trae `propietaryId` (Prisma lo exige):
+        se resuelve buscando/creando el Propietary del Person que hace el
+        POST (institutionsModel.findOrCreatePropietary).
+      - GET .../history y .../evaluations se implementaron con consultas
+        Prisma directas (Case, Evaluation, SaPermit) en vez de depender de
+        los módulos "cases"/"evaluations" (todavía no existen) — cuando se
+        construyan esos módulos, sería razonable mover esa lógica a sus
+        services y que institutions solo los consuma.
+
+[x] attachments — sección 17 (genérico) del contrato — COMPLETO
+      modules/attachments/{attachments.model,attachments.service,
+        attachments.controller,attachments.router,attachments.schemas}.ts
+      lib/upload/upload.ts (config. multer, disco local en apps/backend/uploads,
+        servido estático en /uploads desde app.ts)
+      Endpoints:
+        POST   /attachments      (autenticado) multipart/form-data: file + category
+        GET    /attachments/:id  (dueño del adjunto o ADMIN)
+        DELETE /attachments/:id  (dueño del adjunto o ADMIN)
+      Notas / decisiones:
+      - Requiere `multer` (agregado a package.json en esta sesión — correr
+        `pnpm install` de nuevo, ver aviso al inicio de este archivo).
+      - Sin proveedor cloud (S3/GCS): los archivos quedan en disco local
+        (apps/backend/uploads/). Esto NO escala a múltiples instancias del
+        backend ni sobrevive a un redeploy sin volumen persistente. TODO
+        antes de producción: mover a un storage externo.
+      - "Con acceso a la entidad dueña" (contrato) se simplificó a "el que
+        subió el archivo, o ADMIN", porque los módulos dueños reales
+        (bpm-requests ya existe; evidences/reports todavía no) no estaban
+        todos disponibles para delegarles la validación fina. TODO: cuando
+        existan evidences/reports, cada uno debería poder autorizar acceso
+        a sus propios adjuntos (ej. el técnico asignado a la evaluación
+        dueña de una evidencia).
+
+[x] bpm-requests — RF-05 (sección 5 del contrato) — COMPLETO
+      modules/bpm-requests/{bpm-requests.model,bpm-requests.service,
+        bpm-requests.controller,bpm-requests.router,bpm-requests.schemas}.ts
+      Endpoints:
+        GET  /bpm-requests                  (ADMIN_EMPRESA/USUARIO_DELEGADO ven
+                                              solo las suyas; COORDINADOR/ADMIN ven todas)
+        GET  /bpm-requests/:id               (autor, o COORDINADOR/ADMIN)
+        POST /bpm-requests                  (ADMIN_EMPRESA, USUARIO_DELEGADO)
+        PATCH /bpm-requests/:id              (autor, solo mientras status=BORRADOR)
+        POST /bpm-requests/:id/attachments   (autor; multipart, crea Attachment
+                                              category=DOCUMENTACION_OBLIGATORIA)
+        POST /bpm-requests/:id/submit        (autor, solo si BORRADOR)
+      Notas:
+      - submit() corre en una transacción Prisma: pasa status a
+        PENDIENTE_ASIGNACION, setea sentAt, y crea el Case
+        (origin=SOLICITUD_EMPRESA, bpmRequestId=<esta solicitud>) en el
+        mismo commit — así no puede quedar una solicitud "enviada" sin su
+        caso asociado si algo falla a mitad de camino.
+      - GET /bpm-requests para ADMIN_EMPRESA/USUARIO_DELEGADO filtra por
+        `createdById` (no hay en el schema un vínculo directo User<->
+        Institution aparte de Propietary/Represent, así que "mis
+        solicitudes" = las que yo creé, no "las de mi empresa" en general).
+
+[x] cases — RF-06, RF-19 (sección 6 del contrato) — COMPLETO (con 1 stub)
+      modules/cases/{cases.model,cases.service,cases.controller,
+        cases.router,cases.schemas}.ts
+      Endpoints:
+        GET   /cases                 (COORDINADOR, ADMIN)
+        GET   /cases/:id              (COORDINADOR/ADMIN, o el técnico asignado)
+        POST  /cases                 (COORDINADOR) origin=PROGRAMACION_INSTITUCIONAL
+        PATCH /cases/:id/priority     (COORDINADOR)
+        POST  /cases/:id/close        (COORDINADOR) RF-19
+        GET   /cases/:id/close/pdf    (COORDINADOR/ADMIN, o ADMIN_EMPRESA dueño
+                                       de la institución del caso)
+      Notas / decisiones:
+      - CreateInstitutionalCaseRequest.motivo NO tiene columna en el modelo
+        `Case` de Prisma (Case solo tiene `resultadoFinal`, para el cierre).
+        El contrato dice que ese motivo "se usa además para crear el
+        Evaluation.reason inicial", pero programar una Evaluation requiere
+        technicianId+scheduledDate que este endpoint no recibe. Se valida
+        el campo pero POR AHORA NO SE PERSISTE. TODO: agregar columna
+        `Case.motivoApertura` en una migración, o pasarlo explícitamente
+        al crear la Evaluation después.
+      - ⚠️ STUB: POST /cases/:id/close con emitirInforme=true NO genera un
+        PDF real (no hay pdfkit/puppeteer instalado). Genera un .txt plano
+        con el resumen del cierre y lo guarda como Attachment
+        (category=INFORME_OFICIAL_PDF) para que el flujo end-to-end
+        funcione (incluyendo GET /cases/:id/close/pdf, que hace redirect a
+        ese archivo). TODO: reemplazar `renderClosingSummary()` en
+        cases.service.ts por un PDF real cuando se agregue una librería.
+
+[x] assignments — RF-10 (sección 10 del contrato) — COMPLETO
+      modules/assignments/{assignments.model,assignments.service,
+        assignments.controller,assignments.router,assignments.schemas}.ts
+      Endpoints (todos COORDINADOR/ADMIN):
+        GET  /cases/:id/assignments  historial completo
+        POST /cases/:id/assign       falla con 409 si el caso ya tiene técnico
+        POST /cases/:id/reassign     preserva historial, isReassignment=true
+      Nota: assign()/reassign() actualizan `Case.technicianId` y
+      `Case.status='ASIGNADO'` en la misma transacción que crea el
+      Assignment (igual patrón que bpm-requests.submit).
+
+[x] evaluations — RF-07, RF-11 (sección 7 del contrato) — COMPLETO
+      modules/evaluations/{evaluations.model,evaluations.service,
+        evaluations.controller,evaluations.router,evaluations.schemas}.ts
+      Endpoints:
+        GET   /evaluations                 (COORDINADOR/ADMIN todas;
+                                            TECNICO_EVALUADOR solo las suyas)
+        GET   /evaluations/:id              (COORDINADOR/ADMIN, o el técnico asignado)
+        POST  /evaluations                 (COORDINADOR) programa sobre un Case
+                                            existente y pasa Case.status a EN_EVALUACION
+        PATCH /evaluations/:id/reschedule   (COORDINADOR) -> status REPROGRAMADA
+        POST  /evaluations/:id/cancel       (COORDINADOR)
+        GET   /evaluations/calendar         (TECNICO_EVALUADOR, RF-11)
+      Notas:
+      - GET /evaluations/calendar: el parámetro `view` (day/week/month) se
+        valida pero NO cambia el query en el backend; el filtrado real es
+        siempre por el rango `from`/`to` que manda el cliente. `view` queda
+        como información para que el FRONTEND decida cómo agrupar/pintar
+        esos mismos resultados. Documentar si se espera comportamiento
+        distinto en el backend.
+      - El router registra "/evaluations/calendar" ANTES que
+        "/evaluations/:id" (si no, Express matchearia "calendar" como :id).
+
+[x] risk-engine — RF-14 (sección 12 del contrato) — COMPLETO (con 1 asunción de negocio)
+      modules/risk-engine/{risk-engine.model,risk-engine.service,
+        risk-engine.controller,risk-engine.router,risk-engine.schemas}.ts
+      seeders/risk-rules.seeder.ts (3 reglas por defecto, correr con
+        `pnpm --filter @reto/backend seed:risk-rules`)
+      Endpoints:
+        GET   /evaluations/:id/score              (con acceso a la evaluación)
+        GET   /catalogs/risk-frequency-rules        (ADMIN)
+        PATCH /catalogs/risk-frequency-rules/:id    (ADMIN)
+      ⚠️ ASUNCIÓN DE NEGOCIO IMPORTANTE: el contrato define el *rango de
+      salida* de la matriz (minScore/maxScore -> nivel/frecuencia) pero NO
+      la fórmula para llegar al puntaje a partir de las respuestas
+      C/CP/IT/N/A/NC. Se implementó (documentado con detalle en
+      risk-engine.service.ts):
+        peso por respuesta: C=0, CP=1, IT=2, NC=3 (N/A se excluye)
+        puntajeObtenido = (Σ pesos / respuestas aplicables) * (10/3)  [escala 0-10]
+        porcentajeCumplimiento = (cantidad "C" / respuestas aplicables) * 100
+      TODO: reemplazar por la fórmula oficial de la Matriz_Riesgo_Alimentos
+      cuando esté disponible (no forma parte de este repo).
+      El cálculo NO se expone por API directamente: se dispara internamente
+      desde form-execution.service.ts al finalizar una evaluación.
+
+[x] reports — RF-16, RF-17, RF-18 (sección 14 del contrato) — COMPLETO (con 1 asunción)
+      modules/reports/{reports.model,reports.service,reports.controller,
+        reports.router,reports.schemas}.ts
+      Endpoints:
+        GET  /evaluations/:id/report   (con acceso a la evaluación) —
+                                        autogenerado al finalizar (ver form-execution)
+        POST /reports/:id/submit       (técnico dueño) BORRADOR/EN_CORRECCION -> ENVIADO, locked=true
+        POST /reports/:id/review       (COORDINADOR/ADMIN) crea ReportReview +
+                                        transiciona status según action:
+                                          APROBAR -> APROBADO (locked=true)
+                                          DEVOLVER -> DEVUELTO (locked=false)
+                                          SOLICITAR_CORRECCION -> EN_CORRECCION (locked=false)
+        GET  /reports/:id/reviews      (con acceso) historial
+        POST /reports/:id/correct      (técnico dueño, solo si locked=false)
+                                        incrementa `version`
+        POST /reports/:id/resend       (técnico dueño) EN_CORRECCION/DEVUELTO -> ENVIADO, locked=true
+      ⚠️ ASUNCIÓN DE NEGOCIO: el contrato no especifica la redacción del
+      informe autogenerado. `buildAutoGeneratedContent()` en
+      reports.service.ts arma resumenEjecutivo/hallazgos/noConformidades/
+      recomendaciones a partir de las respuestas NC/CP y el nivel de riesgo
+      calculado. Es funcional pero debería revisarse contra la redacción
+      oficial esperada del informe BPM.
+
+[x] form-execution — RF-12, RF-13 (sección 11 del contrato) — COMPLETO (con 1 gap de contrato)
+      modules/form-execution/{form-templates.model,form-execution.model,
+        form-execution.service,form-execution.controller,
+        form-execution.router,form-execution.schemas}.ts
+      Endpoints:
+        GET   /form-templates              (autenticado) lista plantillas
+        GET   /form-templates/:id/tree      (autenticado) árbol h1->h2->h3->h4
+        POST  /evaluations/:id/start        (técnico asignado, solo si
+                                             PROGRAMADA/REPROGRAMADA)
+        PATCH /evaluations/:id/answers      (técnico asignado, solo si EN_PROCESO
+                                             y el EvaluationReport no está locked)
+        POST  /evaluations/:id/finish       (técnico asignado, solo si EN_PROCESO
+                                             y con >=1 respuesta) -> dispara
+                                             risk-engine + reports.autoGenerate
+                                             en la misma llamada
+      ⚠️ GAP DE CONTRATO: `@reto/shared/formExecution.ts` NO define un tipo
+      `StartEvaluationRequest`, pero `FormResponse` (tabla ya existente en
+      el schema) exige `representId` y `foodId` obligatorios además de la
+      plantilla. Se infirió que POST /evaluations/:id/start recibe esos 2
+      campos (ver StartEvaluationSchema). TODO: confirmar con el equipo de
+      producto y agregar el tipo formal a @reto/shared si corresponde.
+      Nota: usa la plantilla `active: true` más reciente automáticamente
+      (no se pide formTemplateId en el body).
+
+===============================================================================
+SESIÓN 4 — revisión de lo ya hecho + cierre de las 6 secciones pendientes
+===============================================================================
+Antes de escribir código nuevo se revisó el árbol de apps/backend/src/modules
+completo contra este archivo (el usuario avisó que había avances no
+marcados). Resultado: 5 de los 6 módulos listados como "no empezado" ya
+estaban COMPLETOS en disco (código funcional, siguiendo el patrón del
+proyecto), solo NO estaban:
+  a) marcados en esta bitácora, y
+  b) el router de `dashboard` no estaba montado en api.router.ts (el de
+     lapch-alerts/complaints/evidences/notifications sí lo estaba).
+`history` era el único realmente incompleto: existían history.model.ts y
+history.service.ts (lógica ya escrita), pero faltaban history.controller.ts,
+history.router.ts y history.schemas.ts (la capa HTTP), y por lo tanto
+tampoco estaba montado.
+
+Cambios hechos esta sesión:
+[x] apps/backend/src/modules/history/history.schemas.ts (NUEVO)
+      HistorySearchQuerySchema (zod) = PaginationQuerySchema.extend con
+      institutionId/bpmRequestId/evaluationId/fechaDesde/fechaHasta/status/
+      entityType, 1:1 con `HistorySearchQuery` de @reto/shared/history.ts.
+[x] apps/backend/src/modules/history/history.controller.ts (NUEVO)
+      historyController.search: lee req.user (personId, role) y llama a
+      historyService.search(query, {personId, role}) ya existente.
+[x] apps/backend/src/modules/history/history.router.ts (NUEVO)
+      GET /history/search — validateJwt + validateRole('COORDINADOR',
+      'ADMIN', 'ADMIN_EMPRESA'); el recorte a "solo mi empresa" para
+      ADMIN_EMPRESA ya lo resuelve history.service.ts internamente
+      (dashboardModel.getOwnedInstitutionIds), no es expresable con
+      validateRole.
+[x] apps/backend/src/api.router.ts — se agregó el import y
+      apiRouter.use(...) de dashboardRouter y de historyRouter (quitado el
+      TODO final, ya no queda ningún router sin montar).
+
+===============================================================================
+MÓDULOS QUE YA ESTABAN COMPLETOS (verificado esta sesión, solo faltaba
+marcarlos aquí — código sin cambios)
+===============================================================================
+[x] dashboard — RF-04 (sección 4 del contrato) — COMPLETO
+      modules/dashboard/{dashboard.model,dashboard.service,
+        dashboard.controller,dashboard.router}.ts
+      Endpoints:
+        GET /dashboard/empresa       (ADMIN_EMPRESA, USUARIO_DELEGADO)
+        GET /dashboard/coordinador   (COORDINADOR, ADMIN)
+        GET /dashboard/tecnico       (TECNICO_EVALUADOR)
+      Nota: agregador de solo lectura sobre BpmRequest/Evaluation/
+      Notification/Case/LapchAlert/Complaint; no tiene tabla propia. Router
+      ya existía pero NO estaba montado en api.router.ts (corregido esta
+      sesión).
+
+[x] lapch-alerts — RF-08 (sección 8 del contrato) — COMPLETO
+      modules/lapch-alerts/{...}.ts
+      Endpoints (todos COORDINADOR/ADMIN):
+        GET   /lapch-alerts
+        GET   /lapch-alerts/:id
+        POST  /lapch-alerts
+        PATCH /lapch-alerts/:id/resultado
+        POST  /lapch-alerts/:id/generate-case  (solo si resultado=PROCEDE,
+                                                 crea Case origin=ALERTA_LAPCH)
+        POST  /lapch-alerts/:id/close
+      ⚠️ GAP DE CONTRATO (ya documentado en el código): `LapchAlert` no
+      tiene columna de estado "cerrado"/`closedAt` en el schema de Prisma,
+      así que /close no persiste nada nuevo: solo valida que ya tenga un
+      `resultado` y devuelve la alerta. TODO: agregar `LapchAlert.closedAt`
+      si se necesita distinguir "resuelta" de "cerrada".
+
+[x] complaints — RF-09 (sección 9 del contrato) — COMPLETO
+      modules/complaints/{...}.ts
+      Endpoints:
+        GET   /complaints                    (COORDINADOR, ADMIN)
+        GET   /complaints/:id                (COORDINADOR, ADMIN)
+        POST  /complaints                    (PÚBLICO — formulario de
+                                              denuncia ciudadana)
+        PATCH /complaints/:id/resultado      (COORDINADOR)
+        POST  /complaints/:id/generate-case  (COORDINADOR; requiere
+                                              resultado=PROCEDE e
+                                              institutionId presente)
+
+[x] evidences — RF-15 (sección 13 del contrato) — COMPLETO
+      modules/evidences/{...}.ts, reusa lib/upload/upload.ts (multer)
+      Endpoints:
+        GET    /evaluations/:id/evidences  (con acceso a la evaluación)
+        POST   /evaluations/:id/evidences  (TECNICO_EVALUADOR asignado,
+                                            multipart/form-data; rechaza si
+                                            la evaluación está FINALIZADA/
+                                            CANCELADA)
+        DELETE /evidences/:id              (técnico asignado o ADMIN;
+                                            borra el registro y el archivo
+                                            en disco)
+
+[x] notifications — soporte a RF-04 (sección 16 del contrato) — COMPLETO
+      modules/notifications/{...}.ts
+      Endpoints (todos autenticado, solo sobre las propias):
+        GET   /notifications             (filtro opcional `read`)
+        PATCH /notifications/:id/read
+        PATCH /notifications/read-all
+
+[x] history — RF-20 (sección 15 del contrato) — COMPLETO (esta sesión se
+      terminó la capa HTTP; la lógica ya existía)
+      modules/history/{history.model,history.service,history.controller,
+        history.router,history.schemas}.ts
+      Endpoints:
+        GET /history/search   (COORDINADOR, ADMIN, ADMIN_EMPRESA limitado a
+                                su propia empresa)
+      Notas:
+      - Busca sobre Case | Evaluation | BpmRequest según `entityType`; sin
+        `entityType` combina las 3 y pagina EN MEMORIA (no hay UNION nativo
+        simple vía Prisma entre 3 tablas distintas). TODO si el volumen
+        crece: vista materializada o `prisma.$queryRaw` con UNION SQL.
+      - Para ADMIN_EMPRESA, el scope a "su empresa" se resuelve reusando
+        dashboardModel.getOwnedInstitutionIds(personId) (mismo criterio de
+        "dueño o representante" que en institutions/dashboard).
+
+===============================================================================
+ESTADO FINAL: LAS 19 SECCIONES DEL CONTRATO (documentos/API_CONTRACTS.md)
+ESTÁN IMPLEMENTADAS. No queda ningún router sin montar en api.router.ts.
+===============================================================================
+Pendientes reales que quedan (no son endpoints faltantes, son TODOs de
+negocio/infra ya señalados en el código y en sesiones anteriores):
+  - risk-engine: fórmula de puntaje es una asunción propia (no hay fórmula
+    oficial de la Matriz_Riesgo_Alimentos en el repo).
+  - cases: cierre con emitirInforme=true genera un .txt, no un PDF real
+    (no hay pdfkit/puppeteer instalado).
+  - cases: Case.motivoApertura no tiene columna en Prisma, no se persiste.
+  - lapch-alerts: falta columna `closedAt` si se quiere distinguir
+    "resuelta" de "cerrada".
+  - attachments/evidences: almacenamiento en disco local, no en un storage
+    externo (S3/GCS) — no escala a múltiples instancias.
+  - auth: logout es best-effort (JWT sin estado, no hay tabla de sesiones/
+    refresh tokens revocables); forgot-password loguea el token por
+    consola en vez de enviar un correo real.
+  - catalogs: faltan poblarse con datos reales (provincias/municipios RD,
+    categorías/alimentos, matriz de riesgo oficial) — no se generó data
+    ficticia de negocio.
+  - form-execution: `StartEvaluationRequest` (representId + foodId) es una
+    inferencia propia porque @reto/shared/formExecution.ts no lo define
+    formalmente todavía.
+
+Recordatorio de pasos manuales (siguen vigentes, ver el bloque al inicio
+de este archivo): pnpm install → pnpm build:packages → seed:roles →
+seed:risk-rules → pnpm dev:backend. No hay nada nuevo que instalar esta
+sesión (history no agrega dependencias).
+
+===============================================================================
+SESIÓN 5 — SEEDERS DE DATA DE PRUEBA (apps/backend/src/lib/seeders/)
+===============================================================================
+Se creó un seeder por entidad para poder probar el API de punta a punta, en
+la carpeta pedida: apps/backend/src/lib/seeders/. Estructura de CADA archivo:
+la DATA arriba (constante exportable, fácil de editar) y debajo la función
+`seedX()` que hace el trabajo con Prisma.
+
+[x] lib/seeders/seed.utils.ts
+      logSeed() (log uniforme), required() (error claro si falta una
+      dependencia del orden), daysFromNow() (fechas relativas a hoy).
+
+[x] lib/seeders/index.ts — ORQUESTADOR
+      Arreglo STEPS con los 28 seeders EN ORDEN DE DEPENDENCIA, agrupado en
+      9 bloques (catálogos -> identidad -> empresas -> plantilla -> orígenes
+      de caso -> casos -> evaluaciones -> resultados -> transversales).
+      Si un seeder falla, imprime cuál fue y aborta. Al final imprime la
+      contraseña y los emails de prueba.
+      Correr con: pnpm seed   (o pnpm --filter @reto/backend seed)
+
+Seeders creados (1 por entidad, en el orden en que los corre el orquestador):
+  1. roles.seeder.ts                 role
+  2. risk-rules.seeder.ts            risk_frequency_rule
+  3. provinces.seeder.ts             province
+  4. municipalities.seeder.ts        municipality
+  5. health-areas.seeder.ts          health_area
+  6. categories.seeder.ts            category
+  7. sub-categories.seeder.ts        sub_category
+  8. foods.seeder.ts                 food
+  9. persons.seeder.ts               person
+ 10. users.seeder.ts                 user
+ 11. propietaries.seeder.ts          propietary
+ 12. institutions.seeder.ts          institution
+ 13. represents.seeder.ts            represent
+ 14. form-templates.seeder.ts        form_template + h1..h4 + *_ask
+ 15. bpm-requests.seeder.ts          bpm_request
+ 16. lapch-alerts.seeder.ts          lapch_alert
+ 17. complaints.seeder.ts            complaint
+ 18. cases.seeder.ts                 case
+ 19. assignments.seeder.ts           assignment
+ 20. evaluations.seeder.ts           evaluation
+ 21. form-responses.seeder.ts        form_response (+ enlaza Evaluation)
+ 22. evaluation-scores.seeder.ts     evaluation_score
+ 23. evidences.seeder.ts             evidence
+ 24. evaluation-reports.seeder.ts    evaluation_report
+ 25. report-reviews.seeder.ts        report_review
+ 26. attachments.seeder.ts           attachment
+ 27. notifications.seeder.ts         notification
+ 28. institution-status.seeder.ts    institution_status + _question
+ 29. sa-permits.seeder.ts            sa_permit
+
+DECISIONES / NOTAS:
+- IDEMPOTENCIA: casi ninguna tabla tiene un @unique natural, así que cada
+  seeder busca primero por una "clave natural" (cedula, rnc, name,
+  numeroAlerta, reason, fileUrl...) antes de crear. Se puede correr N veces
+  sin duplicar. La clave natural usada está documentada en el encabezado de
+  cada archivo.
+- Las FKs NO se hardcodean por id (son autoincrement): cada seeder resuelve
+  sus dependencias por la clave natural del padre. Por eso el orden del
+  orquestador importa, y por eso required() explica qué seeder falta correr
+  si algo no aparece.
+- `evaluation.reason` se usa como identificador de las evaluaciones
+  sembradas (constante EVAL_REASONS exportada desde evaluations.seeder.ts);
+  los seeders de scores/evidencias/informes la importan en vez de repetir
+  strings sueltos.
+- form-templates.seeder.ts siembra el ÁRBOL COMPLETO (template + h1..h4 +
+  asks) en un solo archivo a propósito: los niveles no existen fuera de su
+  padre (FK obligatoria) y separarlos obligaría a re-resolver el padre por
+  nombre en cada archivo, que es más frágil.
+- form-responses.seeder.ts NO inventa respuesta por respuesta: lee las
+  preguntas REALES de la plantilla activa (h3_ask/h4_ask) y les aplica un
+  patrón cíclico de valores C/CP/IT/NC/N-A, en el formato "h3_ask:<id>" que
+  espera form-execution.service.ts. Una ficha queda mayormente conforme y
+  otra con no conformidades, para que el motor de riesgo dé niveles
+  distintos.
+- COBERTURA DE ESTADOS: se sembraron deliberadamente filas en todos los
+  estados relevantes para poder probar cada rama del API —
+  usuario PENDIENTE_VALIDACION (probar PATCH /users/:id/status),
+  BpmRequest en BORRADOR/PENDIENTE_ASIGNACION/EN_REVISION,
+  LapchAlert con resultado null/PROCEDE/NO_PROCEDE,
+  Complaint SIN institución (para ver el 400 de generate-case),
+  Case ABIERTO sin técnico (probar /assign) y Case CERRADO (historial),
+  Evaluation en los 5 estados del enum,
+  EvaluationReport APROBADO(locked) y EN_CORRECCION(editable),
+  Notification leídas y no leídas.
+
+⚠️ ADVERTENCIAS:
+- SOLO PARA DESARROLLO. Todos los usuarios comparten la contraseña
+  'Password123!' (constante SEED_PASSWORD en users.seeder.ts, hasheada con
+  bcrypt). NO correr contra producción.
+- Los `fileUrl` de attachments y evidences apuntan a archivos que NO existen
+  en disco (el seeder no sube archivos). Sirven para probar metadatos
+  (GET/DELETE); para probar descarga real hay que subir vía POST multipart.
+- La data de catálogos (provincias/municipios/categorías/alimentos y los
+  niveles `risk` de sub_category) es un set de TRABAJO, no el oficial:
+  Matriz_Riesgo_Alimentos.xlsx y el listado oficial de la ONE no están en el
+  repo. Reemplazar antes de producción.
+- Los seeders viejos en apps/backend/src/seeders/ (roles y risk-rules) se
+  dejaron intactos para no romper los scripts seed:roles / seed:risk-rules
+  ya documentados arriba. Sus equivalentes en lib/seeders/ hacen lo mismo y
+  son los que corre el orquestador; si se quiere, se pueden borrar los
+  viejos y sus scripts.
+
+[x] apps/backend/package.json — nuevo script "seed"
+[x] package.json (raíz)      — nuevo script "seed"
+
+Orden completo para levantar el entorno desde cero:
+  pnpm install
+  pnpm build:packages
+  (aplicar migraciones de packages/db contra la BD)
+  pnpm seed
+  pnpm dev:backend
+
+===============================================================================
+FIN DE LA BITÁCORA (actualizar en cada sesión de trabajo)
+===============================================================================

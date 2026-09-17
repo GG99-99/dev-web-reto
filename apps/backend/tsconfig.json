@@ -8,8 +8,10 @@
     "outDir": "dist",
     "rootDir": "src",
     "paths": {
-      "@/*": ["./src/*"]
-    }
+      "@/*": ["./src/*"],
+      "#backend/middlewares": ["./src/middlewares/index.middlewares.ts"]
+    },
+    "lib": ["ESNext", "DOM"],
   },
   
   "include": ["src"],

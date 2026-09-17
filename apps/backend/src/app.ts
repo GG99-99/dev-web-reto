@@ -1,12 +1,12 @@
-import express, { type Request, type Response, type NextFunction, type Express } from 'express'
+import express, { type Request, type Response, type Express } from 'express'
 import cors from 'cors'
 import morgan from 'morgan'
 import dotenv from 'dotenv'
 import path from 'path'
 import { fileURLToPath } from 'url'
 
-// Rutas de la API
-// import apiRouter from './routes/index.js' // ajusta según tu estructura
+import { apiRouter } from './api.router.js'
+import { errorHandler } from './handlers/errorHandler.js'
 
 dotenv.config()
 
@@ -27,10 +27,14 @@ app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'))
 
+// Archivos subidos vía POST /attachments (multer, almacenamiento local en disco)
+app.use('/uploads', express.static(path.resolve(__dirname, '..', 'uploads')))
+
 // ==========================================
 // 2. RUTAS DE LA API
+// Base URL: /api/v1 (sección 0 de documentos/API_CONTRACTS.md)
 // ==========================================
-// app.use('/api', apiRouter)
+app.use('/api/v1', apiRouter)
 
 // ==========================================
 // 3. ARCHIVOS ESTÁTICOS (frontend)
@@ -45,10 +49,10 @@ app.use(express.static(frontendDistPath))
 app.get('/*catchall', (req: Request, res: Response) => {
     if (req.path.startsWith('/api')) {
         return res.status(404).json({
-            ok: false,
+            valid: false,
             error: {
+                code: 'NOT_FOUND',
                 message: `Ruta no encontrada: ${req.path}`,
-                statusCode: 404,
             },
         })
     }
@@ -57,17 +61,8 @@ app.get('/*catchall', (req: Request, res: Response) => {
 })
 
 // ==========================================
-// 5. MANEJO DE ERRORES GLOBAL
+// 5. MANEJO DE ERRORES GLOBAL (siempre al final)
 // ==========================================
-app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-    console.error(err.stack)
-    res.status(500).json({
-        ok: false,
-        error: {
-            message: 'Error interno del servidor',
-            statusCode: 500,
-        },
-    })
-})
+app.use(errorHandler)
 
 export default app
