@@ -1,5 +1,5 @@
 import prisma, { type Prisma } from '@reto/db';
-import type { AskAnswer } from '@reto/shared';
+import type { FormAnswers } from '@reto/shared';
 
 /**
  * form-execution.model.ts
@@ -7,10 +7,20 @@ import type { AskAnswer } from '@reto/shared';
  * Sección 11.2 de API_CONTRACTS.md (ejecución en campo: start/answers/finish).
  * Reutiliza `Evaluation` (evaluations.model.ts la usa para programación) y
  * crea/actualiza el `FormResponse` (ficha diligenciada, RF-13) asociado.
+ *
+ * `FormResponse.answers` se guarda como un ARREGLO de
+ * `{ key, txt, value }` (ver `FormAnswers`/`AskAnswer` en
+ * @reto/shared/formExecution.ts): `key` identifica la pregunta (ej.
+ * "h3_ask:123"), `txt` es su texto y `value` la respuesta.
  * ---------------------------------------------------------------------------
  */
 
 const EXECUTION_INCLUDE = { formResponse: true, evidences: true } satisfies Prisma.EvaluationInclude;
+
+/** Lee `FormResponse.answers` como `FormAnswers`, tolerando `null`/formatos viejos. */
+function readAnswers(raw: Prisma.JsonValue | null | undefined): FormAnswers {
+  return Array.isArray(raw) ? (raw as unknown as FormAnswers) : [];
+}
 
 export const formExecutionModel = {
   getExecutionDetail: async (evaluationId: number) => {
@@ -44,14 +54,19 @@ export const formExecutionModel = {
     });
   },
 
-  /** RF-13: upsert parcial por `askId` sobre el JSON `FormResponse.answers`. */
-  upsertAnswers: async (formResponseId: number, incoming: AskAnswer[]): Promise<AskAnswer[]> => {
+  /**
+   * RF-13: upsert parcial por `key` sobre el arreglo `FormResponse.answers`.
+   * Si `key` ya existe se reemplaza (nuevo `txt`/`value`); si no, se agrega.
+   */
+  upsertAnswers: async (formResponseId: number, incoming: FormAnswers): Promise<FormAnswers> => {
     const current = await prisma.formResponse.findUniqueOrThrow({ where: { formResponseId } });
-    const existing = Array.isArray(current.answers) ? (current.answers as unknown as AskAnswer[]) : [];
+    const existing = readAnswers(current.answers);
 
-    const merged = new Map(existing.map((a) => [a.askId, a]));
-    for (const answer of incoming) merged.set(answer.askId, answer);
-    const result = Array.from(merged.values());
+    const byKey = new Map(existing.map((a) => [a.key, a]));
+    for (const answer of incoming) {
+      byKey.set(answer.key, answer);
+    }
+    const result: FormAnswers = Array.from(byKey.values());
 
     await prisma.formResponse.update({
       where: { formResponseId },
@@ -69,3 +84,5 @@ export const formExecutionModel = {
     });
   },
 };
+
+export { readAnswers };

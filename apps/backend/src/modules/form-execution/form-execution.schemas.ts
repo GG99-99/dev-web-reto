@@ -7,13 +7,25 @@ export const StartEvaluationSchema = z.object({
   foodId: z.coerce.number().int().positive(),
 });
 
+/**
+ * Ver `AskValue` en @reto/shared/formExecution.ts:
+ * C = Cumple, CP = Cumple Parcialmente, NC = No Cumple, N/A = No Aplica.
+ */
+const AskValueSchema = z.enum(['C', 'CP', 'NC', 'N/A']);
+
+/**
+ * Respuesta individual: { key, txt, value }. `key` identifica la pregunta
+ * (ej. "h3_ask:123") y es lo que se usa para el upsert parcial; `txt` es el
+ * texto de la pregunta (se guarda para no depender de un join al mostrarla);
+ * `value` es la respuesta.
+ */
 const AskAnswerSchema = z.object({
-  askId: z.string().min(1),
-  value: z.enum(['C', 'CP', 'IT', 'N/A', 'NC']),
-  observaciones: z.string().optional(),
-  comentarios: z.string().optional(),
+  key: z.string().min(1),
+  txt: z.string().min(1),
+  value: AskValueSchema,
 });
 
+/** Body de `PATCH /evaluations/:id/answers`. */
 export const FormAnswersSchema = z.object({
   answers: z.array(AskAnswerSchema).min(1),
 });

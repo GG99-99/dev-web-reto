@@ -676,5 +676,287 @@ Orden completo para levantar el entorno desde cero:
   pnpm dev:backend
 
 ===============================================================================
+SESIÓN 6 — FIX: pnpm seed daba ECONNREFUSED aunque Postgres sí estaba arriba
+===============================================================================
+Síntoma: `pnpm seed` llegaba a ejecutar la primera query (roles.seeder.ts) y
+fallaba con `PrismaClientKnownRequestError ... code: 'ECONNREFUSED'`, a pesar
+de que el contenedor docker-pg (docker-pg/docker-compose.yml, puerto host
+5433 -> 5432 del contenedor) estaba corriendo.
+
+CAUSA RAÍZ (no era Postgres, era orden de carga de módulos ESM):
+`packages/db/src/client.ts` lee `process.env.DATABASE_URL` en el momento en
+que el módulo se evalúa (ahí mismo construye `new PrismaPg({ connectionString
+: process.env.DATABASE_URL! })`). El `lib/seeders/index.ts` original importaba
+todos los *.seeder.ts (y por lo tanto `@reto/db`) con IMPORTS ESTATICOS, y
+recién después llamaba (ni siquiera llamaba) a dotenv. En ESM los imports
+estáticos de un archivo se resuelven y ejecutan ANTES que el cuerpo de ese
+mismo archivo, así que aunque se hubiera puesto `dotenv.config()` al inicio
+del archivo, `@reto/db` ya se habría evaluado antes con `DATABASE_URL`
+indefinido. Con `connectionString: undefined`, el driver `pg` cae a sus
+valores por defecto (`localhost:5432`) en vez del `5433` real del contenedor
+-> nada escucha ahí -> ECONNREFUSED. `apps/backend/src/index.ts` YA evitaba
+este problema para `app.js` usando `await import('./app.js')` (import
+DINÁMICO) después de `dotenv.config()`; el orquestador de seeders no
+seguía ese mismo patrón.
+
+Además se encontró un segundo bug en el mismo archivo: `seedAll()` se
+llamaba dos veces (una dentro del bloque `if (isMain)` y otra suelta al
+final del archivo sin ninguna condición), así que cada seeder corría dos
+veces en la misma ejecución (inofensivo gracias a la idempotencia, pero
+redundante y más lento).
+
+FIX aplicado — se separó en dos archivos:
+[x] lib/seeders/seed-all.ts (NUEVO)
+      Contiene el arreglo STEPS y `export async function seedAll()`
+      (el mismo contenido de antes, sin el bloque de ejecución). Este
+      archivo importa estáticamente cada *.seeder.ts como antes — eso es
+      seguro AQUÍ porque `seed-all.ts` mismo solo se carga vía import
+      dinámico desde index.ts, nunca de forma estática.
+[x] lib/seeders/index.ts (REESCRITO, ahora mínimo)
+      1. `import dotenv/path/url` (nada que dependa de @reto/db)
+      2. `dotenv.config({ path: resolve(__dirname, '../../../../../.env') })`
+         (5 niveles: seeders -> lib -> src -> backend -> apps -> raíz)
+      3. `const { seedAll } = await import('./seed-all.js')` (DINÁMICO)
+      4. `const { default: prisma } = await import('@reto/db')` (DINÁMICO,
+         solo para el $disconnect() final)
+      5. corre seedAll() UNA sola vez y hace exit(0)/exit(1) según resultado
+      Exactamente el mismo patrón que ya usa apps/backend/src/index.ts para
+      `app.js`, documentado con un comentario largo en el propio archivo
+      para que no se repita el error si alguien vuelve a tocarlo.
+
+No se tocó ningún *.seeder.ts individual: todos ya usaban
+`import prisma from '@reto/db'` (default import), consistente con el
+`export { prisma as default }` real de packages/db/dist/index.js.
+
+Próximo paso para el usuario: volver a correr `pnpm seed` desde
+apps/backend (o `pnpm seed` desde la raíz). Si vuelve a fallar, revisar:
+  - que el contenedor realmente esté healthy: `docker ps` (mi-postgres2)
+  - que el .env en la raíz del repo tenga el DATABASE_URL correcto (puerto
+    5433, usuario miusuario, db midb2) — ya se verificó que coincide con
+    docker-pg/docker-compose.yml
+  - si Windows resuelve "localhost" a IPv6 (::1) y eso da problemas con
+    Docker Desktop, probar cambiando DATABASE_URL a 127.0.0.1 en vez de
+    localhost como siguiente sospechoso
+
+===============================================================================
+SESIÓN 7 — FormResponse.answers: de {askId, value} a {"nombre pregunta": value}
+===============================================================================
+Pedido: `FormResponse.answers` debe guardarse como un OBJETO indexado por el
+NOMBRE (texto) de la pregunta, nunca por su id — { "<pregunta>": "<valor>" }
+en vez de un arreglo [{ askId, value, observaciones }].
+
+Archivos modificados (toda la cadena que guarda/lee `answers`):
+
+[x] packages/shared/src/formExecution.ts
+      Se eliminó `AskAnswer` (askId + value + observaciones/comentarios).
+      Nuevo: `export type FormAnswers = Record<string, AskValue>`.
+      `FormAnswersPayload` ahora es `{ answers: FormAnswers }` (antes
+      `{ answers: AskAnswer[] }`). `AskValue` no cambió.
+      ⚠️ Al quitar `AskAnswer` se perdieron los campos libres
+      `observaciones`/`comentarios` por pregunta (el pedido fue únicamente
+      "nombre": valor, sin nada de texto libre adicional). Si se necesitan
+      de vuelta, hay que decidir dónde viven (¿otra columna? ¿un segundo
+      objeto paralelo?), porque ya no caben en este formato plano.
+
+[x] apps/backend/src/modules/form-execution/form-execution.schemas.ts
+      `FormAnswersSchema.answers` pasó de `z.array(AskAnswerSchema)` a
+      `z.record(z.string().min(1), z.enum(['C','CP','IT','N/A','NC']))`
+      con `.refine` para exigir al menos 1 respuesta. El body de
+      `PATCH /evaluations/:id/answers` ahora es
+      `{ "answers": { "<nombre pregunta>": "C", ... } }`.
+
+[x] apps/backend/src/modules/form-execution/form-execution.model.ts
+      - `start()`: `FormResponse.answers` se crea como `{}` (antes `[]`).
+      - `upsertAnswers()`: el merge por Map+askId se reemplazó por un
+        simple spread `{ ...existing, ...incoming }` (las claves ahora SON
+        el nombre de la pregunta, no hace falta desduplicar por id).
+      - Se agregó y exporta `readAnswers(raw)`: helper que castea el JSON
+        de Prisma a `FormAnswers` tolerando `null`/formatos viejos (por si
+        queda alguna fila con el array antiguo, no revienta, solo la trata
+        como vacía en vez de tirar el runtime).
+
+[x] apps/backend/src/modules/form-execution/form-execution.service.ts
+      `saveAnswers()` y `finish()` tipados con `FormAnswers`; `finish()` usa
+      `readAnswers(...)` en vez de `Array.isArray(...)` y valida con
+      `Object.keys(answers).length === 0`.
+
+[x] apps/backend/src/modules/risk-engine/risk-engine.service.ts
+      `computeAndPersist(evaluationId, answers: FormAnswers)`: recorre
+      `Object.values(answers)` en vez de `answers.map(a => a.value)`. La
+      fórmula de riesgo (pesos C/CP/IT/NC, ver comentario existente) NO
+      cambió, solo cómo se itera.
+
+[x] apps/backend/src/modules/reports/reports.service.ts
+      `buildAutoGeneratedContent()` ahora itera `Object.entries(ctx.answers)`
+      y usa el NOMBRE de la pregunta directamente en el texto del informe
+      ("- [NC] Las paredes son lisas..." en vez de "- [NC] h3_ask:123") —
+      el informe autogenerado queda más legible que antes. Se quitó el
+      `${a.observaciones ? ... }` (ya no existe ese campo, ver nota arriba).
+
+[x] apps/backend/src/lib/seeders/form-responses.seeder.ts
+      `collectAskIds()` (formato viejo "h3_ask:N"/"h4_ask:N") ->
+      `collectAskNames()`: ahora hace `select: { name: true }` en vez de
+      solo el id, y devuelve los textos reales de las preguntas. El objeto
+      `answers` sembrado queda `{ [nombreDePregunta]: valor }`, sin ids.
+      Aproveché para corregir de paso un desalineamiento que había quedado
+      de la sesión 5: el seeder guardaba `{ answers: [...] }` (con envoltorio)
+      pero form-execution.model.ts SIEMPRE guardó/leyó el array/objeto
+      SIN envoltorio directo en la columna `answers`. Ahora ambos coinciden:
+      `FormResponse.answers` = el objeto plano, sin envoltura `{ answers: ... }`.
+
+NOTA IMPORTANTE (riesgo de colisión de claves): como la clave del objeto es
+el TEXTO de la pregunta, dos preguntas con el mismo texto en secciones
+distintas de la plantilla se pisarían entre sí. Se documentó esta asunción
+en `FormAnswers` (shared) y en el propio seeder. En la plantilla sembrada
+por form-templates.seeder.ts no hay preguntas duplicadas, así que hoy no es
+un problema, pero si se amplía la ficha oficial hay que vigilar que los
+textos de las preguntas sigan siendo únicos (o volver a un id si eso no se
+puede garantizar).
+
+PENDIENTE PARA EL USUARIO: correr `pnpm build:packages` (el cambio en
+`packages/shared/src/formExecution.ts` es solo de tipos TypeScript, se
+borran en tiempo de compilación y no rompen nada en runtime, pero el
+`dist/*.d.ts` de `@reto/shared` sigue con la firma vieja hasta que se
+recompile, lo que puede confundir al type-checker/IDE del backend).
+Después, volver a correr `pnpm seed` (los `FormResponse` que ya existan en
+la BD con el formato viejo `[{askId,...}]` no se migran solos; si hay data
+de antes de este cambio, hay que limpiarla y re-sembrar).
+
+===============================================================================
+SESIÓN 8 — FormResponse.answers: de {"nombre": value} a [{key, txt, value}]
+===============================================================================
+Ajuste sobre la sesión 7: en vez de un objeto plano indexado por el texto de
+la pregunta (con riesgo de colisión si dos preguntas comparten texto), ahora
+cada respuesta es un objeto explícito con 3 campos:
+  { key: string; txt: string; value: AskValue }
+- `key`   -> identificador estable de la pregunta (ej. "h3_ask:123"), es lo
+            que usa el upsert parcial para saber qué respuesta reemplazar.
+- `txt`   -> texto real de la pregunta (para no depender de un join al
+            mostrarla ni al generar el informe).
+- `value` -> la respuesta (C/CP/IT/N-A/NC), igual que antes.
+`FormResponse.answers` vuelve a ser un ARREGLO (`AskAnswer[]`), no un objeto.
+
+Archivos tocados (mismos que en la sesión 7, revertido el objeto -> arreglo):
+[x] packages/shared/src/formExecution.ts
+      `AskAnswer { key, txt, value }` (ya no `askId`/`observaciones`/
+      `comentarios`). `FormAnswers = AskAnswer[]`. `FormAnswersPayload =
+      { answers: FormAnswers }`.
+[x] form-execution.schemas.ts — `AskAnswerSchema = z.object({ key, txt,
+      value })`; `FormAnswersSchema.answers = z.array(AskAnswerSchema).min(1)`.
+[x] form-execution.model.ts — `upsertAnswers` vuelve a mergear con un
+      `Map` (clave = `a.key`, no el texto), igual que la versión original
+      pre-sesión-7 pero guardando `txt` además de `value`. `readAnswers()`
+      valida con `Array.isArray` en vez de "es un objeto no-array".
+[x] form-execution.service.ts — `finish()` vuelve a `answers.length === 0`.
+[x] risk-engine.service.ts — vuelve a `answers.filter(a => a.value !== 'N/A')`
+      (arreglo), ya no `Object.values(...)`.
+[x] reports.service.ts — el informe autogenerado usa `a.txt` (texto real de
+      la pregunta) en vez de la clave del objeto; se mantiene más legible
+      que la v1 con askId crudo.
+[x] lib/seeders/form-responses.seeder.ts — `collectAsks()` devuelve
+      `{ key, txt }` por pregunta (antes `collectAskNames()` devolvía solo el
+      texto); el arreglo sembrado es `[{ key, txt, value }, ...]`.
+
+Ya no aplica la advertencia de colisión de claves de la sesión 7 (el `key`
+es único por diseño, el `txt` es solo informativo).
+
+PENDIENTE PARA EL USUARIO: volver a correr `pnpm build:packages` (cambio de
+tipos en @reto/shared) y `pnpm seed`.
+
+===============================================================================
+SESIÓN 9 — AskAnswer.value: de string enum a escala numérica 0 | 0.5 | 1 | null
+===============================================================================
+Pedido: que `value` en cada respuesta guarde 0, 0.5, 1 o null en vez de los
+codigos string 'C'/'CP'/'IT'/'N/A'/'NC'. Mapeo aplicado:
+  1    = Cumple (cumplimiento total)
+  0.5  = Cumple Parcialmente
+  0    = No Cumple
+  null = No Aplica (se excluye del cálculo de riesgo, igual que antes 'N/A')
+El estado "IT" (Iniciado Trabajo, que ya estaba marcado como asunción de
+negocio sin respaldo en el contrato original) desaparece: la escala nueva
+solo tiene 3 grados de cumplimiento + "no aplica".
+
+Como esto afecta el CONTRATO documentado (no solo el código), se actualizó
+también `documentos/API_CONTRACTS.md` para mantener todo alineado:
+
+[x] documentos/API_CONTRACTS.md (sección 11.2)
+      Bloque `ts` de `AskValue`/`AskAnswer` actualizado a la escala numérica
+      y a la forma real `{ key, txt, value }` que ya usaba el código desde
+      la sesión 8 (el contrato se había quedado desactualizado con
+      `askId`/`observaciones`/`comentarios` de la sesión 6; se aprovechó
+      para corregir eso también y que contrato y código vuelvan a coincidir
+      1:1).
+
+[x] packages/shared/src/formExecution.ts
+      `AskValue = 0 | 0.5 | 1 | null` (antes unión de strings). `AskAnswer`
+      y `FormAnswers` sin cambios estructurales (siguen siendo
+      `{ key, txt, value }[]`), solo cambia el tipo de `value`.
+
+[x] form-execution.schemas.ts
+      `AskValueSchema = z.union([z.literal(0), z.literal(0.5), z.literal(1),
+      z.null()])`.
+
+[x] risk-engine.service.ts — FÓRMULA REESCRITA (ya no aplica la tabla de
+      pesos C/CP/IT/NC):
+        - se filtran las respuestas con `value !== null`
+        - `cumplimientoPromedio = Σ value aplicables / cantidad aplicables`
+          (0..1, porque cada `value` YA es un grado de cumplimiento)
+        - `porcentajeCumplimiento = cumplimientoPromedio * 100`
+        - `puntajeObtenido = (1 - cumplimientoPromedio) * 10`
+      Mismo rango de salida 0–10 que antes (para no invalidar los umbrales
+      ya sembrados en risk-frequency-rules.seeder.ts), pero el cálculo es
+      más directo porque ya no hay que traducir un código a un peso.
+
+[x] reports.service.ts — el informe autogenerado filtra por
+      `a.value === 0` (no conformidad) / `a.value === 0.5` (parcial) en vez
+      de comparar strings 'NC'/'CP'; el texto sigue mostrando "No Cumple" /
+      "Cumple Parcialmente" en español para que el informe sea legible.
+
+[x] lib/seeders/form-responses.seeder.ts
+      `pattern` de ambas fichas sembradas pasa de códigos string a números:
+        - Panadería El Sol (BAJO):   [1, 1, 1, 0.5, 1, 1, null, 1]
+        - Distribuidora Caribe (MEDIO/ALTO): [1, 0, 0.5, 0, 1, 0, 0.5, 1]
+
+NOTA: `lib/seeders/evaluation-scores.seeder.ts` sigue con sus valores
+hardcodeados (puntajeObtenido 2.4, 86.7% para la ficha de Panadería) sin
+tocar — esa tabla se siembra independientemente (simula lo que dejaría el
+motor de riesgo) y no se recalcula a partir de `form-responses.seeder.ts`;
+si se quiere que ambos cuadren exactamente hay que recalcularlos a mano con
+la fórmula nueva (no se hizo porque no fue parte de lo pedido).
+
+PENDIENTE PARA EL USUARIO: `pnpm build:packages` y `pnpm seed` de nuevo.
+
+===============================================================================
+SESIÓN 10 — AskAnswer.value: de vuelta a letras (revierte la sesión 9)
+===============================================================================
+Pedido: volver a usar letras en vez de números. Se revirtió la escala
+numérica de la sesión 9, mantendiendo las mismas 4 categorías (SIN volver a
+introducir "IT", que ya se había retirado):
+  C    = Cumple            (antes 1)
+  CP   = Cumple Parcialmente (antes 0.5)
+  NC   = No Cumple          (antes 0)
+  N/A  = No Aplica          (antes null)
+
+Mismos archivos que en la sesión 9, en sentido inverso:
+[x] documentos/API_CONTRACTS.md (sección 11.2) — `AskValue = 'C'|'CP'|'NC'|'N/A'`.
+[x] packages/shared/src/formExecution.ts — idem, con sus ejemplos JSDoc
+      actualizados a letras.
+[x] form-execution.schemas.ts — `AskValueSchema = z.enum(['C','CP','NC','N/A'])`.
+[x] risk-engine.service.ts — se agregó una tabla `COMPLIANCE: Record<'C'|
+      'CP'|'NC', number> = { C: 1, CP: 0.5, NC: 0 }` que traduce la letra a
+      un grado de cumplimiento 0–1, y de ahí en adelante la FÓRMULA es
+      EXACTAMENTE LA MISMA que la sesión 9 (cumplimientoPromedio ->
+      porcentajeCumplimiento / puntajeObtenido). Solo cambió la traducción
+      de entrada, no el algoritmo de riesgo en sí.
+[x] reports.service.ts — vuelve a filtrar `a.value === 'NC'` / `'CP'`
+      (comparación de string) y a imprimir `[${a.value}]` en el hallazgo en
+      vez del texto largo "No Cumple"/"Cumple Parcialmente".
+[x] lib/seeders/form-responses.seeder.ts — patrones vuelven a letras:
+        - Panadería El Sol (BAJO): ['C','C','C','CP','C','C','N/A','C']
+        - Distribuidora Caribe (MEDIO/ALTO): ['C','NC','CP','NC','C','NC','CP','C']
+
+PENDIENTE PARA EL USUARIO: `pnpm build:packages` y `pnpm seed` de nuevo.
+
+===============================================================================
 FIN DE LA BITÁCORA (actualizar en cada sesión de trabajo)
 ===============================================================================

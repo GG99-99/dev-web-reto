@@ -480,13 +480,14 @@ type FormTemplateTree = Prisma.FormTemplateGetPayload<{
 
 ```ts
 // Estructura del JSON `form_response.answers`, tipada para el front:
-type AskValue = 'C' | 'CP' | 'IT' | 'N/A' | 'NC';
+// C = Cumple, CP = Cumple Parcialmente, NC = No Cumple, N/A = No Aplica
+// (se excluye del cálculo de riesgo).
+type AskValue = 'C' | 'CP' | 'NC' | 'N/A';
 
 interface AskAnswer {
-  askId: string;              // ej. "h3_ask:123"
+  key: string;                // identificador de la pregunta, ej. "h3_ask:123"
+  txt: string;                // texto exacto de la pregunta (evita depender de un join)
   value: AskValue;
-  observaciones?: string;
-  comentarios?: string;
 }
 
 interface FormAnswersPayload {

@@ -28,7 +28,7 @@ import { historyRouter } from './modules/history/history.router';
  * Ver documentos/backend.txt para el checklist de avance por módulo.
  * ---------------------------------------------------------------------------
  */
-export const apiRouter = Router();
+export const apiRouter: Router = Router();
 
 apiRouter.use(authRouter); // /auth/*
 apiRouter.use(usersRouter); // /users/*

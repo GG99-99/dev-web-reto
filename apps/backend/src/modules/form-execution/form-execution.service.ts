@@ -1,5 +1,5 @@
-import type { AskAnswer, FinishEvaluationResponse } from '@reto/shared';
-import { formExecutionModel } from './form-execution.model';
+import type { FinishEvaluationResponse, FormAnswers } from '@reto/shared';
+import { formExecutionModel, readAnswers } from './form-execution.model';
 import { formTemplatesModel } from './form-templates.model';
 import { evaluationsService } from '../evaluations/evaluations.service';
 import { riskEngineService } from '../risk-engine/risk-engine.service';
@@ -58,7 +58,7 @@ export const formExecutionService = {
     });
   },
 
-  saveAnswers: async (evaluationId: number, requesterId: number, answers: AskAnswer[]): Promise<AskAnswer[]> => {
+  saveAnswers: async (evaluationId: number, requesterId: number, answers: FormAnswers): Promise<FormAnswers> => {
     const evaluation = await evaluationsService.getById(evaluationId);
     if (evaluation.technicianId !== requesterId) {
       throw ApiError.forbidden('Solo el técnico asignado puede editar esta evaluación');
@@ -92,7 +92,7 @@ export const formExecutionService = {
     }
 
     const formResponse = await prisma.formResponse.findUniqueOrThrow({ where: { formResponseId: evaluation.formResponseId } });
-    const answers = (Array.isArray(formResponse.answers) ? formResponse.answers : []) as unknown as AskAnswer[];
+    const answers = readAnswers(formResponse.answers);
     if (answers.length === 0) {
       throw ApiError.validation('No se puede finalizar una evaluación sin respuestas registradas');
     }

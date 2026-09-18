@@ -28,10 +28,10 @@
   "type": "module",
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.0",
+    "@prisma/client": "^7.10.0",
     "dotenv": "^17.4.2"
   },
   "devDependencies": {
-    "@prisma/client": "^7.10.0",
     "@types/node": "^22.20.2",
     "prisma": "7.10.0"
   }

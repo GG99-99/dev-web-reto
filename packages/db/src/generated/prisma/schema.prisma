@@ -38,9 +38,9 @@ model Person {
   phone    String
   email    String @unique
 
-  user        User?
-  propietary  Propietary?
-  represents  Represent[]
+  user       User?
+  propietary Propietary?
+  represents Represent[]
 
   @@map("person")
 }
@@ -53,32 +53,32 @@ model User {
   password String
 
   // [NUEVO] necesarios para RF-01/RF-02/RNF-02
-  roleId       Int?               @map("role_id")
-  status       UserStatus         @default(PENDIENTE_VALIDACION) // [NUEVO]
-  isActive     Boolean            @default(true) @map("is_active") // [NUEVO]
-  createdAt    DateTime           @default(now()) @map("created_at") // [NUEVO]
+  roleId    Int?       @map("role_id")
+  status    UserStatus @default(PENDIENTE_VALIDACION) // [NUEVO]
+  isActive  Boolean    @default(true) @map("is_active") // [NUEVO]
+  createdAt DateTime   @default(now()) @map("created_at") // [NUEVO]
 
-  person             Person              @relation(fields: [personId], references: [personId])
-  role               Role?               @relation(fields: [roleId], references: [roleId])
-  passwordResets     PasswordResetToken[]
-  twoFactorAuth      TwoFactorAuth?
-  notifications      Notification[]
-  coordinatedCases   Case[]              @relation("CaseCoordinator")
-  technicianCases    Case[]              @relation("CaseTechnician")
-  assignmentsMade    Assignment[]        @relation("AssignedBy")
-  assignmentsTaken   Assignment[]        @relation("AssignedTo")
-  evaluationsRun     Evaluation[]        @relation("EvaluationTechnician")
-  reviewsDone        ReportReview[]
+  person              Person               @relation(fields: [personId], references: [personId])
+  role                Role?                @relation(fields: [roleId], references: [roleId])
+  passwordResets      PasswordResetToken[]
+  twoFactorAuth       TwoFactorAuth?
+  notifications       Notification[]
+  coordinatedCases    Case[]               @relation("CaseCoordinator")
+  technicianCases     Case[]               @relation("CaseTechnician")
+  assignmentsMade     Assignment[]         @relation("AssignedBy")
+  assignmentsTaken    Assignment[]         @relation("AssignedTo")
+  evaluationsRun      Evaluation[]         @relation("EvaluationTechnician")
+  reviewsDone         ReportReview[]
   attachmentsUploaded Attachment[]
-  bpmRequestsCreated BpmRequest[]
+  bpmRequestsCreated  BpmRequest[]
 
   @@map("user")
 }
 
 /// [EXISTENTE] Dueño de una institución (empresa)
 model Propietary {
-  propietaryId Int    @id @default(autoincrement()) @map("propietary_id")
-  personId     Int    @unique @map("person_id")
+  propietaryId Int @id @default(autoincrement()) @map("propietary_id")
+  personId     Int @unique @map("person_id")
 
   person       Person        @relation(fields: [personId], references: [personId])
   institutions Institution[]
@@ -90,14 +90,14 @@ model Propietary {
 /// [NUEVO] institutionId + tipo: hoy solo enlaza a person; el SRS pide 3 tipos de
 /// representante por empresa (Legal, Calidad, Contacto principal).
 model Represent {
-  representId  Int           @id @default(autoincrement()) @map("represent_id")
-  personId     Int           @map("person_id")
+  representId Int @id @default(autoincrement()) @map("represent_id")
+  personId    Int @map("person_id")
 
-  institutionId Int?             @map("institution_id") // [NUEVO]
-  type          RepresentType?   // [NUEVO] LEGAL | CALIDAD | CONTACTO
+  institutionId Int?           @map("institution_id") // [NUEVO]
+  type          RepresentType? // [NUEVO] LEGAL | CALIDAD | CONTACTO
 
-  person       Person         @relation(fields: [personId], references: [personId])
-  institution  Institution?   @relation(fields: [institutionId], references: [institutionId])
+  person        Person         @relation(fields: [personId], references: [personId])
+  institution   Institution?   @relation(fields: [institutionId], references: [institutionId])
   formResponses FormResponse[]
 
   @@map("represent")
@@ -117,21 +117,21 @@ model Institution {
   propietaryId  Int    @map("propietary_id")
 
   // [NUEVO] campos pedidos en RF-03
-  nombreComercial    String?  @map("nombre_comercial")
-  actividadEconomica String?  @map("actividad_economica")
-  municipalityId     Int?     @map("municipality_id")
+  nombreComercial    String? @map("nombre_comercial")
+  actividadEconomica String? @map("actividad_economica")
+  municipalityId     Int?    @map("municipality_id")
 
-  propietary        Propietary          @relation(fields: [propietaryId], references: [propietaryId])
-  municipality      Municipality?       @relation(fields: [municipalityId], references: [municipalityId])
-  formResponses     FormResponse[]
-  status            InstitutionStatus[]
-  saPermits         SaPermit[]
-  representantes    Represent[]
-  bpmRequests       BpmRequest[]
-  cases             Case[]
-  lapchAlerts       LapchAlert[]
-  complaints        Complaint[]
-  evaluations       Evaluation[]
+  propietary     Propietary          @relation(fields: [propietaryId], references: [propietaryId])
+  municipality   Municipality?       @relation(fields: [municipalityId], references: [municipalityId])
+  formResponses  FormResponse[]
+  status         InstitutionStatus[]
+  saPermits      SaPermit[]
+  representantes Represent[]
+  bpmRequests    BpmRequest[]
+  cases          Case[]
+  lapchAlerts    LapchAlert[]
+  complaints     Complaint[]
+  evaluations    Evaluation[]
 
   @@map("institution")
 }
@@ -139,10 +139,10 @@ model Institution {
 /// [EXISTENTE] Estado / certificación vigente de una institución
 model InstitutionStatus {
   institutionStatusId Int      @id @default(autoincrement()) @map("institution_status_id")
-  institutionId        Int      @map("institution_id")
-  validUntil           DateTime @map("valid_until")
+  institutionId       Int      @map("institution_id")
+  validUntil          DateTime @map("valid_until")
 
-  institution Institution                  @relation(fields: [institutionId], references: [institutionId])
+  institution Institution                 @relation(fields: [institutionId], references: [institutionId])
   questions   InstitutionStatusQuestion[]
 
   @@map("institution_status")
@@ -152,9 +152,9 @@ model InstitutionStatus {
 model InstitutionStatusQuestion {
   institutionStatusQuestionId Int    @id @default(autoincrement()) @map("institution_status_question_id")
   institutionStatusId         Int    @map("institution_status_id")
-  question                     String
-  type                         String
-  value                        String
+  question                    String
+  type                        String
+  value                       String
 
   institutionStatus InstitutionStatus @relation(fields: [institutionStatusId], references: [institutionStatusId])
 
@@ -163,11 +163,11 @@ model InstitutionStatusQuestion {
 
 /// [EXISTENTE] Permiso Sanitario
 model SaPermit {
-  saPermitId      Int      @id @default(autoincrement()) @map("sa_permit_uuid")
-  expiration      DateTime
-  formResponseId  Int      @map("form_response_id")
-  valid           Boolean
-  institutionId   Int      @map("institution_id")
+  saPermitId     Int      @id @default(autoincrement()) @map("sa_permit_uuid")
+  expiration     DateTime
+  formResponseId Int      @map("form_response_id")
+  valid          Boolean
+  institutionId  Int      @map("institution_id")
 
   formResponse FormResponse @relation(fields: [formResponseId], references: [formResponseId])
   institution  Institution  @relation(fields: [institutionId], references: [institutionId])
@@ -374,8 +374,8 @@ enum UserStatus {
 /// RF-02 - catálogo de roles (Administrador, Administrador Empresa, Usuario
 /// Delegado, Coordinador, Técnico Evaluador) usado para RBAC (RNF-02)
 model Role {
-  roleId      Int    @id @default(autoincrement()) @map("role_id")
-  name        String @unique
+  roleId      Int     @id @default(autoincrement()) @map("role_id")
+  name        String  @unique
   description String?
 
   users User[]
@@ -399,9 +399,9 @@ model PasswordResetToken {
 
 /// RF-01 - Doble factor de autenticación (opcional)
 model TwoFactorAuth {
-  userId    Int     @id @map("user_id")
-  secret    String
-  enabled   Boolean @default(false)
+  userId  Int     @id @map("user_id")
+  secret  String
+  enabled Boolean @default(false)
 
   user User @relation(fields: [userId], references: [userId])
 
@@ -469,9 +469,9 @@ model Attachment {
   createdAt    DateTime           @default(now()) @map("created_at")
 
   userRegistrationId Int? @map("user_registration_id") // RF-02: carta de autorización
-  bpmRequestId       Int? @map("bpm_request_id")        // RF-05: documentación obligatoria
-  evaluationReportId Int? @map("evaluation_report_id")  // RF-16: fotos/documentos del informe
-  caseId             Int? @map("case_id")                // RF-19: informe oficial PDF
+  bpmRequestId       Int? @map("bpm_request_id") // RF-05: documentación obligatoria
+  evaluationReportId Int? @map("evaluation_report_id") // RF-16: fotos/documentos del informe
+  caseId             Int? @map("case_id") // RF-19: informe oficial PDF
 
   uploadedBy       User?             @relation(fields: [uploadedById], references: [userId])
   bpmRequest       BpmRequest?       @relation(fields: [bpmRequestId], references: [bpmRequestId])
@@ -494,15 +494,15 @@ enum BpmRequestStatus {
 }
 
 model BpmRequest {
-  bpmRequestId      Int              @id @default(autoincrement()) @map("bpm_request_id")
-  institutionId     Int              @map("institution_id")
-  tipoEstablecimiento String         @map("tipo_establecimiento")
-  motivo            String
-  observaciones     String?
-  status            BpmRequestStatus @default(BORRADOR)
-  createdById       Int              @map("created_by")
-  createdAt         DateTime         @default(now()) @map("created_at")
-  sentAt            DateTime?        @map("sent_at")
+  bpmRequestId        Int              @id @default(autoincrement()) @map("bpm_request_id")
+  institutionId       Int              @map("institution_id")
+  tipoEstablecimiento String           @map("tipo_establecimiento")
+  motivo              String
+  observaciones       String?
+  status              BpmRequestStatus @default(BORRADOR)
+  createdById         Int              @map("created_by")
+  createdAt           DateTime         @default(now()) @map("created_at")
+  sentAt              DateTime?        @map("sent_at")
 
   // vínculo opcional a la ficha diligenciada resultante (RF-12/13)
   formResponseId Int? @unique @map("form_response_id")
@@ -544,34 +544,34 @@ enum CaseStatus {
 /// RF-06/RF-10/RF-19 - Expediente: unifica el origen (solicitud, programación,
 /// alerta o denuncia), la asignación de coordinador/técnico y el cierre.
 model Case {
-  caseId       Int          @id @default(autoincrement()) @map("case_id")
-  origin       CaseOrigin
-  institutionId Int         @map("institution_id")
-  priority     CasePriority @default(MEDIA)
-  status       CaseStatus   @default(ABIERTO)
+  caseId        Int          @id @default(autoincrement()) @map("case_id")
+  origin        CaseOrigin
+  institutionId Int          @map("institution_id")
+  priority      CasePriority @default(MEDIA)
+  status        CaseStatus   @default(ABIERTO)
 
-  coordinatorId Int?  @map("coordinator_id")
-  technicianId  Int?  @map("technician_id")
+  coordinatorId Int? @map("coordinator_id")
+  technicianId  Int? @map("technician_id")
 
   // exactamente una de estas 3 debe estar poblada según "origin"
-  bpmRequestId Int?  @unique @map("bpm_request_id")
-  lapchAlertId Int?  @unique @map("lapch_alert_id")
-  complaintId  Int?  @unique @map("complaint_id")
+  bpmRequestId Int? @unique @map("bpm_request_id")
+  lapchAlertId Int? @unique @map("lapch_alert_id")
+  complaintId  Int? @unique @map("complaint_id")
 
-  openedAt        DateTime  @default(now()) @map("opened_at")
-  closedAt        DateTime? @map("closed_at")
-  resultadoFinal  String?   @map("resultado_final")
+  openedAt       DateTime  @default(now()) @map("opened_at")
+  closedAt       DateTime? @map("closed_at")
+  resultadoFinal String?   @map("resultado_final")
 
-  institution  Institution  @relation(fields: [institutionId], references: [institutionId])
-  coordinator  User?        @relation("CaseCoordinator", fields: [coordinatorId], references: [userId])
-  technician   User?        @relation("CaseTechnician", fields: [technicianId], references: [userId])
-  bpmRequest   BpmRequest?  @relation(fields: [bpmRequestId], references: [bpmRequestId])
-  lapchAlert   LapchAlert?  @relation(fields: [lapchAlertId], references: [alertId])
-  complaint    Complaint?   @relation(fields: [complaintId], references: [complaintId])
+  institution Institution @relation(fields: [institutionId], references: [institutionId])
+  coordinator User?       @relation("CaseCoordinator", fields: [coordinatorId], references: [userId])
+  technician  User?       @relation("CaseTechnician", fields: [technicianId], references: [userId])
+  bpmRequest  BpmRequest? @relation(fields: [bpmRequestId], references: [bpmRequestId])
+  lapchAlert  LapchAlert? @relation(fields: [lapchAlertId], references: [alertId])
+  complaint   Complaint?  @relation(fields: [complaintId], references: [complaintId])
 
-  assignments  Assignment[]
-  evaluations  Evaluation[]
-  attachments  Attachment[] // informe oficial PDF, etc.
+  assignments Assignment[]
+  evaluations Evaluation[]
+  attachments Attachment[] // informe oficial PDF, etc.
 
   @@map("case")
 }
@@ -632,13 +632,13 @@ model Complaint {
 // ---------------------------------------------------------------------------
 
 model Assignment {
-  assignmentId Int      @id @default(autoincrement()) @map("assignment_id")
-  caseId       Int      @map("case_id")
-  assignedToId Int      @map("assigned_to")
-  assignedById Int      @map("assigned_by")
-  isReassignment Boolean @default(false) @map("is_reassignment")
-  notes        String?
-  assignedAt   DateTime @default(now()) @map("assigned_at")
+  assignmentId   Int      @id @default(autoincrement()) @map("assignment_id")
+  caseId         Int      @map("case_id")
+  assignedToId   Int      @map("assigned_to")
+  assignedById   Int      @map("assigned_by")
+  isReassignment Boolean  @default(false) @map("is_reassignment")
+  notes          String?
+  assignedAt     DateTime @default(now()) @map("assigned_at")
 
   case       Case @relation(fields: [caseId], references: [caseId])
   assignedTo User @relation("AssignedTo", fields: [assignedToId], references: [userId])
@@ -662,16 +662,16 @@ enum EvaluationStatus {
 /// Envuelve la ficha (FormResponse ya existente) con programación, técnico
 /// asignado y estado del proceso de campo.
 model Evaluation {
-  evaluationId  Int              @id @default(autoincrement()) @map("evaluation_id")
-  caseId        Int              @map("case_id")
-  institutionId Int              @map("institution_id")
-  technicianId  Int              @map("technician_id")
+  evaluationId  Int @id @default(autoincrement()) @map("evaluation_id")
+  caseId        Int @map("case_id")
+  institutionId Int @map("institution_id")
+  technicianId  Int @map("technician_id")
 
-  scheduledDate DateTime          @map("scheduled_date")
+  scheduledDate DateTime         @map("scheduled_date")
   reason        String?
-  priority      CasePriority      @default(MEDIA)
+  priority      CasePriority     @default(MEDIA)
   observations  String?
-  status        EvaluationStatus  @default(PROGRAMADA)
+  status        EvaluationStatus @default(PROGRAMADA)
 
   startedAt  DateTime? @map("started_at")
   finishedAt DateTime? @map("finished_at")
@@ -686,9 +686,9 @@ model Evaluation {
   technician   User          @relation("EvaluationTechnician", fields: [technicianId], references: [userId])
   formResponse FormResponse? @relation(fields: [formResponseId], references: [formResponseId])
 
-  score      EvaluationScore?
-  evidences  Evidence[]
-  report     EvaluationReport?
+  score     EvaluationScore?
+  evidences Evidence[]
+  report    EvaluationReport?
 
   @@map("evaluation")
 }
@@ -780,16 +780,16 @@ enum ReportStatus {
 
 /// RF-16 - Informe generado automáticamente a partir de la evaluación
 model EvaluationReport {
-  reportId          Int          @id @default(autoincrement()) @map("report_id")
-  evaluationId      Int          @unique @map("evaluation_id")
-  resumenEjecutivo  String       @map("resumen_ejecutivo")
-  hallazgos         String
-  noConformidades   String       @map("no_conformidades")
-  recomendaciones   String
-  status            ReportStatus @default(BORRADOR)
-  version           Int          @default(1) // se incrementa en cada corrección (RF-18)
-  locked            Boolean      @default(false) // RF-17: se bloquea tras enviarse
-  generatedAt       DateTime     @default(now()) @map("generated_at")
+  reportId         Int          @id @default(autoincrement()) @map("report_id")
+  evaluationId     Int          @unique @map("evaluation_id")
+  resumenEjecutivo String       @map("resumen_ejecutivo")
+  hallazgos        String
+  noConformidades  String       @map("no_conformidades")
+  recomendaciones  String
+  status           ReportStatus @default(BORRADOR)
+  version          Int          @default(1) // se incrementa en cada corrección (RF-18)
+  locked           Boolean      @default(false) // RF-17: se bloquea tras enviarse
+  generatedAt      DateTime     @default(now()) @map("generated_at")
 
   evaluation  Evaluation     @relation(fields: [evaluationId], references: [evaluationId])
   attachments Attachment[]

@@ -1,4 +1,4 @@
-import type { AskAnswer } from '@reto/shared';
+import type { FormAnswers, AskValue } from '@reto/shared';
 import type { RiskLevel, InspectionFrequency } from '@reto/db';
 import { riskEngineModel } from './risk-engine.model';
 import { ApiError } from '@/lib/common/ApiError';
@@ -15,22 +15,24 @@ import { ApiError } from '@/lib/common/ApiError';
  * (RiskFrequencyRule: minScore/maxScore -> nivel/frecuencia, con el ejemplo
  * "1.0-3.6 Bajo/Anual, 3.6-6.3 Medio/Semestral, >6.3 Alto/Trimestral") pero
  * NO define cómo se calculan `puntajeObtenido` ni `porcentajeCumplimiento` a
- * partir de las respuestas C/CP/IT/N/A/NC del formulario. Se implementó un
+ * partir de las respuestas C/CP/NC/N-A del formulario. Se implementó un
  * algoritmo simple y transparente para no bloquear el flujo end-to-end:
  *
  *   - Se ignoran las respuestas "N/A" (no aplican al cálculo).
- *   - Peso de riesgo por respuesta: C=0, CP=1, IT=2, NC=3.
- *   - puntajeObtenido = (Σ pesos / cantidad de respuestas aplicables) * (10/3)
- *     -> normaliza a una escala 0–10 (todas NC = 10, todas C = 0), consistente
- *        con el orden de magnitud de los ejemplos del schema.
- *   - porcentajeCumplimiento = (cantidad de "C" / respuestas aplicables) * 100
+ *   - Cada código se traduce a un grado de cumplimiento 0–1 (COMPLIANCE):
+ *     C=1 (cumple total), CP=0.5 (cumple parcial), NC=0 (no cumple).
+ *   - cumplimientoPromedio = Σ grado / cantidad de respuestas aplicables (0..1)
+ *   - porcentajeCumplimiento = cumplimientoPromedio * 100
+ *   - puntajeObtenido = (1 - cumplimientoPromedio) * 10
+ *     -> normaliza a una escala 0–10 de RIESGO (todas NC = 10, todas C = 0),
+ *        consistente con el orden de magnitud de los ejemplos del schema.
  *
  * TODO: reemplazar por la fórmula oficial cuando esté disponible, y
  * ajustar/seedear `RiskFrequencyRule` con los umbrales reales.
  * ---------------------------------------------------------------------------
  */
 
-const RISK_WEIGHT: Record<string, number> = { C: 0, CP: 1, IT: 2, NC: 3 };
+const COMPLIANCE: Record<Exclude<AskValue, 'N/A'>, number> = { C: 1, CP: 0.5, NC: 0 };
 
 export interface ComputedRisk {
   puntajeObtenido: number;
@@ -41,18 +43,18 @@ export interface ComputedRisk {
 
 export const riskEngineService = {
   /** Calcula el riesgo a partir de las respuestas y lo persiste (upsert) para la evaluación. */
-  computeAndPersist: async (evaluationId: number, answers: AskAnswer[]): Promise<ComputedRisk> => {
+  computeAndPersist: async (evaluationId: number, answers: FormAnswers): Promise<ComputedRisk> => {
     const applicable = answers.filter((a) => a.value !== 'N/A');
 
     if (applicable.length === 0) {
       throw ApiError.validation('No hay respuestas aplicables (todas N/A) para calcular el riesgo');
     }
 
-    const totalWeight = applicable.reduce((sum, a) => sum + (RISK_WEIGHT[a.value] ?? 0), 0);
-    const puntajeObtenido = Number(((totalWeight / applicable.length) * (10 / 3)).toFixed(2));
+    const cumplimientoPromedio =
+      applicable.reduce((sum, a) => sum + COMPLIANCE[a.value as Exclude<AskValue, 'N/A'>], 0) / applicable.length;
 
-    const compliant = applicable.filter((a) => a.value === 'C').length;
-    const porcentajeCumplimiento = Number(((compliant / applicable.length) * 100).toFixed(2));
+    const porcentajeCumplimiento = Number((cumplimientoPromedio * 100).toFixed(2));
+    const puntajeObtenido = Number(((1 - cumplimientoPromedio) * 10).toFixed(2));
 
     const rule = await riskEngineModel.findMatchingRule(puntajeObtenido);
     if (!rule) {

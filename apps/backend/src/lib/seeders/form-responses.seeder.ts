@@ -9,24 +9,24 @@ import { EVAL_REASONS } from './evaluations.seeder';
  *
  * DEPENDE DE: form-templates, institutions, represents, foods y evaluations.
  *
- * Es la ficha diligenciada. El JSON `answers` sigue el tipo
- * `FormAnswersPayload` del contrato: { answers: [{ askId, value, ... }] },
- * con `askId` en el formato "h3_ask:<id>" / "h4_ask:<id>" que usa
- * form-execution.service.ts.
+ * Es la ficha diligenciada. El JSON `answers` sigue el tipo `FormAnswers` del
+ * contrato: un ARREGLO de `{ key, txt, value }` (ver
+ * @reto/shared/formExecution.ts). `key` es el identificador compuesto de la
+ * pregunta (ej. "h3_ask:123", usado internamente para el upsert parcial),
+ * `txt` es el texto real de la pregunta y `value` es la respuesta:
+ * C = Cumple, CP = Cumple Parcialmente, NC = No Cumple, N/A = No Aplica.
  *
  * Las respuestas NO se inventan pregunta por pregunta: se recorren las
  * preguntas REALES de la plantilla activa y se les aplica un patrón cíclico
- * de valores (ver ANSWER_PATTERNS), de modo que cada evaluación quede con una
- * mezcla conocida de C / CP / IT / NC / N/A y el motor de riesgo produzca
- * niveles distintos.
+ * de valores (ver FORM_RESPONSES.pattern), de modo que cada evaluación quede
+ * con una mezcla conocida de C / CP / NC / N-A y el motor de riesgo
+ * produzca niveles distintos.
  *
  * Además enlaza la ficha con su Evaluation (`Evaluation.formResponseId`).
  * ---------------------------------------------------------------------------
  */
 
-// ============================== DATA ==============================
-
-type AskValue = 'C' | 'CP' | 'IT' | 'N/A' | 'NC';
+type AskValue = 'C' | 'CP' | 'NC' | 'N/A';
 
 const FORM_RESPONSES: {
   /** Evaluación a la que pertenece la ficha (por `reason`). */
@@ -37,7 +37,7 @@ const FORM_RESPONSES: {
   representCedula: string;
   /** Alimento sobre el que se hizo la inspección. */
   foodName: string;
-  /** Patrón cíclico de respuestas aplicado a las preguntas reales. */
+  /** Patrón cíclico de respuestas aplicado a las preguntas reales, en orden. */
   pattern: AskValue[];
 }[] = [
   {
@@ -56,28 +56,28 @@ const FORM_RESPONSES: {
     representCedula: '003-0000001-1',
     foodName: 'Habichuelas enlatadas',
     // Mezcla con no conformidades -> riesgo MEDIO/ALTO
-    pattern: ['C', 'NC', 'CP', 'IT', 'C', 'NC', 'CP', 'C'],
+    pattern: ['C', 'NC', 'CP', 'NC', 'C', 'NC', 'CP', 'C'],
   },
 ];
 
 // ========================== HELPERS ===============================
 
-/** Devuelve todos los askId reales ("h3_ask:N" / "h4_ask:N") de la plantilla activa. */
-async function collectAskIds(formTemplateId: number): Promise<string[]> {
+/** Devuelve { key, txt } de todas las preguntas reales de la plantilla activa. */
+async function collectAsks(formTemplateId: number): Promise<{ key: string; txt: string }[]> {
   const h3Asks = await prisma.h3Ask.findMany({
     where: { active: true, h3: { h2: { h1: { formTemplateId } } } },
-    select: { h3AskId: true },
+    select: { h3AskId: true, name: true },
     orderBy: { h3AskId: 'asc' },
   });
   const h4Asks = await prisma.h4Ask.findMany({
     where: { active: true, h4: { h3: { h2: { h1: { formTemplateId } } } } },
-    select: { h4AskId: true },
+    select: { h4AskId: true, name: true },
     orderBy: { h4AskId: 'asc' },
   });
 
   return [
-    ...h3Asks.map((a) => `h3_ask:${a.h3AskId}`),
-    ...h4Asks.map((a) => `h4_ask:${a.h4AskId}`),
+    ...h3Asks.map((a) => ({ key: `h3_ask:${a.h3AskId}`, txt: a.name })),
+    ...h4Asks.map((a) => ({ key: `h4_ask:${a.h4AskId}`, txt: a.name })),
   ];
 }
 
@@ -91,8 +91,8 @@ export async function seedFormResponses() {
     await prisma.formTemplate.findFirst({ where: { active: true }, orderBy: { createAt: 'desc' } }),
     'plantilla activa (corre form-templates.seeder primero)',
   );
-  const askIds = await collectAskIds(template.formTemplateId);
-  if (askIds.length === 0) {
+  const asks = await collectAsks(template.formTemplateId);
+  if (asks.length === 0) {
     throw new Error('[seed] La plantilla activa no tiene preguntas; revisa form-templates.seeder');
   }
 
@@ -120,10 +120,11 @@ export async function seedFormResponses() {
       `alimento "${item.foodName}" (corre foods.seeder primero)`,
     );
 
-    const answers = askIds.map((askId, i) => ({
-      askId,
+    // [{ key, txt, value }] — key identifica la pregunta, txt es su texto real.
+    const answers = asks.map((ask, i) => ({
+      key: ask.key,
+      txt: ask.txt,
       value: item.pattern[i % item.pattern.length],
-      observaciones: undefined as string | undefined,
     }));
 
     const formResponse = await prisma.formResponse.create({
@@ -135,7 +136,7 @@ export async function seedFormResponses() {
         representId: represent.representId,
         foodId: food.foodId,
         motive: item.motive,
-        answers: { answers },
+        answers,
       },
     });
 

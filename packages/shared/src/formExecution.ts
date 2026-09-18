@@ -42,13 +42,12 @@ export type FormTemplateTree = Prisma.FormTemplateGetPayload<{
 
 /**
  * Valores posibles de respuesta a una pregunta (`ask`) del formulario EBR.
- * - `C`: Cumple
- * - `CP`: Cumple Parcialmente
- * - `IT`: Iniciado Trabajo / En proceso (según definición de negocio)
- * - `N/A`: No Aplica
- * - `NC`: No Cumple
+ * - `C`   : Cumple (cumplimiento total)
+ * - `CP`  : Cumple Parcialmente
+ * - `NC`  : No Cumple
+ * - `N/A` : No Aplica (se excluye del cálculo de riesgo, ver risk-engine.service.ts)
  */
-export type AskValue = 'C' | 'CP' | 'IT' | 'N/A' | 'NC';
+export type AskValue = 'C' | 'CP' | 'NC' | 'N/A';
 
 /**
  * Respuesta individual a una pregunta del árbol del formulario.
@@ -56,32 +55,40 @@ export type AskValue = 'C' | 'CP' | 'IT' | 'N/A' | 'NC';
  * @example
  * ```ts
  * const answer: AskAnswer = {
- *   askId: 'h3_ask:123',
+ *   key: 'h3_ask:123',
+ *   txt: 'Las paredes son lisas, impermeables y de color claro',
  *   value: 'NC',
- *   observaciones: 'No se encontró registro de temperatura del refrigerador',
  * };
  * ```
  */
 export interface AskAnswer {
-  /** Identificador compuesto de la pregunta, ej. `"h3_ask:123"`. */
-  askId: string;
+  /** Identificador compuesto de la pregunta, ej. `"h3_ask:123"`. Sirve como clave estable para el upsert parcial. */
+  key: string;
+  /** Texto exacto de la pregunta, tal como aparece en el árbol de `GET /form-templates/:id/tree`. */
+  txt: string;
   value: AskValue;
-  observaciones?: string;
-  comentarios?: string;
 }
+
+/** Lista de respuestas de una ficha diligenciada. Así se guarda `FormResponse.answers`. */
+export type FormAnswers = AskAnswer[];
 
 /**
  * Estructura del JSON `FormResponse.answers` tal como se guarda/consume en
- * el frontend. Body de `PATCH /evaluations/:id/answers` (upsert parcial).
+ * el frontend. Body de `PATCH /evaluations/:id/answers` (upsert parcial:
+ * solo hace falta enviar las preguntas que cambiaron).
  *
  * @example
  * ```ts
- * const payload: FormAnswersPayload = { answers: [answer1, answer2] };
+ * const payload: FormAnswersPayload = {
+ *   answers: [
+ *     { key: 'h3_ask:123', txt: 'Las paredes son lisas, impermeables y de color claro', value: 'C' },
+ *   ],
+ * };
  * await api.patch(`/evaluations/${id}/answers`, payload);
  * ```
  */
 export interface FormAnswersPayload {
-  answers: AskAnswer[];
+  answers: FormAnswers;
 }
 
 /**
