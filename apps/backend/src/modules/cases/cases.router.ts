@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, type Router as ExpressRouter } from 'express';
 import { validateJwt, validateReq, validateRole } from '#backend/middlewares';
 import { casesController } from './cases.controller';
 import {
@@ -16,10 +16,10 @@ import {
  * (RF-06, RF-19).
  * ---------------------------------------------------------------------------
  */
-export const casesRouter = Router();
+export const casesRouter: ExpressRouter = Router();
 
 casesRouter
-  .use(validateJwt)
+  .use('/cases', validateJwt)
   .get('/cases', validateRole('COORDINADOR', 'ADMIN'), validateReq(GetCasesQuerySchema, 'query'), casesController.getMany)
   .post(
     '/cases',

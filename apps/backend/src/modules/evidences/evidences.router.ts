@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, type Router as ExpressRouter } from 'express';
 import { validateJwt, validateReq, validateRole } from '#backend/middlewares';
 import { uploadSingleFile } from '@/lib/upload/upload';
 import { evidencesController } from './evidences.controller';
@@ -11,10 +11,11 @@ import { CreateEvidenceBodySchema, IdParamSchema } from './evidences.schemas';
  * /api/v1). Sección 13 de API_CONTRACTS.md (RF-15).
  * ---------------------------------------------------------------------------
  */
-export const evidencesRouter = Router();
+export const evidencesRouter: ExpressRouter = Router();
 
 evidencesRouter
-  .use(validateJwt)
+  .use('/evaluations', validateJwt)
+  .use('/evidences', validateJwt)
   .get('/evaluations/:id/evidences', validateReq(IdParamSchema, 'params'), evidencesController.getMany)
   .post(
     '/evaluations/:id/evidences',

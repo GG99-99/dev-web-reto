@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, type Router as ExpressRouter } from 'express';
 import { validateJwt, validateReq, validateRole } from '#backend/middlewares';
 import { institutionsController } from './institutions.controller';
 import {
@@ -17,10 +17,11 @@ import {
  * Sección 3 de API_CONTRACTS.md (RF-03).
  * ---------------------------------------------------------------------------
  */
-export const institutionsRouter = Router();
+export const institutionsRouter: ExpressRouter = Router();
 
 institutionsRouter
-  .use(validateJwt)
+  .use('/institutions', validateJwt)
+  .use('/representatives', validateJwt)
 
   .get(
     '/institutions',

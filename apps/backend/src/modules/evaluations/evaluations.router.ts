@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, type Router as ExpressRouter } from 'express';
 import { validateJwt, validateReq, validateRole } from '#backend/middlewares';
 import { evaluationsController } from './evaluations.controller';
 import {
@@ -20,10 +20,10 @@ import {
  * parámetro :id.
  * ---------------------------------------------------------------------------
  */
-export const evaluationsRouter = Router();
+export const evaluationsRouter: ExpressRouter = Router();
 
 evaluationsRouter
-  .use(validateJwt)
+  .use('/evaluations', validateJwt)
   .get(
     '/evaluations/calendar',
     validateRole('TECNICO_EVALUADOR'),

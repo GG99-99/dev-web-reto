@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, type Router as ExpressRouter } from 'express';
 import { validateJwt, validateReq } from '#backend/middlewares';
 import { authController } from './auth.controller';
 import {
@@ -17,7 +17,7 @@ import {
  * Sección 1 de API_CONTRACTS.md.
  * ---------------------------------------------------------------------------
  */
-export const authRouter = Router();
+export const authRouter: ExpressRouter = Router();
 
 authRouter
   // Público

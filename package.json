@@ -8,20 +8,20 @@
     "build:db": "pnpm --filter @reto/db build",
     "build:shared": "pnpm --filter @reto/shared build",
     "build:packages": "pnpm build:db && pnpm build:shared",
-    "dev:backend": "pnpm --filter @reto/backend dev",
-    "seed": "pnpm --filter @reto/backend seed"
+    "dev": "pnpm build:packages && pnpm --parallel --filter @reto/backend --filter @reto/frontend dev",
+    "dev:full": "pnpm db:up && pnpm dev",
+    "dev:backend": "pnpm build:packages && pnpm --filter @reto/backend dev",
+    "dev:frontend": "pnpm --filter @reto/frontend dev",
+    "db:up": "docker compose -f docker-pg/docker-compose.yml up -d",
+    "db:down": "docker compose -f docker-pg/docker-compose.yml down",
+    "db:logs": "docker compose -f docker-pg/docker-compose.yml logs -f postgres",
+    "db:migrate": "pnpm --filter @reto/db exec prisma migrate deploy",
+    "seed": "pnpm build:packages && pnpm --filter @reto/backend seed",
+    "test:api": "node scripts/api-smoke-tests.mjs"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "devEngines": {
-    "packageManager": {
-      "name": "pnpm",
-      "version": "12.3.4",
-      "onFail": "download"
-    }
-  },
-  "packageManager": "pnpm@12.3.4",
   "type": "module",
   "devDependencies": {
     "typescript": "^7.0.2"

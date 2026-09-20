@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, type Router as ExpressRouter } from 'express';
 import { validateJwt, validateReq } from '#backend/middlewares';
 import { uploadSingleFile } from '@/lib/upload/upload';
 import { attachmentsController } from './attachments.controller';
@@ -13,10 +13,10 @@ import { IdParamSchema } from '@/lib/common/schemas';
  * porque es quien parsea el `multipart/form-data` y llena `req.body`/`req.file`.
  * ---------------------------------------------------------------------------
  */
-export const attachmentsRouter = Router();
+export const attachmentsRouter: ExpressRouter = Router();
 
 attachmentsRouter
-  .use(validateJwt)
+  .use('/attachments', validateJwt)
   .post('/attachments', uploadSingleFile, validateReq(UploadAttachmentBodySchema, 'body'), attachmentsController.create)
   .get('/attachments/:id', validateReq(IdParamSchema, 'params'), attachmentsController.getOne)
   .delete('/attachments/:id', validateReq(IdParamSchema, 'params'), attachmentsController.remove);

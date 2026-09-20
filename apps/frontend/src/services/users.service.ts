@@ -24,7 +24,7 @@ export interface ListUsersQuery extends PaginationQuery {
 }
 
 /**
- * `GET /users` — ADMIN.
+ * `GET /users` — ADMIN, COORDINADOR (para el directorio de evaluadores).
  *
  * @example
  * ```ts

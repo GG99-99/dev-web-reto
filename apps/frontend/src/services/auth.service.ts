@@ -45,8 +45,8 @@ async function login(body: LoginRequest): Promise<ApiResponse<LoginResponse>> {
  * clearLocalSession();
  * ```
  */
-async function logout(): Promise<ApiResponse<null>> {
-  const { data } = await httpClient.post<ApiResponse<null>>('/auth/logout');
+async function logout(body: RefreshRequest): Promise<ApiResponse<null>> {
+  const { data } = await httpClient.post<ApiResponse<null>>('/auth/logout', body);
   return data;
 }
 

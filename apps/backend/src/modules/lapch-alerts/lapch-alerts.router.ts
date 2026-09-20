@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, type Router as ExpressRouter } from 'express';
 import { validateJwt, validateReq, validateRole } from '#backend/middlewares';
 import { lapchAlertsController } from './lapch-alerts.controller';
 import {
@@ -15,10 +15,10 @@ import {
  * API_CONTRACTS.md (RF-08).
  * ---------------------------------------------------------------------------
  */
-export const lapchAlertsRouter = Router();
+export const lapchAlertsRouter: ExpressRouter = Router();
 
 lapchAlertsRouter
-  .use(validateJwt, validateRole('COORDINADOR', 'ADMIN'))
+  .use('/lapch-alerts', validateJwt, validateRole('COORDINADOR', 'ADMIN'))
   .get('/lapch-alerts', validateReq(GetLapchAlertsQuerySchema, 'query'), lapchAlertsController.getMany)
   .post('/lapch-alerts', validateReq(CreateLapchAlertSchema, 'body'), lapchAlertsController.create)
   .get('/lapch-alerts/:id', validateReq(IdParamSchema, 'params'), lapchAlertsController.getOne)

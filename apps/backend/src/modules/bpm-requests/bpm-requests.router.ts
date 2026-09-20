@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, type Router as ExpressRouter } from 'express';
 import { validateJwt, validateReq, validateRole } from '#backend/middlewares';
 import { uploadSingleFile } from '@/lib/upload/upload';
 import { bpmRequestsController } from './bpm-requests.controller';
@@ -11,10 +11,10 @@ import { GetBpmRequestsQuerySchema, CreateBpmRequestSchema, UpdateBpmRequestSche
  * API_CONTRACTS.md (RF-05).
  * ---------------------------------------------------------------------------
  */
-export const bpmRequestsRouter = Router();
+export const bpmRequestsRouter: ExpressRouter = Router();
 
 bpmRequestsRouter
-  .use(validateJwt)
+  .use('/bpm-requests', validateJwt)
   .get(
     '/bpm-requests',
     validateRole('ADMIN_EMPRESA', 'USUARIO_DELEGADO', 'COORDINADOR', 'ADMIN'),

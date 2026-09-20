@@ -16,8 +16,9 @@ usersRouter
   // Público
   .post('/users/register', validateReq(RegisterUserSchema, 'body'), usersController.register)
 
-  // ADMIN
-  .get('/users', validateJwt, validateRole('ADMIN'), validateReq(GetUsersQuerySchema, 'query'), usersController.getMany)
+  // ADMIN gestiona todos los usuarios; COORDINADOR consulta el directorio
+  // para seleccionar evaluadores durante RF-10 (asignación).
+  .get('/users', validateJwt, validateRole('ADMIN', 'COORDINADOR'), validateReq(GetUsersQuerySchema, 'query'), usersController.getMany)
   .patch(
     '/users/:id/status',
     validateJwt,

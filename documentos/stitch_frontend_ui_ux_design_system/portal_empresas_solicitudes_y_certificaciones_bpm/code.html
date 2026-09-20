@@ -1,0 +1,634 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><meta content="web_dashboard" name="shell-type"><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={"darkMode":"class","theme":{"extend":{"colors":{"on-primary-container":"#90a8ff","surface-tint":"#4059aa","on-secondary":"#ffffff","on-secondary-container":"#00476e","surface-dim":"#cbdbf5","on-surface":"#0b1c30","outline-variant":"#c5c5d3","primary-fixed":"#dce1ff","on-surface-variant":"#444651","on-secondary-fixed":"#001d31","secondary-container":"#5bb8fe","tertiary-container":"#384055","surface-bright":"#f8f9ff","surface-container-high":"#dce9ff","primary-container":"#1e3a8a","secondary-fixed-dim":"#93ccff","tertiary-fixed-dim":"#bec6e0","error-container":"#ffdad6","inverse-surface":"#213145","on-tertiary":"#ffffff","surface-container":"#e5eeff","inverse-on-surface":"#eaf1ff","surface":"#f8f9ff","outline":"#757682","tertiary-fixed":"#dae2fd","tertiary":"#222a3e","error":"#ba1a1a","on-background":"#0b1c30","surface-variant":"#d3e4fe","primary-fixed-dim":"#b6c4ff","on-tertiary-fixed":"#131b2e","secondary-fixed":"#cce5ff","background":"#f8f9ff","secondary":"#006398","surface-container-low":"#eff4ff","on-primary":"#ffffff","on-error":"#ffffff","on-tertiary-container":"#a4acc5","surface-container-highest":"#d3e4fe","surface-container-lowest":"#ffffff","primary":"#00236f","on-primary-fixed-variant":"#264191","inverse-primary":"#b6c4ff","on-primary-fixed":"#00164e","on-tertiary-fixed-variant":"#3f465c","on-secondary-fixed-variant":"#004b73","on-error-container":"#93000a"},"borderRadius":{"DEFAULT":"0.125rem","lg":"0.25rem","xl":"0.5rem","full":"0.75rem"},"spacing":{"space-sm":"0.5rem","space-xs":"0.25rem","margin":"2rem","space-md":"1rem","space-lg":"1.5rem","space-xl":"2rem","gutter":"1.5rem","margin-mobile":"1rem","gutter-mobile":"1rem"},"fontFamily":{"headline-sm":["Inter"],"data-metric":["Inter"],"display-lg-mobile":["Inter"],"label-sm":["Inter"],"headline-md":["Inter"],"label-md":["Inter"],"display-lg":["Inter"],"headline-lg":["Inter"],"body-md":["Inter"],"body-lg":["Inter"],"body-sm":["Inter"],"label-lg":["Inter"]},"fontSize":{"headline-sm":["16px",{"lineHeight":"24px","fontWeight":"600"}],"data-metric":["28px",{"lineHeight":"32px","letterSpacing":"-0.02em","fontWeight":"700"}],"display-lg-mobile":["28px",{"lineHeight":"36px","letterSpacing":"-0.01em","fontWeight":"700"}],"label-sm":["11px",{"lineHeight":"14px","letterSpacing":"0.05em","fontWeight":"700"}],"headline-md":["20px",{"lineHeight":"28px","letterSpacing":"-0.01em","fontWeight":"600"}],"label-md":["12px",{"lineHeight":"16px","letterSpacing":"0.02em","fontWeight":"600"}],"display-lg":["36px",{"lineHeight":"44px","letterSpacing":"-0.02em","fontWeight":"700"}],"headline-lg":["24px",{"lineHeight":"32px","letterSpacing":"-0.015em","fontWeight":"600"}],"body-md":["14px",{"lineHeight":"20px","fontWeight":"400"}],"body-lg":["16px",{"lineHeight":"24px","fontWeight":"400"}],"body-sm":["12px",{"lineHeight":"16px","fontWeight":"400"}],"label-lg":["14px",{"lineHeight":"20px","letterSpacing":"0.01em","fontWeight":"600"}]}}}};</script><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&amp;display=swap" rel="stylesheet"></head><body class="bg-surface font-body-md text-on-surface antialiased"><header class="fixed top-0 left-0 right-0 h-16 bg-surface-container-lowest shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-50 flex items-center justify-between px-6"><div class="flex items-center gap-4 min-w-[280px]"><img alt="RADAR Sanitario Logo" class="w-8 h-8 rounded-lg object-contain shadow-sm" src="https://lh3.googleusercontent.com/aida/AEtjO1W-jx64UF7KNVTHCp_GKdJuLHGL3qCRwG04VxsRqwm_a-8FmqbaJJrJheDeKjYmqKALTDCPn2rJz2HNbBP-VF_FZas9fr5lp7XMvKrkVJWIZICxdVuNwP8BgupBW5RIf5Pz0zyXTfQKGx4bRNhTGvs48kLkPPirHLPCPWCdkWMFwWPjuvrBmkQBd_bQXeTWk_1j3CGIO04DJa7dwkQuAkkGd36zzfdgdtO11VNX8tYqLIlVRJgSUh0p8gZU"><div class="flex flex-col"><span class="font-bold tracking-tight text-primary text-sm">RADAR Sanitario</span><span class="text-[11px] text-on-surface-variant font-medium">Portal de Cumplimiento Sanitario &amp; Autogestión</span></div></div><div class="flex-1 max-w-xl mx-6 hidden md:block"><div class="relative flex items-center w-full"><span class="material-symbols-outlined absolute left-3 text-outline">search</span><input class="w-full bg-surface-container-low text-on-surface font-body-sm text-body-sm pl-10 pr-4 py-2 rounded-lg outline-none focus:ring-2 focus:ring-secondary transition-all placeholder:text-outline" placeholder="Buscar por Empresa, RNC, N° Solicitud, Alerta LAPCH..." type="text"></div></div><div class="flex items-center gap-4"><div class="hidden lg:flex items-center gap-2 bg-surface-container-low px-3 py-1.5 rounded-full"><span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-secondary"></span></span><span class="font-label-md text-label-md text-on-surface font-semibold">En Línea • Sincronizado</span><span class="font-label-sm text-label-sm bg-secondary-container text-on-secondary-container px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">PWA</span></div><div class="hidden xl:flex items-center gap-2"><span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Rol:</span><select class="bg-surface-container-low font-label-md text-label-md text-on-surface font-semibold rounded-lg px-2.5 py-1.5 outline-none cursor-pointer"><option>Coordinador General</option><option>Técnico Evaluador</option><option>Empresa Regulada</option></select></div><button aria-label="Notificaciones sanitarias" class="relative p-2 rounded-lg hover:bg-surface-container-high hover:text-on-surface text-on-surface-variant transition-colors"><span class="material-symbols-outlined">notifications</span><span class="absolute top-1.5 right-1.5 flex h-2 w-2 rounded-full bg-error"></span></button><div class="flex items-center gap-3 pl-2 border-l border-outline-variant"><img alt="Profile" class="w-8 h-8 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAKGoVbujtP0AVsXMOey6vGgOZyxoARHlwHrzOhT5-PGytUazLc9dWbjZJ6KISuQQlYk7jJmNYLbQp9D433MKRpNpYFxugxbmwtY0EDibVkA3FLI-LSbfmPFOyL9cJ6oE8El3jdOf3S_VBHdKnm_yZt9Q46r9Llo4ShZSoczEY6eZUwZVBmu_dAOGxadrW30JazRXnj5IIdbb84YLD0stx4AP-T5TTGJmOzHYz6LzRpquAzHypcmv74CA"><div class="hidden sm:flex flex-col text-left"><span class="font-label-md text-label-md text-on-surface font-semibold">Lic. Mateo Vargas</span><span class="font-label-sm text-label-sm text-on-surface-variant font-normal">Coord. Vigilancia Sanitaria</span></div></div></div></header><aside class="fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 bg-surface-container-lowest shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-40 flex flex-col justify-between pt-4 pb-6"><div class="px-3"><div class="px-3 py-2 mb-2"><span class="font-label-sm text-label-sm text-outline uppercase tracking-wider font-bold">Módulos Operativos</span></div><nav class="flex flex-col gap-1" data-active-classes="bg-primary-container text-on-primary-container font-bold rounded-lg"><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="dashboard-operativo" href="#"><span class="material-symbols-outlined text-outline">dashboard</span>Dashboard Operativo</a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="evaluaciones-en-campo" href="#"><span class="material-symbols-outlined text-outline">fact_check</span>Evaluaciones en Campo</a><a aria-current="page" class="flex items-center gap-3 px-3 py-2.5 transition-all bg-primary-container text-on-primary-container font-bold rounded-lg" data-path="portal-empresas" href="#"><span class="material-symbols-outlined text-outline">domain</span>Portal Empresas</a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="revision-y-dictamenes" href="#"><span class="material-symbols-outlined text-outline">rate_review</span>Revisión y Dictámenes</a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="busqueda-historica" href="#"><span class="material-symbols-outlined text-outline">manage_search</span>Búsqueda Histórica</a></nav></div><div class="px-4 flex flex-col gap-2"><div class="p-3 bg-surface-container-low rounded-lg"><div class="flex items-center gap-2 mb-1"><span class="material-symbols-outlined text-secondary text-base">cloud_sync</span><span class="font-label-sm text-label-sm text-on-surface font-semibold">Almacenamiento Local</span></div><p class="font-body-sm text-body-sm text-on-surface-variant">Actas y evidencias cacheadas seguras en IndexedDB para campo.</p></div></div></aside><div class="pl-64 flex flex-col min-h-screen"><main class="flex-1 pt-16 w-full bg-surface px-gutter py-space-lg"><div class="flex flex-col w-full gap-space-lg">
+<!-- Header Card: Perfil Empresa & Acceso Rápido -->
+<div class="relative overflow-hidden bg-surface-container-lowest rounded-xl shadow-sm p-space-lg flex flex-col xl:flex-row xl:items-center justify-between gap-space-lg">
+<div class="absolute -right-16 -top-16 w-80 h-80 bg-gradient-to-br from-secondary/10 via-primary/5 to-transparent rounded-full pointer-events-none"></div>
+<div class="flex flex-col md:flex-row items-start md:items-center gap-space-lg relative z-10">
+<div class="relative">
+<img class="w-20 h-20 rounded-xl object-cover shadow-sm bg-surface-container-high" data-alt="Modern dairy and beverage industrial facility exterior, clean architectural lines, stainless steel storage silos, sunny blue sky with bright clinical daylight in high contrast industrial photography style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBi1UN-G8eREKUZlS9862VtnS8edoO1NMqtijGLkX7R6iOspl50W3oA6vnveoykDyhBZcaOfKfVnnNyUuaXViwNM_u1juIQF7FzaO7UpqChqyAuq02SZ-A0tmQBXKTqBGiMKCvV2bnJc_a6TwBWWjoLOqoCEw_wpum9vhCDAcfFn5IyHg0BaCEgjAHEULFg0gIxjHzpteLpWXmwS0nQtu8hmOoBNcaXk9oR-ANixJ2xAEhZCuBQiqK6dw">
+<span class="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-surface-container-lowest shadow-sm">
+<span class="material-symbols-outlined text-primary text-sm" style="font-variation-settings: 'FILL' 1;">verified</span>
+</span>
+</div>
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-3 flex-wrap">
+<span class="font-headline-lg text-headline-lg text-primary tracking-tight">Pasteurizadora Rica Dominicana S.A.</span>
+<span class="bg-surface-container-high text-primary font-label-sm text-label-sm px-2.5 py-1 rounded-full uppercase tracking-wider font-bold">RNC: 1-01-02345-6</span>
+<span class="bg-secondary-container text-on-secondary-container font-label-sm text-label-sm px-2.5 py-0.5 rounded-full font-bold">Rol: ADMIN_EMPRESA</span>
+</div>
+<div class="flex items-center gap-2 text-on-surface-variant flex-wrap">
+<span class="material-symbols-outlined text-outline text-base">factory</span>
+<span class="font-body-md text-body-md">Fabricación y Envasado de Productos Lácteos y Bebidas Pasteurizadas</span>
+<span class="text-outline">•</span>
+<span class="font-body-sm text-body-sm text-outline">Planta Matriz Km 6.5 Autopista Duarte, Santo Domingo</span>
+</div>
+</div>
+</div>
+<!-- Main CTA -->
+<div class="flex items-center gap-3 relative z-10">
+<button class="w-full xl:w-auto flex items-center justify-center gap-2 bg-primary hover:bg-primary-container text-on-primary px-5 py-3 rounded-lg shadow-sm transition-all transform active:scale-[0.98]" id="open-modal-btn" onclick="document.getElementById('solicitud-modal').classList.remove('hidden')">
+<span class="material-symbols-outlined text-xl">add_task</span>
+<span class="font-label-lg text-label-lg font-bold">+ Nueva Solicitud BPM / Renovación</span>
+</button>
+</div>
+</div>
+<!-- Resumen Sanitario: Permisos y Trámites Actuales -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-space-md">
+<!-- Permiso Vigente -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col justify-between relative overflow-hidden">
+<div class="flex items-start justify-between">
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider font-bold">Permiso Sanitario Vigente</span>
+<span class="font-headline-sm text-headline-sm text-on-surface mt-0.5">#SA-2025-998</span>
+</div>
+<div class="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">workspace_premium</span>
+</div>
+</div>
+<div class="mt-4 flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-error text-base">schedule</span>
+<span class="font-label-md text-label-md text-on-surface font-semibold">Vence en 45 días</span>
+</div>
+<span class="bg-error-container text-on-error-container font-label-sm text-label-sm px-2.5 py-0.5 rounded-full font-bold">Atención Requerida</span>
+</div>
+<!-- Barra de tiempo de vigencia -->
+<div class="w-full bg-surface-container-high h-1.5 rounded-full mt-3 overflow-hidden">
+<div class="bg-error h-full rounded-full" style="width: 87.5%"></div>
+</div>
+<span class="font-body-sm text-body-sm text-outline mt-1">Expira: 30 Abril 2025</span>
+</div>
+<!-- Trámite en Proceso -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col justify-between">
+<div class="flex items-start justify-between">
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider font-bold">Solicitud en Curso</span>
+<span class="font-headline-sm text-headline-sm text-on-surface mt-0.5">#SOL-2026-112</span>
+</div>
+<div class="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined">pending_actions</span>
+</div>
+</div>
+<div class="mt-3 flex flex-col gap-1">
+<div class="flex items-center gap-2">
+<span class="relative flex h-2.5 w-2.5">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-secondary"></span>
+</span>
+<span class="font-label-md text-label-md text-secondary font-bold">Evaluación Técnica</span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Inspección programada para el 18 de Marzo, 2025</span>
+</div>
+<div class="mt-3 flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm bg-surface-container-low px-2 py-1 rounded">
+<span class="">Evaluador Asignado:</span>
+<span class="font-semibold text-on-surface">Ing. L. Tejada</span>
+</div>
+</div>
+<!-- Índice de Riesgo Histórico -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col justify-between">
+<div class="flex items-start justify-between">
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider font-bold">Categorización de Riesgo</span>
+<span class="font-headline-sm text-headline-sm text-on-surface mt-0.5">Nivel A • Riesgo Bajo</span>
+</div>
+<div class="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">health_and_safety</span>
+</div>
+</div>
+<div class="mt-2 flex items-center gap-4">
+<div class="flex flex-col">
+<span class="font-data-metric text-data-metric text-primary leading-tight">96.4%</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Índice Conformidad BPM</span>
+</div>
+<div class="h-10 w-px bg-surface-container-high"></div>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md font-bold text-on-surface">0 Críticas</span>
+<span class="font-label-sm text-label-sm text-outline">Última auditoría</span>
+</div>
+</div>
+<div class="mt-2 text-on-surface-variant font-body-sm text-body-sm">
+        Frecuencia de inspección: Cada 12 meses.
+      </div>
+</div>
+<!-- Plantas Registradas -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col justify-between">
+<div class="flex items-start justify-between">
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider font-bold">Establecimientos Habilitados</span>
+<span class="font-headline-sm text-headline-sm text-on-surface mt-0.5">3 Plantas Operativas</span>
+</div>
+<div class="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">storefront</span>
+</div>
+</div>
+<div class="mt-2 flex flex-col gap-1.5">
+<div class="flex items-center justify-between text-body-sm font-body-sm">
+<span class="truncate">Planta Lácteos Norte</span>
+<span class="bg-surface-container text-primary px-1.5 py-0.5 rounded text-[10px] font-bold">VIGENTE</span>
+</div>
+<div class="flex items-center justify-between text-body-sm font-body-sm">
+<span class="truncate">Planta Pasteurizados Duarte</span>
+<span class="bg-error-container text-on-error-container px-1.5 py-0.5 rounded text-[10px] font-bold">45 DÍAS</span>
+</div>
+<div class="flex items-center justify-between text-body-sm font-body-sm">
+<span class="truncate">Centro Envasado Haina</span>
+<span class="bg-surface-container text-primary px-1.5 py-0.5 rounded text-[10px] font-bold">VIGENTE</span>
+</div>
+</div>
+<a class="mt-2 font-label-sm text-label-sm text-secondary hover:underline flex items-center gap-1 font-semibold" href="#">
+<span class="">Gestionar sucursales</span>
+<span class="material-symbols-outlined text-xs">arrow_forward</span>
+</a>
+</div>
+</div>
+<!-- Timeline de Solicitud en Trámite (RF-02, RF-20) -->
+<div class="bg-surface-container-lowest rounded-xl shadow-sm p-space-lg flex flex-col gap-space-md">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-primary-container text-on-primary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-lg">route</span>
+</div>
+<div>
+<span class="font-headline-md text-headline-md text-on-surface">Trazabilidad de Trámite: Solicitud #SOL-2026-112</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Tipo: Renovación Periódica de Certificación BPM • Planta Matriz Duarte</p>
+</div>
+</div>
+<span class="bg-surface-container-high text-primary font-label-md text-label-md px-3 py-1 rounded-full font-semibold">Etapa 3 de 6 Activa</span>
+</div>
+<!-- Stepper Gráfico -->
+<div class="w-full overflow-x-auto py-2">
+<div class="min-w-[780px] grid grid-cols-6 gap-2 relative"><div class="absolute top-5 left-10 right-10 h-0.5 bg-surface-container -z-0"><div class="bg-secondary h-full transition-all" style="width: 40%;"></div></div><div class="flex flex-col items-center text-center relative z-10"><div class="w-10 h-10 rounded-full bg-primary text-on-primary flex items-center justify-center font-bold text-sm shadow-sm ring-4 ring-surface-container-lowest"><span class="material-symbols-outlined text-base">check</span></div><span class="font-label-md text-label-md text-on-surface mt-2 font-bold">1. Enviada</span><span class="font-body-sm text-body-sm text-outline">12 Feb 2025</span><span class="font-label-sm text-label-sm text-secondary font-medium">Borrador validado</span></div><div class="flex flex-col items-center text-center relative z-10"><div class="w-10 h-10 rounded-full bg-primary text-on-primary flex items-center justify-center font-bold text-sm shadow-sm ring-4 ring-surface-container-lowest"><span class="material-symbols-outlined text-base">check</span></div><span class="font-label-md text-label-md text-on-surface mt-2 font-bold">2. Documentos</span><span class="font-body-sm text-body-sm text-outline">18 Feb 2025</span><span class="font-label-sm text-label-sm text-secondary font-medium">Conformes 100%</span></div><div class="flex flex-col items-center text-center relative z-10"><div class="w-10 h-10 rounded-full bg-secondary text-on-secondary ring-4 ring-secondary-container flex items-center justify-center font-bold text-sm shadow-sm"><span class="material-symbols-outlined text-base">assignment_ind</span></div><span class="font-label-md text-label-md text-secondary mt-2 font-bold">3. Evaluador</span><span class="font-body-sm text-body-sm text-on-surface font-semibold">En Proceso</span><span class="font-label-sm text-label-sm bg-surface-container text-secondary px-2 py-0.5 rounded mt-0.5 font-medium">Ing. L. Tejada</span></div><div class="flex flex-col items-center text-center relative z-10 opacity-75"><div class="w-10 h-10 rounded-full bg-surface-container-low text-on-surface-variant ring-4 ring-surface-container-lowest flex items-center justify-center font-bold text-sm"><span class="material-symbols-outlined text-base text-outline">schedule</span></div><span class="font-label-md text-label-md text-on-surface mt-2 font-semibold">4. Inspección</span><span class="font-body-sm text-body-sm text-outline">Prog. 18 Mar</span><span class="font-label-sm text-label-sm text-outline">Visita Campo</span></div><div class="flex flex-col items-center text-center relative z-10 opacity-60"><div class="w-10 h-10 rounded-full bg-surface-container-low text-on-surface-variant ring-4 ring-surface-container-lowest flex items-center justify-center font-bold text-sm">5</div><span class="font-label-md text-label-md text-on-surface mt-2 font-semibold">5. Dictamen</span><span class="font-body-sm text-body-sm text-outline">Pendiente</span><span class="font-label-sm text-label-sm text-outline">Comité Técnico</span></div><div class="flex flex-col items-center text-center relative z-10 opacity-60"><div class="w-10 h-10 rounded-full bg-surface-container-low text-on-surface-variant ring-4 ring-surface-container-lowest flex items-center justify-center font-bold text-sm">6</div><span class="font-label-md text-label-md text-on-surface mt-2 font-semibold">6. Emisión</span><span class="font-body-sm text-body-sm text-outline">Pendiente</span><span class="font-label-sm text-label-sm text-outline">Firma Digital</span></div></div>
+</div>
+<!-- Notification / Callout inside Step -->
+<div class="bg-surface-container-low p-space-md rounded-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-space-sm">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-secondary text-2xl">event_available</span>
+<div>
+<span class="font-label-lg text-label-lg text-on-surface font-semibold">Visita de Campo Agendada</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant">El equipo evaluador de DIGEMAPS se presentará el martes 18 de marzo a las 09:00 AM para revisión de líneas de envasado aseptico.</p>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="bg-surface-container-lowest hover:bg-surface-container text-primary font-label-md text-label-md px-3 py-2 rounded-lg transition-colors font-semibold shadow-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-base">download</span> Guía de Auditoría
+        </button>
+<button class="bg-secondary text-on-secondary hover:bg-on-secondary-container font-label-md text-label-md px-3 py-2 rounded-lg transition-colors font-semibold shadow-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-base">mail</span> Contactar Inspector
+        </button>
+</div>
+</div>
+</div>
+<!-- Bento Grid: Líneas de Producción Inspeccionables & Historial Completo -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-space-lg">
+<!-- Columna Izquierda: Líneas de Producción & Evidencias Registradas (4 cols) -->
+<div class="lg:col-span-4 flex flex-col gap-space-lg">
+<!-- Card: Estado de Líneas de Proceso -->
+<div class="bg-surface-container-lowest rounded-xl shadow-sm p-space-md flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<span class="font-headline-sm text-headline-sm text-primary">Líneas en Alcance BPM</span>
+<span class="bg-surface-container-high text-primary font-label-sm text-label-sm px-2 py-0.5 rounded font-bold">4 Activas</span>
+</div>
+<div class="flex flex-col gap-2 mt-1">
+<div class="bg-surface-container-low p-3 rounded-lg flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-secondary">local_drink</span>
+<div>
+<span class="font-label-md text-label-md text-on-surface font-semibold">Línea Lácteos UHT</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Envase tetrabrik aséptico</p>
+</div>
+</div>
+<span class="bg-surface-container text-primary font-label-sm text-label-sm px-2 py-0.5 rounded font-bold">Auditada</span>
+</div>
+<div class="bg-surface-container-low p-3 rounded-lg flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-secondary">liquor</span>
+<div>
+<span class="font-label-md text-label-md text-on-surface font-semibold">Línea Jugos Cítricos</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Pasteurización continua</p>
+</div>
+</div>
+<span class="bg-surface-container text-primary font-label-sm text-label-sm px-2 py-0.5 rounded font-bold">Auditada</span>
+</div>
+<div class="bg-surface-container-low p-3 rounded-lg flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-secondary">egg</span>
+<div>
+<span class="font-label-md text-label-md text-on-surface font-semibold">Línea Derivados &amp; Quesos</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Cámaras de maduración</p>
+</div>
+</div>
+<span class="bg-secondary-container text-on-secondary-container font-label-sm text-label-sm px-2 py-0.5 rounded font-bold">En Revisión</span>
+</div>
+<div class="bg-surface-container-low p-3 rounded-lg flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-secondary">water_drop</span>
+<div>
+<span class="font-label-md text-label-md text-on-surface font-semibold">Nueva Línea Bebidas Avena</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Solicitud de Ampliación</p>
+</div>
+</div>
+<span class="bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm px-2 py-0.5 rounded font-bold">Por Auditar</span>
+</div>
+</div>
+<div class="mt-2 pt-2 flex items-center justify-between">
+<span class="font-body-sm text-body-sm text-outline">Categoría LAPCH: Alimentos Riesgo Medio-Alto</span>
+<span class="material-symbols-outlined text-outline text-base">verified_user</span>
+</div>
+</div>
+<!-- Card: Evidencias Fotográficas Recientes -->
+<div class="bg-surface-container-lowest rounded-xl shadow-sm p-space-md flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<span class="font-headline-sm text-headline-sm text-primary">Evidencias Sanitarias Registradas</span>
+<span class="font-label-sm text-label-sm text-outline">Última visita</span>
+</div>
+<div class="grid grid-cols-2 gap-2 mt-1">
+<div class="relative rounded-lg overflow-hidden group">
+<img class="w-full h-24 object-cover transition-transform group-hover:scale-105" data-alt="Industrial laboratory technician in sterile white coat testing milk samples with calibrated sanitary refractometer, stainless steel cleanroom environment, high key institutional lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAE-0y4UejVWo6McUWRE1qufSoWZMidmq9cLdEJSpXqdn9Z9Cfdv7UpeBPzJUl884xVXFqvYWDZqoBy9PU0zxfmccDpS7sTrykCWth9coH6fCmW38wx1uRTIQwK5kCYtjdyT-2LE3qCa2pfpxJtveKvaJhPYCHkOugGqZ3RF-VHD2yUDaC1JahJa1Q6m2Ur4ZGqz8Yq8E9_PWMrr6Q3ssZi5s1PItTu-F-1XxSM7uqO-EDoHmHdyvQPng">
+<div class="absolute inset-0 bg-gradient-to-t from-primary/80 via-transparent to-transparent flex items-end p-1.5">
+<span class="font-label-sm text-label-sm text-on-primary">Lab Control Microbiológico</span>
+</div>
+</div>
+<div class="relative rounded-lg overflow-hidden group">
+<img class="w-full h-24 object-cover transition-transform group-hover:scale-105" data-alt="Stainless steel Clean-In-Place CIP automated sanitation piping system inside food processing plant, bright clean room, sparkling sanitary pipes, industrial precision." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCD0Pj2TPPaTwWdXKhzwysrLl_LRUQ09249XB1lNZtLL5_J5PpqqKeluxtVOj3nkTxZfPxm1MRte-iceFk2zmvSOSSIpNziRqQqqnasOFeFpMBNHv0c2y688IbcZYs_Dv5pHOr0G4KcffySuVJk8n-WuU1uFhPaCcMxnRav4pxvUZOalSYkLuxteEPefWFUFwdf9K9o_s_4fOV72110svy_SuYftEnxsoyV7j2Gm7ZQvW7eE5mZRM-cRA">
+<div class="absolute inset-0 bg-gradient-to-t from-primary/80 via-transparent to-transparent flex items-end p-1.5">
+<span class="font-label-sm text-label-sm text-on-primary">Sistema Lavado CIP</span>
+</div>
+</div>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">
+          12 expedientes técnicos y protocolos de Buenas Prácticas de Manufactura cargados en el repositorio central.
+        </p>
+</div>
+</div>
+<!-- Columna Derecha: Historial de Evaluaciones Sanitarias y Permisos Anteriores (8 cols) -->
+<div class="lg:col-span-8 flex flex-col gap-space-md bg-surface-container-lowest rounded-xl shadow-sm p-space-lg">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+<div>
+<span class="font-headline-md text-headline-md text-primary">Historial de Evaluaciones Sanitarias y Permisos Anteriores</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Registro histórico oficial de actas, dictámenes EBR y certificados emitidos.</p>
+</div>
+<div class="flex items-center gap-2">
+<div class="bg-surface-container-low flex items-center px-2 py-1 rounded-lg">
+<span class="material-symbols-outlined text-outline text-sm mr-1">filter_list</span>
+<select class="bg-transparent font-label-sm text-label-sm text-on-surface outline-none cursor-pointer">
+<option>Todos los Años (2021-2025)</option>
+<option>2025</option>
+<option>2024</option>
+<option>2023</option>
+</select>
+</div>
+<button class="bg-surface-container hover:bg-surface-container-high text-primary p-1.5 rounded-lg transition-colors" title="Exportar Registro">
+<span class="material-symbols-outlined text-base">print</span>
+</button>
+</div>
+</div>
+<!-- Tabla de Historial -->
+<div class="w-full overflow-x-auto">
+<table class="w-full text-left">
+<thead>
+<tr class="bg-surface-container-low text-on-surface-variant font-label-md text-label-md uppercase tracking-wider">
+<th class="py-3 px-3 rounded-l-lg">Año / Ref</th>
+<th class="py-3 px-3">Tipo Inspección</th>
+<th class="py-3 px-3">Evaluador</th>
+<th class="py-3 px-3 text-center">Nivel de Riesgo</th>
+<th class="py-3 px-3 text-center">Resultado</th>
+<th class="py-3 px-3 rounded-r-lg text-right">Acciones</th>
+</tr>
+</thead>
+<tbody class="divide-y-0">
+<!-- Row 1 -->
+<tr class="hover:bg-surface-container-low transition-colors">
+<td class="py-3.5 px-3">
+<div class="flex flex-col">
+<span class="font-label-lg text-label-lg text-on-surface font-bold">2024</span>
+<span class="font-body-sm text-body-sm text-outline">ACT-2024-8841</span>
+</div>
+</td>
+<td class="py-3.5 px-3">
+<div class="flex flex-col">
+<span class="font-body-md text-body-md text-on-surface font-semibold">Vigilancia Periódica BPM</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Líneas UHT y Cítricos</span>
+</div>
+</td>
+<td class="py-3.5 px-3">
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 rounded-full bg-primary text-on-primary flex items-center justify-center font-bold text-[10px]">LT</div>
+<span class="font-body-sm text-body-sm text-on-surface">Ing. Luis Tejada</span>
+</div>
+</td>
+<td class="py-3.5 px-3 text-center">
+<span class="bg-surface-container text-primary font-label-sm text-label-sm px-2 py-0.5 rounded-full font-bold">Riesgo Bajo</span>
+</td>
+<td class="py-3.5 px-3 text-center">
+<span class="bg-secondary-container text-on-secondary-container font-label-sm text-label-sm px-2.5 py-0.5 rounded-full font-bold">Aprobado 97%</span>
+</td>
+<td class="py-3.5 px-3 text-right">
+<div class="flex items-center justify-end gap-1">
+<button class="p-1.5 rounded hover:bg-surface-container text-primary transition-colors" title="Descargar Certificado Oficial (PDF)">
+<span class="material-symbols-outlined text-lg">picture_as_pdf</span>
+</button>
+<button class="p-1.5 rounded hover:bg-surface-container text-secondary transition-colors" title="Ver Acta de Inspección">
+<span class="material-symbols-outlined text-lg">visibility</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-surface-container-low transition-colors">
+<td class="py-3.5 px-3">
+<div class="flex flex-col">
+<span class="font-label-lg text-label-lg text-on-surface font-bold">2023</span>
+<span class="font-body-sm text-body-sm text-outline">ACT-2023-5201</span>
+</div>
+</td>
+<td class="py-3.5 px-3">
+<div class="flex flex-col">
+<span class="font-body-md text-body-md text-on-surface font-semibold">Certificación Inicial Derivados</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Línea Quesos y Mantequilla</span>
+</div>
+</td>
+<td class="py-3.5 px-3">
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 rounded-full bg-secondary text-on-secondary flex items-center justify-center font-bold text-[10px]">DA</div>
+<span class="font-body-sm text-body-sm text-on-surface">Dra. Ana Domínguez</span>
+</div>
+</td>
+<td class="py-3.5 px-3 text-center">
+<span class="bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm px-2 py-0.5 rounded-full font-bold">Riesgo Medio</span>
+</td>
+<td class="py-3.5 px-3 text-center">
+<span class="bg-secondary-container text-on-secondary-container font-label-sm text-label-sm px-2.5 py-0.5 rounded-full font-bold">Aprobado 91%</span>
+</td>
+<td class="py-3.5 px-3 text-right">
+<div class="flex items-center justify-end gap-1">
+<button class="p-1.5 rounded hover:bg-surface-container text-primary transition-colors" title="Descargar Certificado Oficial (PDF)">
+<span class="material-symbols-outlined text-lg">picture_as_pdf</span>
+</button>
+<button class="p-1.5 rounded hover:bg-surface-container text-secondary transition-colors" title="Ver Acta de Inspección">
+<span class="material-symbols-outlined text-lg">visibility</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-surface-container-low transition-colors">
+<td class="py-3.5 px-3">
+<div class="flex flex-col">
+<span class="font-label-lg text-label-lg text-on-surface font-bold">2022</span>
+<span class="font-body-sm text-body-sm text-outline">ACT-2022-3119</span>
+</div>
+</td>
+<td class="py-3.5 px-3">
+<div class="flex flex-col">
+<span class="font-body-md text-body-md text-on-surface font-semibold">Renovación Integral General</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Toda la Planta Matriz</span>
+</div>
+</td>
+<td class="py-3.5 px-3">
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 rounded-full bg-primary text-on-primary flex items-center justify-center font-bold text-[10px]">MR</div>
+<span class="font-body-sm text-body-sm text-on-surface">Ing. Marcos Ramos</span>
+</div>
+</td>
+<td class="py-3.5 px-3 text-center">
+<span class="bg-surface-container text-primary font-label-sm text-label-sm px-2 py-0.5 rounded-full font-bold">Riesgo Bajo</span>
+</td>
+<td class="py-3.5 px-3 text-center">
+<span class="bg-secondary-container text-on-secondary-container font-label-sm text-label-sm px-2.5 py-0.5 rounded-full font-bold">Aprobado 98%</span>
+</td>
+<td class="py-3.5 px-3 text-right">
+<div class="flex items-center justify-end gap-1">
+<button class="p-1.5 rounded hover:bg-surface-container text-primary transition-colors" title="Descargar Certificado Oficial (PDF)">
+<span class="material-symbols-outlined text-lg">picture_as_pdf</span>
+</button>
+<button class="p-1.5 rounded hover:bg-surface-container text-secondary transition-colors" title="Ver Acta de Inspección">
+<span class="material-symbols-outlined text-lg">visibility</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="hover:bg-surface-container-low transition-colors">
+<td class="py-3.5 px-3">
+<div class="flex flex-col">
+<span class="font-label-lg text-label-lg text-on-surface font-bold">2021</span>
+<span class="font-body-sm text-body-sm text-outline">ACT-2021-0982</span>
+</div>
+</td>
+<td class="py-3.5 px-3">
+<div class="flex flex-col">
+<span class="font-body-md text-body-md text-on-surface font-semibold">Auditoría Extraordinaria</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Ampliación de Almacenes Refrigerados</span>
+</div>
+</td>
+<td class="py-3.5 px-3">
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 rounded-full bg-primary text-on-primary flex items-center justify-center font-bold text-[10px]">MV</div>
+<span class="font-body-sm text-body-sm text-on-surface">Lic. Mateo Vargas</span>
+</div>
+</td>
+<td class="py-3.5 px-3 text-center">
+<span class="bg-surface-container text-primary font-label-sm text-label-sm px-2 py-0.5 rounded-full font-bold">Riesgo Bajo</span>
+</td>
+<td class="py-3.5 px-3 text-center">
+<span class="bg-secondary-container text-on-secondary-container font-label-sm text-label-sm px-2.5 py-0.5 rounded-full font-bold">Aprobado 95%</span>
+</td>
+<td class="py-3.5 px-3 text-right">
+<div class="flex items-center justify-end gap-1">
+<button class="p-1.5 rounded hover:bg-surface-container text-primary transition-colors" title="Descargar Certificado Oficial (PDF)">
+<span class="material-symbols-outlined text-lg">picture_as_pdf</span>
+</button>
+<button class="p-1.5 rounded hover:bg-surface-container text-secondary transition-colors" title="Ver Acta de Inspección">
+<span class="material-symbols-outlined text-lg">visibility</span>
+</button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Resumen Legal Inferior -->
+<div class="bg-surface-container p-3 rounded-lg flex items-center justify-between mt-auto">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-base">verified</span>
+<span class="font-body-sm text-body-sm text-on-surface">Todos los certificados emitidos poseen firma digital y código QR validado bajo el marco legal de DIGEMAPS / MISPAS.</span>
+</div>
+<a class="font-label-sm text-label-sm text-secondary hover:underline font-semibold shrink-0 ml-4" href="#">Validar QR</a>
+</div>
+</div>
+</div>
+<!-- MODAL / FORMULARIO EXPANDIBLE: NUEVA SOLICITUD BPM (RF-05) -->
+<div class="hidden fixed inset-0 z-50 overflow-y-auto bg-inverse-surface/40 backdrop-blur-sm flex items-center justify-center p-4" id="solicitud-modal">
+<div class="bg-surface-container-lowest rounded-xl shadow-xl max-w-4xl w-full max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200">
+<!-- Modal Header -->
+<div class="bg-primary text-on-primary px-space-lg py-space-md flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-on-primary/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-2xl">post_add</span>
+</div>
+<div>
+<span class="font-headline-md text-headline-md leading-tight">Formulario de Solicitud de Certificación Sanitaria BPM (RF-05)</span>
+<p class="font-body-sm text-body-sm text-on-primary-container">Sistema de Autogestión • Pasteurizadora Rica Dominicana S.A. (RNC: 1-01-02345-6)</p>
+</div>
+</div>
+<button aria-label="Cerrar modal" class="p-1.5 rounded-lg hover:bg-on-primary/10 text-on-primary transition-colors" onclick="document.getElementById('solicitud-modal').classList.add('hidden')">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<!-- Modal Body -->
+<div class="p-space-lg overflow-y-auto flex flex-col gap-space-lg">
+<!-- 1. Establecimiento y Motivo -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-space-md">
+<div class="flex flex-col gap-1.5">
+<label class="font-label-md text-label-md text-on-surface font-semibold flex items-center gap-1">
+              Planta / Establecimiento Destino <span class="text-error">*</span>
+</label>
+<select class="w-full bg-surface-container-low text-on-surface font-body-md text-body-md px-3.5 py-2.5 rounded-lg outline-none focus:ring-2 focus:ring-secondary transition-all cursor-pointer">
+<option value="p1">Planta Matriz Duarte - Km 6.5 Autopista Duarte, Sto Dgo</option>
+<option value="p2">Planta Lácteos Norte - Zona Industrial La Vega</option>
+<option value="p3">Centro de Envasado y Logística Haina - San Cristóbal</option>
+</select>
+<span class="font-body-sm text-body-sm text-outline">Seleccione la sucursal física donde se ejecutará la auditoría EBR.</span>
+</div>
+<div class="flex flex-col gap-1.5">
+<label class="font-label-md text-label-md text-on-surface font-semibold flex items-center gap-1">
+              Motivo de la Solicitud <span class="text-error">*</span>
+</label>
+<select class="w-full bg-surface-container-low text-on-surface font-body-md text-body-md px-3.5 py-2.5 rounded-lg outline-none focus:ring-2 focus:ring-secondary transition-all cursor-pointer">
+<option value="renovacion">Renovación Periódica de Certificación BPM (Vencimiento)</option>
+<option value="inicial">Certificación Inicial de Nueva Planta</option>
+<option value="ampliacion">Ampliación de Línea de Producción</option>
+<option value="modificacion">Modificación Estructural de Instalaciones</option>
+</select>
+<span class="font-body-sm text-body-sm text-outline">El motivo condiciona la matriz de riesgo del checklist.</span>
+</div>
+</div>
+<!-- 2. Tipo de Establecimiento y Categorías de Alimentos -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-space-md">
+<div class="flex flex-col gap-1.5">
+<label class="font-label-md text-label-md text-on-surface font-semibold flex items-center gap-1">
+              Tipo de Establecimiento (Matriz LAPCH) <span class="text-error">*</span>
+</label>
+<select class="w-full bg-surface-container-low text-on-surface font-body-md text-body-md px-3.5 py-2.5 rounded-lg outline-none focus:ring-2 focus:ring-secondary transition-all cursor-pointer">
+<option value="ind_lactea">Industria Procesadora de Lácteos y Derivados</option>
+<option value="ind_bebidas">Industria de Bebidas y Jugos No Alcohólicos</option>
+<option value="conservas">Elaboración de Alimentos Envasados Asépticos</option>
+<option value="almacen">Almacén y Distribuidora con Cadena de Frío</option>
+</select>
+</div>
+<div class="flex flex-col gap-1.5">
+<label class="font-label-md text-label-md text-on-surface font-semibold">
+              Categorías de Alimentos Involucrados
+            </label>
+<div class="flex flex-wrap gap-2 pt-1">
+<label class="inline-flex items-center gap-1.5 bg-surface-container-low px-2.5 py-1.5 rounded-lg cursor-pointer hover:bg-surface-container-high transition-colors">
+<input checked="" class="rounded text-primary focus:ring-0 accent-primary" type="checkbox">
+<span class="font-label-sm text-label-sm text-on-surface">Leches y Derivados</span>
+</label>
+<label class="inline-flex items-center gap-1.5 bg-surface-container-low px-2.5 py-1.5 rounded-lg cursor-pointer hover:bg-surface-container-high transition-colors">
+<input checked="" class="rounded text-primary focus:ring-0 accent-primary" type="checkbox">
+<span class="font-label-sm text-label-sm text-on-surface">Jugos Pasteurizados</span>
+</label>
+<label class="inline-flex items-center gap-1.5 bg-surface-container-low px-2.5 py-1.5 rounded-lg cursor-pointer hover:bg-surface-container-high transition-colors">
+<input checked="" class="rounded text-primary focus:ring-0 accent-primary" type="checkbox">
+<span class="font-label-sm text-label-sm text-on-surface">Bebidas Base Vegetal</span>
+</label>
+<label class="inline-flex items-center gap-1.5 bg-surface-container-low px-2.5 py-1.5 rounded-lg cursor-pointer hover:bg-surface-container-high transition-colors">
+<input class="rounded text-primary focus:ring-0 accent-primary" type="checkbox">
+<span class="font-label-sm text-label-sm text-on-surface">Aguas Envasadas</span>
+</label>
+</div>
+</div>
+</div>
+<!-- 3. Carga de Documentación Obligatoria (Drag & Drop) -->
+<div class="flex flex-col gap-2">
+<div class="flex items-center justify-between">
+<label class="font-label-md text-label-md text-on-surface font-semibold flex items-center gap-1">
+              Carga de Documentación Obligatoria <span class="text-error">*</span>
+</label>
+<span class="font-label-sm text-label-sm text-secondary font-semibold">Formatos permitidos: PDF, JPG, PNG (Hasta 25MB)</span>
+</div>
+<!-- Drag and Drop Area -->
+<div class="bg-surface-container-low hover:bg-surface-container rounded-xl p-6 text-center flex flex-col items-center justify-center gap-2 cursor-pointer transition-all">
+<div class="w-12 h-12 rounded-full bg-surface-container-high flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-2xl">cloud_upload</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-lg text-label-lg text-primary font-bold">Haga clic para subir o arrastre sus documentos aquí</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Archivos requeridos para auditoría documental previa a visita</span>
+</div>
+</div>
+<!-- Documentos Requeridos Checklist Estado -->
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+<div class="bg-surface-container-lowest p-3 rounded-lg shadow-sm flex items-center justify-between">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-primary text-xl">description</span>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface font-semibold">1. Licencia Comercial Vigente</span>
+<span class="font-body-sm text-body-sm text-secondary">Licencia_RICA_2025.pdf (1.8 MB)</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-primary text-base" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<div class="bg-surface-container-lowest p-3 rounded-lg shadow-sm flex items-center justify-between">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-primary text-xl">account_tree</span>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface font-semibold">2. Memoria Técnica de Procesos</span>
+<span class="font-body-sm text-body-sm text-secondary">Memoria_Flujos_UHT.pdf (8.4 MB)</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-primary text-base" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<div class="bg-surface-container-lowest p-3 rounded-lg shadow-sm flex items-center justify-between">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-primary text-xl">groups</span>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface font-semibold">3. Organigrama de Calidad e Inocuidad</span>
+<span class="font-body-sm text-body-sm text-secondary">Organigrama_Calidad_2025.pdf (920 KB)</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-primary text-base" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<div class="bg-surface-container-lowest p-3 rounded-lg shadow-sm flex items-center justify-between">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-outline text-xl">inventory_2</span>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface font-semibold">4. Lista Maestra de Productos / Registros</span>
+<span class="font-body-sm text-body-sm text-error">Pendiente de adjuntar</span>
+</div>
+</div>
+<button class="bg-surface-container text-primary font-label-sm text-label-sm px-2 py-1 rounded hover:bg-surface-container-high transition-colors font-semibold">
+                Adjuntar
+              </button>
+</div>
+</div>
+</div>
+<!-- 4. Observaciones o Notas Adicionales -->
+<div class="flex flex-col gap-1.5">
+<label class="font-label-md text-label-md text-on-surface font-semibold">Observaciones o Peticiones Específicas para el Inspector</label>
+<textarea class="w-full bg-surface-container-low text-on-surface font-body-md text-body-md p-3 rounded-lg outline-none focus:ring-2 focus:ring-secondary transition-all resize-none" placeholder="Detalle si requiere atención en horarios específicos o si existen protocolos de bioseguridad particulares para el ingreso a áreas asépticas..." rows="2"></textarea>
+</div>
+</div>
+<!-- Modal Footer -->
+<div class="bg-surface-container-low px-space-lg py-space-md flex flex-col sm:flex-row items-center justify-between gap-3">
+<div class="flex items-center gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-base">info</span>
+<span class="font-body-sm text-body-sm">Los datos consignados tienen carácter de declaración jurada sanitaria.</span>
+</div>
+<div class="flex items-center gap-3 w-full sm:w-auto">
+<button class="w-1/2 sm:w-auto bg-surface-container hover:bg-surface-container-high text-on-surface font-label-lg text-label-lg px-4 py-2.5 rounded-lg transition-colors font-semibold" onclick="document.getElementById('solicitud-modal').classList.add('hidden')">
+            Guardar Borrador
+          </button>
+<button class="w-1/2 sm:w-auto bg-primary hover:bg-primary-container text-on-primary font-label-lg text-label-lg px-5 py-2.5 rounded-lg shadow-sm transition-all font-bold flex items-center justify-center gap-2" onclick="alert('Solicitud enviada oficialmente a la DIGEMAPS para revisión.'); document.getElementById('solicitud-modal').classList.add('hidden');">
+<span class="material-symbols-outlined text-lg">send</span>
+<span class="">Enviar Solicitud Oficial</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div></main><footer class="w-full bg-surface-container-low py-4 px-gutter flex flex-col sm:flex-row items-center justify-between gap-4 text-on-surface-variant"><div class="flex items-center gap-4"><span class="font-label-md text-label-md text-on-surface font-semibold">RADAR Sanitario • Portal de Cumplimiento &amp; Autogestión PWA v2.4.0</span><span class="hidden md:inline font-body-sm text-body-sm text-outline">|</span><span class="font-body-sm text-body-sm text-on-surface-variant">Sincronización Base de Datos: Activa (LAPCH &amp; Vigilancia)</span></div><div class="flex items-center gap-6"><a class="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors" href="#">Normativa Sanitaria RNC-BPM</a><a class="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors" href="#">Protocolos de Riesgo</a><a class="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors" href="#">Mesa de Ayuda</a></div></footer></div>
+
+</body></html>

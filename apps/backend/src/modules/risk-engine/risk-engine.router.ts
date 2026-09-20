@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, type Router as ExpressRouter } from 'express';
 import { validateJwt, validateReq, validateRole } from '#backend/middlewares';
 import { riskEngineController } from './risk-engine.controller';
 import { IdParamSchema, UpdateRiskRuleSchema } from './risk-engine.schemas';
@@ -12,10 +12,11 @@ import { IdParamSchema, UpdateRiskRuleSchema } from './risk-engine.schemas';
  * catálogo de reglas.
  * ---------------------------------------------------------------------------
  */
-export const riskEngineRouter = Router();
+export const riskEngineRouter: ExpressRouter = Router();
 
 riskEngineRouter
-  .use(validateJwt)
+  .use('/evaluations', validateJwt)
+  .use('/catalogs', validateJwt)
   .get('/evaluations/:id/score', validateReq(IdParamSchema, 'params'), riskEngineController.getScore)
   .get('/catalogs/risk-frequency-rules', validateRole('ADMIN'), riskEngineController.getRules)
   .patch(

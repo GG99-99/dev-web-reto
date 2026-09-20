@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, type Router as ExpressRouter } from 'express';
 import { validateJwt, validateReq } from '#backend/middlewares';
 import { catalogsController } from './catalogs.controller';
 import { MunicipalitiesQuerySchema, FoodsQuerySchema, CategoryIdParamSchema } from './catalogs.schemas';
@@ -10,10 +10,10 @@ import { MunicipalitiesQuerySchema, FoodsQuerySchema, CategoryIdParamSchema } fr
  * API_CONTRACTS.md. Todos los endpoints requieren solo estar autenticado.
  * ---------------------------------------------------------------------------
  */
-export const catalogsRouter = Router();
+export const catalogsRouter: ExpressRouter = Router();
 
 catalogsRouter
-  .use(validateJwt)
+  .use('/catalogs', validateJwt)
   .get('/catalogs/provinces', catalogsController.getProvinces)
   .get('/catalogs/municipalities', validateReq(MunicipalitiesQuerySchema, 'query'), catalogsController.getMunicipalities)
   .get('/catalogs/health-areas', catalogsController.getHealthAreas)

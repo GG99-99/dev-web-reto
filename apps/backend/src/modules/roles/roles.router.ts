@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, type Router as ExpressRouter } from 'express';
 import { validateJwt, validateRole } from '#backend/middlewares';
 import { rolesController } from './roles.controller';
 
@@ -8,6 +8,6 @@ import { rolesController } from './roles.controller';
  * Base path: /roles (montado bajo /api/v1). Sección 2 de API_CONTRACTS.md.
  * ---------------------------------------------------------------------------
  */
-export const rolesRouter = Router();
+export const rolesRouter: ExpressRouter = Router();
 
 rolesRouter.get('/roles', validateJwt, validateRole('ADMIN'), rolesController.getMany);

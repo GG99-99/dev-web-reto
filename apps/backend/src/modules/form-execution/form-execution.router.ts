@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, type Router as ExpressRouter } from 'express';
 import { validateJwt, validateReq, validateRole } from '#backend/middlewares';
 import { formExecutionController } from './form-execution.controller';
 import { StartEvaluationSchema, FormAnswersSchema, IdParamSchema } from './form-execution.schemas';
@@ -13,10 +13,11 @@ import { StartEvaluationSchema, FormAnswersSchema, IdParamSchema } from './form-
  * `evaluation.technicianId`).
  * ---------------------------------------------------------------------------
  */
-export const formExecutionRouter = Router();
+export const formExecutionRouter: ExpressRouter = Router();
 
 formExecutionRouter
-  .use(validateJwt)
+  .use('/form-templates', validateJwt)
+  .use('/evaluations', validateJwt)
   .get('/form-templates', formExecutionController.getTemplates)
   .get('/form-templates/:id/tree', validateReq(IdParamSchema, 'params'), formExecutionController.getTemplateTree)
   .post(

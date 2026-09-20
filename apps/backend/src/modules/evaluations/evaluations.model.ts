@@ -19,7 +19,17 @@ export interface EvaluationsFilter {
 
 const LIST_INCLUDE = {
   institution: { select: { institutionId: true, name: true, streetName: true } },
-  technician: { include: { person: true } },
+  technician: {
+    select: {
+      userId: true,
+      personId: true,
+      roleId: true,
+      status: true,
+      isActive: true,
+      createdAt: true,
+      person: true,
+    },
+  },
 } satisfies Prisma.EvaluationInclude;
 
 export const evaluationsModel = {

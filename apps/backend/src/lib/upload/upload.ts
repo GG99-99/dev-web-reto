@@ -1,4 +1,5 @@
 import multer from 'multer';
+import type { RequestHandler } from 'express';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
@@ -34,7 +35,7 @@ const storage = multer.diskStorage({
 
 const MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024; // 25MB
 
-export const uploadSingleFile = multer({
+export const uploadSingleFile: RequestHandler = multer({
   storage,
   limits: { fileSize: MAX_FILE_SIZE_BYTES },
 }).single('file');

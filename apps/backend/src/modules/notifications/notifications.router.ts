@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, type Router as ExpressRouter } from 'express';
 import { validateJwt, validateReq } from '#backend/middlewares';
 import { notificationsController } from './notifications.controller';
 import { GetNotificationsQuerySchema, IdParamSchema } from './notifications.schemas';
@@ -9,10 +9,10 @@ import { GetNotificationsQuerySchema, IdParamSchema } from './notifications.sche
  * Base path: /notifications (montado bajo /api/v1). Soporte a RF-04.
  * ---------------------------------------------------------------------------
  */
-export const notificationsRouter = Router();
+export const notificationsRouter: ExpressRouter = Router();
 
 notificationsRouter
-  .use(validateJwt)
+  .use('/notifications', validateJwt)
   .get('/notifications', validateReq(GetNotificationsQuerySchema, 'query'), notificationsController.getMany)
   .patch('/notifications/read-all', notificationsController.markAllRead)
   .patch('/notifications/:id/read', validateReq(IdParamSchema, 'params'), notificationsController.markRead);

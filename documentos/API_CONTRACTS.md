@@ -131,7 +131,7 @@ interface Verify2FARequest { tempToken: string; code: string; }
 
 | Método | Path | Roles | Descripción |
 |---|---|---|---|
-| GET | `/users` | ADMIN | Lista usuarios (filtros: `status`, `roleId`) |
+| GET | `/users` | ADMIN, COORDINADOR | Lista usuarios (filtros: `status`, `roleId`). El coordinador la usa para seleccionar evaluadores. |
 | GET | `/users/:id` | ADMIN, propio usuario | Detalle |
 | POST | `/users/register` | Público | Autorregistro de Admin Empresa / Usuario Delegado |
 | PATCH | `/users/:id` | ADMIN, propio usuario | Editar datos de persona |

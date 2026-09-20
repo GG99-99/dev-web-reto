@@ -67,7 +67,8 @@ export function setRefreshTokenProvider(provider: () => string | null | undefine
  * bundler.
  */
 export const httpClient = axios.create({
-  baseURL: (import.meta as any)?.env?.VITE_API_URL ?? '/api',
+  // Express mounts the versioned API router at `/api/v1`.
+  baseURL: import.meta.env.VITE_API_URL ?? '/api/v1',
   headers: { 'Content-Type': 'application/json' },
 });
 

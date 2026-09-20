@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, type Router as ExpressRouter } from 'express';
 import { validateJwt, validateReq, validateRole } from '#backend/middlewares';
 import { historyController } from './history.controller';
 import { HistorySearchQuerySchema } from './history.schemas';
@@ -12,8 +12,8 @@ import { HistorySearchQuerySchema } from './history.schemas';
  * expresable con validateRole).
  * ---------------------------------------------------------------------------
  */
-export const historyRouter = Router();
+export const historyRouter: ExpressRouter = Router();
 
 historyRouter
-  .use(validateJwt, validateRole('COORDINADOR', 'ADMIN', 'ADMIN_EMPRESA'))
+  .use('/history', validateJwt, validateRole('COORDINADOR', 'ADMIN', 'ADMIN_EMPRESA'))
   .get('/history/search', validateReq(HistorySearchQuerySchema, 'query'), historyController.search);

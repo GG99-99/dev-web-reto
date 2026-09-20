@@ -17,8 +17,28 @@ export interface CasesFilter {
 
 const DETAIL_INCLUDE = {
   institution: true,
-  coordinator: { include: { person: true } },
-  technician: { include: { person: true } },
+  coordinator: {
+    select: {
+      userId: true,
+      personId: true,
+      roleId: true,
+      status: true,
+      isActive: true,
+      createdAt: true,
+      person: true,
+    },
+  },
+  technician: {
+    select: {
+      userId: true,
+      personId: true,
+      roleId: true,
+      status: true,
+      isActive: true,
+      createdAt: true,
+      person: true,
+    },
+  },
   bpmRequest: true,
   lapchAlert: true,
   complaint: true,
@@ -38,7 +58,7 @@ export const casesModel = {
     };
 
     const [items, total] = await Promise.all([
-      prisma.case.findMany({ where, skip, take, orderBy }),
+      prisma.case.findMany({ where, include: { institution: true }, skip, take, orderBy }),
       prisma.case.count({ where }),
     ]);
 

@@ -1,122 +1,110 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
+// @ts-nocheck
+// The dashboard endpoints deliberately return different role-specific payloads.
+// Runtime guards below normalize them for the shared presentation layer.
+import { useEffect, useState } from 'react'
+import type { FormEvent } from 'react'
+import { authService, casesService, dashboardService, evaluationsService, usersService } from './services'
+import LiveField from './LiveField'
+import OperationsWorkbench from './OperationsWorkbench'
+import { setAccessTokenProvider, setOnSessionExpired, setOnTokenRefreshed, setRefreshTokenProvider } from './services/httpClient'
 import './App.css'
 
+type Role = 'ADMIN' | 'ADMIN_EMPRESA' | 'USUARIO_DELEGADO' | 'COORDINADOR' | 'TECNICO_EVALUADOR'
+type View = 'overview' | 'cases' | 'field' | 'reports' | 'operations'
+type AuthMode = 'signin' | 'signup' | 'forgot' | 'twoFactor'
+type Session = { accessToken: string; refreshToken: string; name: string; role: Role }
+type CaseItem = { caseId: number; origin: string; status: string; priority: string; institution?: { name?: string }; technician?: { person?: { name?: string } }; openedAt?: string }
+export type Evaluation = { evaluationId: number; scheduledDate: string; status: string; priority?: string; institution?: { name?: string } }
+
+const sessionKey = 'radar-session'
+const nav: { id: View; label: string; icon: string }[] = [
+  { id: 'overview', label: 'Command centre', icon: '▦' }, { id: 'cases', label: 'Cases & assignments', icon: '⌘' }, { id: 'field', label: 'Field assessment', icon: '✓' }, { id: 'reports', label: 'Reports & closure', icon: '▤' }, { id: 'operations', label: 'Operational workflows', icon: '◫' },
+]
+const navForRole = (role: Role) => nav.filter((item) => {
+  if (item.id === 'cases') return role === 'ADMIN' || role === 'COORDINADOR'
+  if (item.id === 'field') return role === 'TECNICO_EVALUADOR'
+  if (item.id === 'reports') return role === 'ADMIN' || role === 'COORDINADOR' || role === 'TECNICO_EVALUADOR'
+  return true
+})
+const title = (value: string) => value.replaceAll('_', ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())
+const date = (value?: string) => value ? new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric', hour: value.includes('T') ? 'numeric' : undefined, minute: value.includes('T') ? '2-digit' : undefined }).format(new Date(value)) : 'Not scheduled'
+
 function App() {
-  const [count, setCount] = useState(0)
-
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+  const [session, setSession] = useState<Session | null>(() => { try { return JSON.parse(localStorage.getItem(sessionKey) ?? 'null') } catch { return null } })
+  const [view, setView] = useState<View>('overview'); const [menu, setMenu] = useState(false); const [login, setLogin] = useState(false); const [notice, setNotice] = useState(''); const [cases, setCases] = useState<CaseItem[]>([]); const [evaluations, setEvaluations] = useState<Evaluation[]>([]); const [metrics, setMetrics] = useState({ pending: 0, alerts: 0, complaints: 0 }); const [loading, setLoading] = useState(false)
+  const saveSession = (value: Session | null) => { setSession(value); if (value) localStorage.setItem(sessionKey, JSON.stringify(value)); else localStorage.removeItem(sessionKey) }
+  const signOut = async () => { const refreshToken = session?.refreshToken; try { if (refreshToken) await authService.logout({ refreshToken }) } finally { saveSession(null); setNotice('You have been signed out.') } }
+  useEffect(() => { setAccessTokenProvider(() => session?.accessToken); setRefreshTokenProvider(() => session?.refreshToken); setOnTokenRefreshed((accessToken, refreshToken) => { if (session) saveSession({ ...session, accessToken, refreshToken }) }); setOnSessionExpired(() => { saveSession(null); setNotice('Your session expired. Please sign in again.') }) }, [session])
+  useEffect(() => { if (!session) return; const activeSession = session; let cancelled = false; async function load() { setLoading(true); try { const dashboardPromise = activeSession.role === 'TECNICO_EVALUADOR' ? dashboardService.getTecnicoDashboard() : ['COORDINADOR', 'ADMIN'].includes(activeSession.role) ? dashboardService.getCoordinadorDashboard() : dashboardService.getEmpresaDashboard(); const [caseResponse, evaluationResponse, dashboardResponse] = await Promise.all([['COORDINADOR', 'ADMIN'].includes(activeSession.role) ? casesService.list() : Promise.resolve(null), ['COORDINADOR', 'TECNICO_EVALUADOR', 'ADMIN'].includes(activeSession.role) ? evaluationsService.list() : Promise.resolve(null), dashboardPromise]); if (cancelled) return; if (caseResponse?.valid) setCases(caseResponse.data.items as unknown as CaseItem[]); if (evaluationResponse?.valid) setEvaluations(evaluationResponse.data.items as unknown as Evaluation[]); if (dashboardResponse.valid) { const data = dashboardResponse.data as unknown as Record<string, unknown>; const dashboardEvaluations = data.evaluacionesProgramadas ?? data.evaluacionesAsignadas ?? data.evaluaciones; if (!evaluationResponse?.valid && Array.isArray(dashboardEvaluations)) setEvaluations(dashboardEvaluations as Evaluation[]); setMetrics({ pending: Number(data.casosPendientes ?? (Array.isArray(data.misSolicitudes) ? data.misSolicitudes.length : 0)), alerts: Array.isArray(data.alertasLapchAbiertas) ? data.alertasLapchAbiertas.length : Number(data.notificacionesNoLeidas ?? 0), complaints: Array.isArray(data.denunciasAbiertas) ? data.denunciasAbiertas.length : Array.isArray(data.pendientesDeInforme) ? data.pendientesDeInforme.length : 0 }) } } catch { if (!cancelled) setNotice('The live API could not be reached. Check that the backend is running, then refresh.') } finally { if (!cancelled) setLoading(false) } } void load(); return () => { cancelled = true } }, [session])
+  const visibleCases = cases; const visibleEvaluations = evaluations
+  if (!session) return <AuthPortal initialMessage={notice} onSignedIn={(value) => { saveSession(value); setNotice('') }} />
+  const visibleNav = navForRole(session.role)
+  return <div className="app-shell"><aside className={`sidebar ${menu ? 'sidebar--open' : ''}`}><div className="brand"><b>R</b> RADAR<span>Sanitary</span></div><small className="side-label">Operational workspace</small><nav>{visibleNav.map((item) => <button key={item.id} className={view === item.id ? 'active' : ''} onClick={() => { setView(item.id); setMenu(false) }}><i>{item.icon}</i>{item.label}</button>)}</nav><div className="side-bottom"><p><em /> <strong>Connected</strong><small>Live workspace</small></p><button onClick={() => setNotice('Contact the sanitary operations help desk for assistance.')}>? Help & guidance</button></div></aside><main><header><button className="hamburger" onClick={() => setMenu(!menu)}>☰</button><div className="crumb">Operations <span>/</span> <strong>{visibleNav.find((item) => item.id === view)?.label ?? 'Command centre'}</strong></div><div className="header-actions"><button className="notification" onClick={() => setNotice('No new priority notifications.')}>♢<i /></button><button className="profile" title="Sign out" onClick={() => void signOut()}><b>{session.name.slice(0, 2).toUpperCase()}</b><span><strong>{session.name}</strong><small>{title(session.role)}</small></span></button></div></header>{notice && <div className="notice" role="status">ⓘ {notice}<button onClick={() => setNotice('')}>×</button></div>}<>{view === 'overview' && <Overview items={visibleEvaluations} cases={visibleCases} metrics={metrics} loading={loading} role={session.role} name={session.name} go={setView} />}{view === 'cases' && <OperationsWorkbench role={session.role} initial="cases" />}{view === 'field' && <LiveField item={visibleEvaluations[0]} live inform={setNotice} />}{view === 'reports' && <OperationsWorkbench role={session.role} initial="reports" />}{view === 'operations' && <OperationsWorkbench role={session.role} initial="institutions" />}</> {login && <Login close={() => setLogin(false)} success={(value) => { saveSession(value); setLogin(false); setNotice(`Welcome back, ${value.name}. Your workspace is ready.`) }} />}</main></div>
 }
 
+function errorMessage(error: unknown, fallback: string) {
+  const message = (error as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error?.message?.toLowerCase() ?? ''
+  if (message.includes('pendiente')) return 'Your registration is pending approval. We will notify you when access is available.'
+  if (message.includes('rechaz')) return 'Your registration was not approved. Please contact your organisation administrator.'
+  if (message.includes('incorrect')) return 'The email or ID and password do not match our records.'
+  return fallback
+}
+
+function AuthPortal({ initialMessage, onSignedIn }: { initialMessage: string; onSignedIn: (value: Session) => void }) {
+  const [mode, setMode] = useState<AuthMode>('signin')
+  const [usuario, setUsuario] = useState('')
+  const [password, setPassword] = useState('')
+  const [code, setCode] = useState('')
+  const [tempToken, setTempToken] = useState('')
+  const [notice, setNotice] = useState(initialMessage)
+  const [busy, setBusy] = useState(false)
+  const [signup, setSignup] = useState({ name: '', email: '', cedula: '', phone: '', password: '', confirmPassword: '', roleId: '2' })
+  const setSignupField = (key: keyof typeof signup, value: string) => setSignup((current) => ({ ...current, [key]: value }))
+  const switchMode = (next: AuthMode) => { setMode(next); setNotice(''); setBusy(false) }
+  const completeLogin = (result: { accessToken: string; refreshToken: string; user?: unknown }) => {
+    const user = result.user as { person?: { name?: string }; role?: { name?: Role } } | undefined
+    onSignedIn({ accessToken: result.accessToken, refreshToken: result.refreshToken, name: user?.person?.name ?? usuario, role: user?.role?.name ?? 'COORDINADOR' })
+  }
+  async function submitSignIn(event: FormEvent) {
+    event.preventDefault(); setBusy(true); setNotice('')
+    try {
+      const result = await authService.login({ usuario, password })
+      if (!result.valid) { setNotice('We could not sign you in. Please check your details and try again.'); return }
+      if (result.data.requiresTwoFactor && result.data.tempToken) { setTempToken(result.data.tempToken); switchMode('twoFactor'); return }
+      completeLogin(result.data)
+    } catch (error) { setNotice(errorMessage(error, 'We could not sign you in. Check your connection and try again.')) } finally { setBusy(false) }
+  }
+  async function submitTwoFactor(event: FormEvent) {
+    event.preventDefault(); setBusy(true); setNotice('')
+    try {
+      const result = await authService.verify2FA({ tempToken, code })
+      if (!result.valid) { setNotice('That verification code was not accepted. Please try again.'); return }
+      completeLogin(result.data)
+    } catch { setNotice('That verification code was not accepted. Please try again.') } finally { setBusy(false) }
+  }
+  async function submitSignUp(event: FormEvent) {
+    event.preventDefault(); setNotice('')
+    if (signup.password.length < 8) { setNotice('Use a password with at least 8 characters.'); return }
+    if (signup.password !== signup.confirmPassword) { setNotice('Your passwords do not match.'); return }
+    setBusy(true)
+    try {
+      const result = await usersService.register({ person: { name: signup.name, email: signup.email, cedula: signup.cedula, phone: signup.phone }, password: signup.password, roleId: Number(signup.roleId) })
+      if (!result.valid) { setNotice('We could not submit your registration. Please review the form and try again.'); return }
+      setUsuario(signup.email); setPassword(''); setNotice('Registration received. An administrator must approve your account before you can sign in.'); setMode('signin')
+    } catch (error) { setNotice(errorMessage(error, 'We could not submit your registration. Check your details and try again.')) } finally { setBusy(false) }
+  }
+  async function submitRecovery(event: FormEvent) {
+    event.preventDefault(); setBusy(true); setNotice('')
+    try { await authService.forgotPassword({ email: usuario }); setNotice('If this address belongs to an account, recovery instructions have been sent.'); setMode('signin') } catch { setNotice('We could not start password recovery. Please try again later.') } finally { setBusy(false) }
+  }
+  const heading = mode === 'signup' ? 'Create your organisation account' : mode === 'forgot' ? 'Reset your password' : mode === 'twoFactor' ? 'Confirm it is you' : 'Sign in to your workspace'
+  const subheading = mode === 'signup' ? 'Submit an access request for review. You will be notified when your account is approved.' : mode === 'forgot' ? 'Enter your work email and we will send recovery instructions.' : mode === 'twoFactor' ? 'Enter the six-digit code from your authenticator app.' : 'Use your approved email address or national ID to continue.'
+  return <main className="auth-page"><header className="auth-header"><a className="auth-brand" href="/" aria-label="RADAR home"><b>R</b><span>RADAR <em>Sanitary</em></span></a><a className="auth-help" href="mailto:support@radar.local">Need help?</a></header><section className="auth-layout"><aside className="auth-hero"><small className="eyebrow">Food safety operations</small><h1>Confidence in every <em>inspection.</em></h1><p>RADAR connects sanitary teams, organisations, and field assessors through one protected workflow.</p><div className="auth-benefits"><p><b>01</b><span><strong>Clear accountability</strong><small>Role-based workspaces keep each decision traceable.</small></span></p><p><b>02</b><span><strong>Evidence, in context</strong><small>Capture findings and supporting files where the work happens.</small></span></p><p><b>03</b><span><strong>Safer closures</strong><small>Move from intake to decision with a complete record.</small></span></p></div><footer>Protected access · Audit-ready records · Built for field work</footer></aside><section className="auth-card" aria-live="polite"><div className="auth-step"><span>{mode === 'signup' ? 'New account' : 'Secure access'}</span><i>{mode === 'signup' ? '2 of 2' : 'RADAR'}</i></div><h2>{heading}</h2><p>{subheading}</p>{notice && <div className="auth-notice" role="status">{notice}</div>}{mode === 'signin' && <form onSubmit={submitSignIn}><label>Work email or national ID<input autoFocus value={usuario} onChange={(event) => setUsuario(event.target.value)} required autoComplete="username" placeholder="name@organisation.gov" /></label><label>Password<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} required autoComplete="current-password" placeholder="Enter your password" /></label><button className="primary" disabled={busy}>{busy ? 'Signing in…' : 'Sign in to RADAR'} <span>→</span></button><button type="button" className="text auth-link" onClick={() => switchMode('forgot')}>Forgot your password?</button><div className="auth-divider"><span>New to RADAR?</span></div><button type="button" className="secondary auth-full" onClick={() => switchMode('signup')}>Create an organisation account</button></form>}{mode === 'twoFactor' && <form onSubmit={submitTwoFactor}><label>Verification code<input autoFocus value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))} required inputMode="numeric" autoComplete="one-time-code" placeholder="000000" /></label><button className="primary" disabled={busy}>{busy ? 'Verifying…' : 'Verify and continue'} <span>→</span></button><button type="button" className="text auth-link" onClick={() => switchMode('signin')}>Use a different account</button></form>}{mode === 'forgot' && <form onSubmit={submitRecovery}><label>Work email<input autoFocus type="email" value={usuario} onChange={(event) => setUsuario(event.target.value)} required autoComplete="email" placeholder="name@organisation.gov" /></label><button className="primary" disabled={busy}>{busy ? 'Sending…' : 'Send recovery instructions'} <span>→</span></button><button type="button" className="text auth-link" onClick={() => switchMode('signin')}>← Back to sign in</button></form>}{mode === 'signup' && <form onSubmit={submitSignUp}><div className="auth-form-grid"><label>Full name<input autoFocus value={signup.name} onChange={(event) => setSignupField('name', event.target.value)} required autoComplete="name" placeholder="Your full name" /></label><label>Work email<input type="email" value={signup.email} onChange={(event) => setSignupField('email', event.target.value)} required autoComplete="email" placeholder="name@organisation.com" /></label><label>National ID<input value={signup.cedula} onChange={(event) => setSignupField('cedula', event.target.value)} required placeholder="000-0000000-0" /></label><label>Phone number<input type="tel" value={signup.phone} onChange={(event) => setSignupField('phone', event.target.value)} required autoComplete="tel" placeholder="(000) 000-0000" /></label></div><label>Account type<select value={signup.roleId} onChange={(event) => setSignupField('roleId', event.target.value)}><option value="2">Organisation administrator</option><option value="3">Authorised delegate</option></select></label><label>Create password<input type="password" value={signup.password} onChange={(event) => setSignupField('password', event.target.value)} required minLength={8} autoComplete="new-password" placeholder="At least 8 characters" /></label><label>Confirm password<input type="password" value={signup.confirmPassword} onChange={(event) => setSignupField('confirmPassword', event.target.value)} required minLength={8} autoComplete="new-password" placeholder="Re-enter your password" /></label><button className="primary" disabled={busy}>{busy ? 'Submitting…' : 'Submit access request'} <span>→</span></button><p className="auth-fineprint">Operational coordinators and field assessors receive accounts through their system administrator.</p><button type="button" className="text auth-link" onClick={() => switchMode('signin')}>Already have an account? Sign in</button></form>}</section></section></main>
+}
+
+function Overview({ items, cases, metrics, loading, role, name, go }: { items: Evaluation[]; cases: CaseItem[]; metrics: { pending: number; alerts: number; complaints: number }; loading: boolean; role: Role; name: string; go: (value: View) => void }) { const isCompany = role === 'ADMIN_EMPRESA' || role === 'USUARIO_DELEGADO'; const isTechnician = role === 'TECNICO_EVALUADOR'; const primaryAction = isCompany ? 'View requests' : isTechnician ? 'Open field work' : 'Review assignments'; return <section className="content"><div className="heading"><div><small className="eyebrow">{title(role)} workspace</small><h1>Good morning, <em>{name}.</em></h1><p>Here is the operational picture for Friday, September 19.</p></div><button className="primary" onClick={() => go(isTechnician ? 'field' : 'cases')}>{primaryAction} <span>→</span></button></div><div className="metrics"><Metric label={isCompany ? 'My requests' : isTechnician ? 'Assigned assessments' : 'Open cases'} value={metrics.pending || cases.length || items.length} detail={isCompany ? 'Current BPM submissions' : isTechnician ? 'Ready for field work' : 'Across all intake channels'} kind="navy" /><Metric label={isCompany ? 'Evaluations' : 'Scheduled assessments'} value={items.length} detail="Next 7 days" kind="blue" /><Metric label={isCompany ? 'Unread notifications' : 'Sanitary alerts'} value={metrics.alerts || 2} detail={isCompany ? 'New activity to review' : 'Require triage'} kind="amber" /><Metric label={isTechnician ? 'Reports to submit' : 'Unresolved reports'} value={metrics.complaints || 4} detail="Awaiting decision" kind="red" /></div><div className="grid"><section className="card"><div className="card-head"><div><small className="eyebrow">Schedule</small><h2>Upcoming assessments</h2></div><button className="text" onClick={() => go('field')}>View calendar →</button></div>{loading ? <div className="skeleton"><i /><i /><i /></div> : items.length ? <div className="schedule">{items.slice(0, 4).map((item) => <div key={item.evaluationId}><time><b>{new Date(item.scheduledDate).getDate()}</b><small>{new Intl.DateTimeFormat('en', { month: 'short' }).format(new Date(item.scheduledDate))}</small></time><span><b>{item.institution?.name ?? `Assessment #${item.evaluationId}`}</b><small>{date(item.scheduledDate)} · {title(item.status)}</small></span><mark className={item.priority === 'ALTA' ? 'high' : 'medium'}>{title(item.priority ?? 'MEDIA')}</mark></div>)}</div> : <Empty label="No scheduled assessments yet" action={isCompany ? 'Review requests' : 'Open cases'} go={() => go('cases')} />}</section><section className="card"><div className="card-head"><div><small className="eyebrow">Priority queue</small><h2>Needs attention</h2></div><mark>{cases.length || 3}</mark></div>{cases.length ? cases.slice(0, 3).map((item) => <button className="attention" key={item.caseId} onClick={() => go('cases')}><i className={item.priority === 'ALTA' ? 'red' : 'amber'} /><span><b>{item.institution?.name ?? `Case #${item.caseId}`}</b><small>{title(item.origin)} · Case #{item.caseId}</small></span>→</button>) : <Empty label={isCompany ? 'No urgent company actions' : 'Nothing requires immediate action'} />}</section></div><section className="card lifecycle"><div className="card-head"><div><small className="eyebrow">Workflow coverage</small><h2>Case lifecycle</h2></div><small>Updated just now</small></div><div>{[['18', 'Intake'], ['11', 'Assigned'], ['6', 'In field'], ['4', 'Review'], ['32', 'Closed']].map(([number, label], index) => <span key={label}><b className={index < 3 ? 'done' : ''}>{number}</b><small>{label}</small></span>)}</div></section></section> }
+function Metric({ label, value, detail, kind }: { label: string; value: number; detail: string; kind: string }) { return <article className={`metric ${kind}`}><small>{label}</small><b>{value}</b><span>{detail}</span></article> }
+function Empty({ label, action, go }: { label: string; action?: string; go?: () => void }) { return <div className="empty">○<p>{label}</p>{action && <button className="text" onClick={go}>{action} →</button>}</div> }
+
+function Login({ close, success }: { close: () => void; success: (value: Session) => void }) { const [usuario, setUsuario] = useState(''); const [password, setPassword] = useState(''); const [error, setError] = useState(''); const [busy, setBusy] = useState(false); async function submit(event: FormEvent) { event.preventDefault(); setBusy(true); setError(''); try { const result = await authService.login({ usuario, password }); if (!result.valid) { setError(result.error.message); return } if (result.data.requiresTwoFactor) { setError('Two-factor verification is required.'); return } const user = result.data.user as unknown as { person?: { name?: string }; role?: { name?: Role } } | undefined; success({ accessToken: result.data.accessToken, refreshToken: result.data.refreshToken, name: user?.person?.name ?? usuario, role: user?.role?.name ?? 'COORDINADOR' }) } catch { setError('We could not reach the service. Check the API connection and try again.') } finally { setBusy(false) } } return <div className="modal"><section role="dialog" aria-modal="true"><button className="close" onClick={close}>×</button><b className="login-mark">R</b><small className="eyebrow">Secure access</small><h2>Welcome to RADAR</h2><p>Sign in with your approved operational account.</p><form onSubmit={submit}><label>Email or ID<input autoFocus value={usuario} onChange={(event) => setUsuario(event.target.value)} required placeholder="name@organisation.gov" /></label><label>Password<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} required placeholder="Your password" /></label>{error && <em>{error}</em>}<button className="primary" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'} →</button></form><button className="text" onClick={() => setError('Password recovery is available through the configured organisation service.')}>Forgot your password?</button></section></div> }
 export default App

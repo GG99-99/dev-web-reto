@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, type Router as ExpressRouter } from 'express';
 import { validateJwt, validateReq, validateRole } from '#backend/middlewares';
 import { reportsController } from './reports.controller';
 import { ReviewReportSchema, CorrectReportSchema, IdParamSchema } from './reports.schemas';
@@ -10,10 +10,11 @@ import { ReviewReportSchema, CorrectReportSchema, IdParamSchema } from './report
  * /api/v1). Sección 14 de API_CONTRACTS.md (RF-16, RF-17, RF-18).
  * ---------------------------------------------------------------------------
  */
-export const reportsRouter = Router();
+export const reportsRouter: ExpressRouter = Router();
 
 reportsRouter
-  .use(validateJwt)
+  .use('/evaluations', validateJwt)
+  .use('/reports', validateJwt)
   .get('/evaluations/:id/report', validateReq(IdParamSchema, 'params'), reportsController.getByEvaluation)
   .post('/reports/:id/submit', validateReq(IdParamSchema, 'params'), reportsController.submit)
   .post(

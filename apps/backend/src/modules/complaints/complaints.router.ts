@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, type Router as ExpressRouter } from 'express';
 import { validateJwt, validateReq, validateRole } from '#backend/middlewares';
 import { complaintsController } from './complaints.controller';
 import { GetComplaintsQuerySchema, CreateComplaintSchema, SetComplaintResultSchema, IdParamSchema } from './complaints.schemas';
@@ -11,12 +11,12 @@ import { GetComplaintsQuerySchema, CreateComplaintSchema, SetComplaintResultSche
  * denuncia ciudadana); el resto requiere COORDINADOR/ADMIN.
  * ---------------------------------------------------------------------------
  */
-export const complaintsRouter = Router();
+export const complaintsRouter: ExpressRouter = Router();
 
 complaintsRouter
   .post('/complaints', validateReq(CreateComplaintSchema, 'body'), complaintsController.create)
 
-  .use(validateJwt, validateRole('COORDINADOR', 'ADMIN'))
+  .use('/complaints', validateJwt, validateRole('COORDINADOR', 'ADMIN'))
   .get('/complaints', validateReq(GetComplaintsQuerySchema, 'query'), complaintsController.getMany)
   .get('/complaints/:id', validateReq(IdParamSchema, 'params'), complaintsController.getOne)
   .patch(

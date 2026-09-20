@@ -1,0 +1,2 @@
+
+D:\ProgrammingProjects\RetoDesarrolloWeb\dev-web-reto\apps\backend>  "D:\ProgrammingProjects\RetoDesarrolloWeb\dev-web-reto\apps\backend\node_modules\.bin\\node.exe"  "D:\ProgrammingProjects\RetoDesarrolloWeb\dev-web-reto\apps\backend\node_modules\.bin\\..\tsx\dist\cli.mjs" -e import('./src/index.ts').then(()=,500))

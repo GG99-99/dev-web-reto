@@ -10,6 +10,7 @@ import { httpClient } from './httpClient';
 import type {
   ApiResponse,
   FormTemplateTree,
+  StartEvaluationRequest,
   FormAnswersPayload,
   EvaluationExecutionDetail,
   FinishEvaluationResponse,
@@ -44,9 +45,13 @@ async function getTemplateTree(id: number): Promise<ApiResponse<FormTemplateTree
  * `POST /evaluations/:id/start` — TECNICO_EVALUADOR asignado.
  * `status → 'EN_PROCESO'`, crea un `FormResponse` vacío.
  */
-async function start(evaluationId: number): Promise<ApiResponse<EvaluationExecutionDetail>> {
+async function start(
+  evaluationId: number,
+  body: StartEvaluationRequest,
+): Promise<ApiResponse<EvaluationExecutionDetail>> {
   const { data } = await httpClient.post<ApiResponse<EvaluationExecutionDetail>>(
     `/evaluations/${evaluationId}/start`,
+    body,
   );
   return data;
 }

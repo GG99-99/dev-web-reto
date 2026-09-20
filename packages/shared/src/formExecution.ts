@@ -50,6 +50,16 @@ export type FormTemplateTree = Prisma.FormTemplateGetPayload<{
 export type AskValue = 'C' | 'CP' | 'NC' | 'N/A';
 
 /**
+ * Required to initialize a `FormResponse` for an evaluation. The current
+ * backend requires these existing establishment records before an assessor
+ * can start field work.
+ */
+export interface StartEvaluationRequest {
+  representId: number;
+  foodId: number;
+}
+
+/**
  * Respuesta individual a una pregunta del árbol del formulario.
  *
  * @example
