@@ -1,6 +1,7 @@
 import type { Prisma } from '@reto/db';
 import type { CreateBpmRequestRequest, SubmitBpmRequestResponse, UpdateBpmRequestRequest } from '@reto/shared';
 import { bpmRequestsModel, type BpmRequestsFilter } from './bpm-requests.model';
+import { dashboardModel } from '../dashboard/dashboard.model';
 import { ApiError } from '@/lib/common/ApiError';
 import { normalizePagination, paginate, type NormalizedPagination } from '@/lib/common/response';
 import prisma from '@reto/db';
@@ -34,12 +35,18 @@ export const bpmRequestsService = {
     return bpmRequest;
   },
 
-  /** Lanza si el `requester` no es ni el autor ni COORDINADOR/ADMIN. */
-  assertAccess: (bpmRequest: { createdById: number }, requester: { userId: number; role: string | null }) => {
+  /** Lanza si el `requester` no es ni el autor, ni representante/dueño de la institución, ni COORDINADOR/ADMIN. */
+  assertAccess: async (
+    bpmRequest: { createdById: number; institutionId?: number },
+    requester: { userId: number; role: string | null; personId?: number },
+  ) => {
     if (requester.role === 'COORDINADOR' || requester.role === 'ADMIN') return;
-    if (bpmRequest.createdById !== requester.userId) {
-      throw ApiError.forbidden('No tienes acceso a esta solicitud');
+    if (bpmRequest.createdById === requester.userId) return;
+    if (requester.personId && bpmRequest.institutionId) {
+      const owned = await dashboardModel.getOwnedInstitutionIds(requester.personId);
+      if (owned.includes(bpmRequest.institutionId)) return;
     }
+    throw ApiError.forbidden('No tienes acceso a esta solicitud');
   },
 
   assertIsAuthorAndDraft: (bpmRequest: { createdById: number; status: string }, requester: { userId: number }) => {

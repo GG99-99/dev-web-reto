@@ -25,7 +25,7 @@ institutionsRouter
 
   .get(
     '/institutions',
-    validateRole('ADMIN', 'COORDINADOR'),
+    validateRole('ADMIN', 'COORDINADOR', 'ADMIN_EMPRESA', 'USUARIO_DELEGADO'),
     validateReq(GetInstitutionsQuerySchema, 'query'),
     institutionsController.getMany,
   )

@@ -12,7 +12,10 @@ import { ApiError } from '@/lib/common/ApiError';
 export const institutionsController = {
   getMany: async (req: Request, res: Response) => {
     const query = req.validated!.query;
-    const data = await institutionsService.getMany(query);
+    const filter = (req.user?.role === 'ADMIN_EMPRESA' || req.user?.role === 'USUARIO_DELEGADO')
+      ? { ...query, personId: req.user.personId }
+      : query;
+    const data = await institutionsService.getMany(filter);
     return res.status(200).json(ok(data));
   },
 

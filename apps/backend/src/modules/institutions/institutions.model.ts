@@ -13,6 +13,7 @@ export interface InstitutionsFilter {
   municipalityId?: number;
   rnc?: string;
   q?: string;
+  personId?: number;
 }
 
 const DETAIL_INCLUDE = {
@@ -28,21 +29,32 @@ export const institutionsModel = {
     take: number,
     orderBy: Prisma.InstitutionOrderByWithRelationInput,
   ) => {
-    const where: Prisma.InstitutionWhereInput = {
-      ...(filter.municipalityId && { municipalityId: filter.municipalityId }),
-      ...(filter.provinceId && { municipality: { provinceId: filter.provinceId } }),
-      ...(filter.rnc && { rnc: filter.rnc }),
-      ...(filter.q && {
+    const andClauses: Prisma.InstitutionWhereInput[] = [];
+    if (filter.municipalityId) andClauses.push({ municipalityId: filter.municipalityId });
+    if (filter.provinceId) andClauses.push({ municipality: { provinceId: filter.provinceId } });
+    if (filter.rnc) andClauses.push({ rnc: filter.rnc });
+    if (filter.personId) {
+      andClauses.push({
+        OR: [
+          { propietary: { personId: filter.personId } },
+          { representantes: { some: { personId: filter.personId } } },
+        ],
+      });
+    }
+    if (filter.q) {
+      andClauses.push({
         OR: [
           { name: { contains: filter.q, mode: 'insensitive' } },
           { nombreComercial: { contains: filter.q, mode: 'insensitive' } },
           { rnc: { contains: filter.q, mode: 'insensitive' } },
         ],
-      }),
-    };
+      });
+    }
+
+    const where: Prisma.InstitutionWhereInput = andClauses.length > 0 ? { AND: andClauses } : {};
 
     const [items, total] = await Promise.all([
-      prisma.institution.findMany({ where, skip, take, orderBy }),
+      prisma.institution.findMany({ where, skip, take, orderBy, include: DETAIL_INCLUDE }),
       prisma.institution.count({ where }),
     ]);
 

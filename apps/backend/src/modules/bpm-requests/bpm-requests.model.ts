@@ -10,6 +10,7 @@ import prisma, { type Prisma, type BpmRequestStatus } from '@reto/db';
 export interface BpmRequestsFilter {
   status?: BpmRequestStatus;
   institutionId?: number;
+  institutionIds?: number[];
   createdById?: number;
 }
 
@@ -28,6 +29,7 @@ export const bpmRequestsModel = {
     const where: Prisma.BpmRequestWhereInput = {
       ...(filter.status && { status: filter.status }),
       ...(filter.institutionId && { institutionId: filter.institutionId }),
+      ...(filter.institutionIds && { institutionId: { in: filter.institutionIds } }),
       ...(filter.createdById && { createdById: filter.createdById }),
     };
 
