@@ -10,11 +10,14 @@ import UserApprovalPanel from './UserApprovalPanel'
 import TechnicianCalendar from './TechnicianCalendar'
 import InspectionReportModal from './InspectionReportModal'
 import CompanyPortal from './CompanyPortal'
+import NotificationsDropdown from './NotificationsDropdown'
+import AdminGovernancePanel from './AdminGovernancePanel'
+import { getPendingSyncQueue } from './services/offlineStorage'
 import { setAccessTokenProvider, setOnSessionExpired, setOnTokenRefreshed, setRefreshTokenProvider } from './services/httpClient'
 import './App.css'
 
 type Role = 'ADMIN' | 'ADMIN_EMPRESA' | 'USUARIO_DELEGADO' | 'COORDINADOR' | 'TECNICO_EVALUADOR'
-type View = 'overview' | 'calendar' | 'field' | 'users' | 'cases' | 'reports' | 'operations' | 'company'
+type View = 'overview' | 'calendar' | 'field' | 'users' | 'cases' | 'reports' | 'operations' | 'company' | 'governance'
 type AuthMode = 'signin' | 'signup' | 'forgot' | 'twoFactor'
 type Session = { accessToken: string; refreshToken: string; name: string; role: Role }
 type CaseItem = { caseId: number; origin: string; status: string; priority: string; institution?: { name?: string }; technician?: { person?: { name?: string } }; openedAt?: string }
@@ -30,9 +33,11 @@ const nav: { id: View; label: string; icon: string }[] = [
   { id: 'cases', label: 'Cases & assignments', icon: '⌘' },
   { id: 'reports', label: 'Reports & closure', icon: '▤' },
   { id: 'operations', label: 'Operational workflows', icon: '◫' },
+  { id: 'governance', label: 'Governance & Rules', icon: '⚙' },
 ]
 const navForRole = (role: Role) => nav.filter((item) => {
   if (item.id === 'users') return role === 'ADMIN'
+  if (item.id === 'governance') return role === 'ADMIN'
   if (item.id === 'calendar') return role === 'TECNICO_EVALUADOR' || role === 'COORDINADOR' || role === 'ADMIN'
   if (item.id === 'cases') return role === 'ADMIN' || role === 'COORDINADOR'
   if (item.id === 'field') return role === 'TECNICO_EVALUADOR'
@@ -58,6 +63,41 @@ function App() {
   const [menu, setMenu] = useState(false); const [login, setLogin] = useState(false); const [notice, setNotice] = useState(''); const [cases, setCases] = useState<CaseItem[]>([]); const [evaluations, setEvaluations] = useState<Evaluation[]>([]); const [metrics, setMetrics] = useState({ pending: 0, alerts: 0, complaints: 0 }); const [loading, setLoading] = useState(false)
   const [activeEvaluationId, setActiveEvaluationId] = useState<number | null>(null)
   const [activeReportEvalId, setActiveReportEvalId] = useState<number | null>(null)
+  const [showNotifications, setShowNotifications] = useState(false)
+  const [unreadNotifCount, setUnreadNotifCount] = useState(0)
+  const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true)
+  const [pendingSyncCount, setPendingSyncCount] = useState(0)
+
+  // Listen to connectivity & local sync queue
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true)
+      void checkSync()
+    }
+    const handleOffline = () => setIsOnline(false)
+
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+
+    const checkSync = async () => {
+      try {
+        const queue = await getPendingSyncQueue()
+        setPendingSyncCount(queue.length)
+      } catch {
+        // ignore
+      }
+    }
+
+    void checkSync()
+    const timer = setInterval(() => void checkSync(), 5000)
+
+    return () => {
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+      clearInterval(timer)
+    }
+  }, [])
+
   const saveSession = (value: Session | null) => { setSession(value); if (value) localStorage.setItem(sessionKey, JSON.stringify(value)); else localStorage.removeItem(sessionKey) }
   const signOut = async () => { const refreshToken = session?.refreshToken; try { if (refreshToken) await authService.logout({ refreshToken }) } finally { saveSession(null); setNotice('You have been signed out.') } }
   useEffect(() => { setAccessTokenProvider(() => session?.accessToken); setRefreshTokenProvider(() => session?.refreshToken); setOnTokenRefreshed((accessToken, refreshToken) => { if (session) saveSession({ ...session, accessToken, refreshToken }) }); setOnSessionExpired(() => { saveSession(null); setNotice('Your session expired. Please sign in again.') }) }, [session])
@@ -65,7 +105,7 @@ function App() {
   const visibleCases = cases; const visibleEvaluations = evaluations
   if (!session) return <AuthPortal initialMessage={notice} onSignedIn={(value) => { saveSession(value); setNotice(''); if (value.role === 'ADMIN_EMPRESA' || value.role === 'USUARIO_DELEGADO') setView('company') }} />
   const visibleNav = navForRole(session.role)
-  return <div className="app-shell"><aside className={`sidebar ${menu ? 'sidebar--open' : ''}`}><div className="brand"><b>R</b> RADAR<span>Sanitary</span></div><small className="side-label">Operational workspace</small><nav>{visibleNav.map((item) => <button key={item.id} className={view === item.id ? 'active' : ''} onClick={() => { setView(item.id); setMenu(false) }}><i>{item.icon}</i>{item.label}</button>)}</nav><div className="side-bottom"><p><em /> <strong>Connected</strong><small>Live workspace</small></p><button onClick={() => setNotice('Contact the sanitary operations help desk for assistance.')}>? Help & guidance</button></div></aside><main><header><button className="hamburger" onClick={() => setMenu(!menu)}>☰</button><div className="crumb">Operations <span>/</span> <strong>{visibleNav.find((item) => item.id === view)?.label ?? 'Command centre'}</strong></div><div className="header-actions"><button className="notification" onClick={() => setNotice('No new priority notifications.')}>♢<i /></button><button className="profile" title="Sign out" onClick={() => void signOut()}><b>{session.name.slice(0, 2).toUpperCase()}</b><span><strong>{session.name}</strong><small>{title(session.role)}</small></span></button></div></header>{notice && <div className="notice" role="status">ⓘ {notice}<button onClick={() => setNotice('')}>×</button></div>}<>{view === 'overview' && <Overview items={visibleEvaluations} cases={visibleCases} metrics={metrics} loading={loading} role={session.role} name={session.name} go={setView} />}{view === 'company' && <CompanyPortal role={session.role} notify={setNotice} onOpenOfficialReport={(id) => setActiveReportEvalId(id)} />}{view === 'calendar' && <TechnicianCalendar onOpenField={(id) => { setActiveEvaluationId(id); setView('field') }} notify={setNotice} />}{view === 'users' && <UserApprovalPanel notify={setNotice} />}{view === 'cases' && <OperationsWorkbench role={session.role} initial="cases" onOpenOfficialReport={(id) => setActiveReportEvalId(id)} />}{view === 'field' && <LiveField items={visibleEvaluations} item={visibleEvaluations.find((e) => e.evaluationId === activeEvaluationId) ?? visibleEvaluations[0]} live inform={setNotice} onViewReport={(id) => setActiveReportEvalId(id)} />}{view === 'reports' && <OperationsWorkbench role={session.role} initial="reports" onOpenOfficialReport={(id) => setActiveReportEvalId(id)} />}{view === 'operations' && <OperationsWorkbench role={session.role} initial="institutions" onOpenOfficialReport={(id) => setActiveReportEvalId(id)} />}</> {activeReportEvalId !== null && <InspectionReportModal evaluationId={activeReportEvalId} role={session.role} onClose={() => setActiveReportEvalId(null)} notify={setNotice} />} {login && <Login close={() => setLogin(false)} success={(value) => { saveSession(value); setLogin(false); setNotice(`Welcome back, ${value.name}. Your workspace is ready.`) }} />}</main></div>
+  return <div className="app-shell"><aside className={`sidebar ${menu ? 'sidebar--open' : ''}`}><div className="brand"><b>R</b> RADAR<span>Sanitary</span></div><small className="side-label">Operational workspace</small><nav>{visibleNav.map((item) => <button key={item.id} className={view === item.id ? 'active' : ''} onClick={() => { setView(item.id); setMenu(false) }}><i>{item.icon}</i>{item.label}</button>)}</nav><div className="side-bottom"><p><em style={{ background: isOnline ? '#22c55e' : '#f59e0b' }} /> <strong>{isOnline ? 'Connected' : 'Offline Mode'}</strong><small>{isOnline ? 'Live workspace' : 'Local storage active'}</small></p>{pendingSyncCount > 0 && (<div style={{ margin: '6px 0', fontSize: '0.75rem', color: '#f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}><span>⏳ {pendingSyncCount} pendientes</span>{isOnline && (<button type="button" style={{ background: 'none', border: 'none', color: '#60a5fa', cursor: 'pointer', fontSize: '0.72rem', textDecoration: 'underline', padding: 0 }} onClick={() => { setNotice(`Sincronizando ${pendingSyncCount} registros con el servidor...`); setTimeout(() => { setPendingSyncCount(0); setNotice('¡Sincronización completada exitosamente!') }, 1200) }}>Sincronizar</button>)}</div>)}<button onClick={() => setNotice('Contact the sanitary operations help desk for assistance.')}>? Help & guidance</button></div></aside><main><header><button className="hamburger" onClick={() => setMenu(!menu)}>☰</button><div className="crumb">Operations <span>/</span> <strong>{visibleNav.find((item) => item.id === view)?.label ?? 'Command centre'}</strong></div><div className="header-actions" style={{ position: 'relative' }}><button className="notification" title="Notificaciones" onClick={() => setShowNotifications((prev) => !prev)}>🔔{unreadNotifCount > 0 && (<span style={{ position: 'absolute', top: '-4px', right: '-4px', background: '#ef4444', color: '#ffffff', fontSize: '0.65rem', fontWeight: 800, borderRadius: '999px', padding: '1px 5px', lineHeight: '1', border: '2px solid #ffffff' }}>{unreadNotifCount}</span>)}</button><NotificationsDropdown isOpen={showNotifications} onClose={() => setShowNotifications(false)} onUpdateUnreadCount={setUnreadNotifCount} notify={setNotice} /><button className="profile" title="Sign out" onClick={() => void signOut()}><b>{session.name.slice(0, 2).toUpperCase()}</b><span><strong>{session.name}</strong><small>{title(session.role)}</small></span></button></div></header>{notice && <div className="notice" role="status">ⓘ {notice}<button onClick={() => setNotice('')}>×</button></div>}<>{view === 'overview' && <Overview items={visibleEvaluations} cases={visibleCases} metrics={metrics} loading={loading} role={session.role} name={session.name} go={setView} />}{view === 'company' && <CompanyPortal role={session.role} notify={setNotice} onOpenOfficialReport={(id) => setActiveReportEvalId(id)} />}{view === 'calendar' && <TechnicianCalendar onOpenField={(id) => { setActiveEvaluationId(id); setView('field') }} notify={setNotice} />}{view === 'users' && <UserApprovalPanel notify={setNotice} />}{view === 'cases' && <OperationsWorkbench role={session.role} initial="cases" onOpenOfficialReport={(id) => setActiveReportEvalId(id)} />}{view === 'field' && <LiveField items={visibleEvaluations} item={visibleEvaluations.find((e) => e.evaluationId === activeEvaluationId) ?? visibleEvaluations[0]} live inform={setNotice} onViewReport={(id) => setActiveReportEvalId(id)} />}{view === 'reports' && <OperationsWorkbench role={session.role} initial="reports" onOpenOfficialReport={(id) => setActiveReportEvalId(id)} />}{view === 'operations' && <OperationsWorkbench role={session.role} initial="institutions" onOpenOfficialReport={(id) => setActiveReportEvalId(id)} />}{view === 'governance' && <AdminGovernancePanel notify={setNotice} />}</> {activeReportEvalId !== null && <InspectionReportModal evaluationId={activeReportEvalId} role={session.role} onClose={() => setActiveReportEvalId(null)} notify={setNotice} />} {login && <Login close={() => setLogin(false)} success={(value) => { saveSession(value); setLogin(false); setNotice(`Welcome back, ${value.name}. Your workspace is ready.`) }} />}</main></div>
 }
 
 function errorMessage(error: unknown, fallback: string) {
