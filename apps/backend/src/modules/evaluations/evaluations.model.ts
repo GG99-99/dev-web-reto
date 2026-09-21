@@ -55,7 +55,14 @@ export const evaluationsModel = {
   },
 
   getById: async (evaluationId: number) => {
-    return prisma.evaluation.findUnique({ where: { evaluationId }, include: LIST_INCLUDE });
+    return prisma.evaluation.findUnique({
+      where: { evaluationId },
+      include: {
+        ...LIST_INCLUDE,
+        formResponse: true,
+        evidences: true,
+      },
+    });
   },
 
   create: async (data: {

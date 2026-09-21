@@ -67,3 +67,4 @@ export { reportsService } from './reports.service';
 export { historyService } from './history.service';
 export { notificationsService, type ListNotificationsQuery } from './notifications.service';
 export { catalogsService } from './catalogs.service';
+export * as offlineStorage from './offlineStorage';
