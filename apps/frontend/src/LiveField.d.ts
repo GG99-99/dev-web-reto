@@ -6,6 +6,7 @@ type LiveFieldProps = {
     item?: Evaluation;
     live: boolean;
     inform: (message: string) => void;
+    onViewReport?: (evaluationId: number) => void;
 };
 export interface StructuredQuestion {
     key: string;
@@ -23,5 +24,5 @@ export interface ChapterGroup {
     codePrefix: string;
     questions: StructuredQuestion[];
 }
-export default function LiveField({ items, item, live, inform }: LiveFieldProps): import("react").JSX.Element;
+export default function LiveField({ items, item, live, inform, onViewReport }: LiveFieldProps): import("react").JSX.Element;
 export {};

@@ -26,4 +26,5 @@ dist-ssr
 pnpm-lock.yaml
 pnpm-lock.yaml
 packages/db/tsconfig.tsbuildinfo
+*.tsbuildinfo
 

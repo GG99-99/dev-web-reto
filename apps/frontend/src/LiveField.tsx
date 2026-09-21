@@ -18,6 +18,7 @@ type LiveFieldProps = {
   item?: Evaluation
   live: boolean
   inform: (message: string) => void
+  onViewReport?: (evaluationId: number) => void
 }
 
 export interface StructuredQuestion {
@@ -193,7 +194,7 @@ const DEMO_EVAL: Evaluation = {
   },
 }
 
-export default function LiveField({ items = [], item, live, inform }: LiveFieldProps) {
+export default function LiveField({ items = [], item, live, inform, onViewReport }: LiveFieldProps) {
   // Manejo de evaluación activa seleccionada
   const [selectedEvalId, setSelectedEvalId] = useState<number | null>(() => {
     return item?.evaluationId ?? items[0]?.evaluationId ?? DEMO_EVAL.evaluationId
@@ -1209,6 +1210,20 @@ export default function LiveField({ items = [], item, live, inform }: LiveFieldP
         </div>
 
         <div className="floating-bar-right">
+          {onViewReport && (
+            <button
+              type="button"
+              className="btn-finish-inspection"
+              style={{ background: '#0d3894', color: '#fff' }}
+              onClick={() => onViewReport(activeItem.evaluationId)}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+                description
+              </span>
+              Ver Dictamen Oficial (PDF)
+            </button>
+          )}
+
           <button
             type="button"
             className="btn-finish-inspection"
