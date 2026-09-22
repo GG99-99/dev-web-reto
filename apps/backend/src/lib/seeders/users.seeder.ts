@@ -26,6 +26,8 @@ const USERS: { cedula: string; role: UserRole; status: 'APROBADO' | 'PENDIENTE_V
   { cedula: '001-0000002-2', role: 'COORDINADOR', status: 'APROBADO' },
   { cedula: '001-0000003-3', role: 'TECNICO_EVALUADOR', status: 'APROBADO' },
   { cedula: '001-0000004-4', role: 'TECNICO_EVALUADOR', status: 'APROBADO' },
+  { cedula: '001-0000005-5', role: 'TECNICO_EVALUADOR', status: 'APROBADO' }, 
+
   { cedula: '002-0000001-1', role: 'ADMIN_EMPRESA', status: 'APROBADO' },
   { cedula: '002-0000002-2', role: 'USUARIO_DELEGADO', status: 'APROBADO' },
   // Deliberadamente PENDIENTE_VALIDACION para poder probar
