@@ -42,6 +42,11 @@ export interface ChapterGroup {
 type AnswerMap = Record<string, AskValue>
 type NotesMap = Record<string, string>
 
+const isActionableAssessment = (evaluation?: Evaluation) =>
+  evaluation?.status === 'PROGRAMADA' ||
+  evaluation?.status === 'REPROGRAMADA' ||
+  evaluation?.status === 'EN_PROCESO'
+
 interface LiveRiskScore {
   percent: number
   riskScore: number
@@ -182,33 +187,30 @@ function buildStructuredChapters(template: FormTemplateTree | null): ChapterGrou
   return chapters
 }
 
-const DEMO_EVAL: Evaluation = {
-  evaluationId: 42,
-  scheduledDate: new Date().toISOString(),
-  status: 'EN_PROCESO',
-  priority: 'ALTA',
-  institution: {
-    name: 'Pasteurizadora Rica Dominicana S.A.',
-    rnc: '1-01-02345-6',
-    streetName: 'Planta Matriz Km 6.5 Autopista Duarte, Santo Domingo',
-  },
-}
-
 export default function LiveField({ items = [], item, live, inform, onViewReport }: LiveFieldProps) {
   // Manejo de evaluación activa seleccionada
   const [selectedEvalId, setSelectedEvalId] = useState<number | null>(() => {
-    return item?.evaluationId ?? items[0]?.evaluationId ?? DEMO_EVAL.evaluationId
+    return item?.evaluationId ?? items.find(isActionableAssessment)?.evaluationId ?? items[0]?.evaluationId ?? null
   })
 
   // Lista combinada de evaluaciones disponibles
   const availableEvals = useMemo(() => {
     if (items && items.length > 0) return items
     if (item) return [item]
-    return [DEMO_EVAL]
+    return []
   }, [items, item])
 
   const activeItem = useMemo(() => {
-    return availableEvals.find((e) => e.evaluationId === selectedEvalId) ?? availableEvals[0] ?? DEMO_EVAL
+    return availableEvals.find((e) => e.evaluationId === selectedEvalId) ?? availableEvals.find(isActionableAssessment) ?? availableEvals[0] ?? null
+  }, [availableEvals, selectedEvalId])
+
+  // A session can be restored after the assigned workload has changed. Prefer an
+  // actionable appointment instead of leaving the assessor on a cancelled record.
+  useEffect(() => {
+    const selected = availableEvals.find((e) => e.evaluationId === selectedEvalId)
+    if (selected && isActionableAssessment(selected)) return
+    const actionable = availableEvals.find(isActionableAssessment)
+    if (actionable) setSelectedEvalId(actionable.evaluationId)
   }, [availableEvals, selectedEvalId])
 
   // Estados de datos
@@ -265,10 +267,7 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
         (pos) => {
           setGps({ lat: pos.coords.latitude, lng: pos.coords.longitude })
         },
-        () => {
-          // Si no hay permiso o falla, usar coordenadas de Santo Domingo por defecto
-          setGps({ lat: 18.4861, lng: -69.9312 })
-        },
+        () => setGps(null),
         { enableHighAccuracy: true, timeout: 5000 }
       )
     }
@@ -672,7 +671,7 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
     return (
       <section className="field-container">
         <div className="empty">
-          El modo de vista previa no permite alterar datos de inspección. Inicie sesión como Técnico Evaluador.
+          Preview mode cannot change inspection data. Sign in as a Field Assessor to continue.
         </div>
       </section>
     )
@@ -682,7 +681,7 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
     return (
       <section className="field-container">
         <div className="empty">
-          No tiene evaluaciones asignadas para auditar en este momento.
+          You do not have an assessment assigned at this time.
         </div>
       </section>
     )

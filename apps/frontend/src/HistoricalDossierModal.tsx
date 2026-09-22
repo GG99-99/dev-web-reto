@@ -64,23 +64,23 @@ export default function HistoricalDossierModal({
     data?.case?.institution?.name ||
     data?.evaluation?.institution?.name ||
     data?.name ||
-    'Establecimiento Registrado'
+    'Not available'
 
   const rnc =
     data?.institution?.rnc ||
     data?.case?.institution?.rnc ||
     data?.rnc ||
-    '130-12345-6'
+    'Not recorded'
 
   const status =
     data?.status ||
     data?.case?.status ||
-    'EN_PROCESO'
+    'NOT_AVAILABLE'
 
   const priority =
     data?.priority ||
     data?.case?.priority ||
-    'MEDIA'
+    'NOT_SET'
 
   const evaluationId =
     entityType === 'EVALUATION'

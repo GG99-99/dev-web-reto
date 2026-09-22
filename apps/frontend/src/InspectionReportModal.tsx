@@ -97,39 +97,26 @@ export default function InspectionReportModal({
     }
   };
 
-  // Fallback de datos si aún no se ha generado en base de datos
-  const establishmentName =
-    evaluation?.institution?.name ?? 'Lácteos del Norte SRL';
-  const address =
-    evaluation?.institution?.streetName ?? 'Av. Estrella Sadhalá, Santiago, Rep. Dominicana';
-  const technicianName =
-    evaluation?.technician?.person?.name ?? 'Luis Fernández';
-  const technicianCedula =
-    evaluation?.technician?.person?.cedula ?? '001-0000003-3';
+  const establishmentName = evaluation?.institution?.name ?? 'Not available';
+  const address = evaluation?.institution?.streetName ?? 'Not available';
+  const technicianName = evaluation?.technician?.person?.name ?? 'Not available';
+  const technicianCedula = evaluation?.technician?.person?.cedula ?? 'Not available';
   const dateString = evaluation?.scheduledDate
     ? new Date(evaluation.scheduledDate).toLocaleDateString('es-DO', {
         dateStyle: 'long',
       })
-    : '22 de septiembre de 2026';
+    : 'Not available';
 
-  const executiveSummary =
-    report?.resumenEjecutivo ||
-    `Evaluación higiénico-sanitaria y basada en riesgo realizada en las instalaciones de ${establishmentName} con fecha ${dateString}. Se constató el cumplimiento de las Buenas Prácticas de Manufactura conforme a los estándares de vigilancia sanitaria oficial.`;
+  const executiveSummary = report?.resumenEjecutivo ?? '';
 
-  const findings =
-    report?.hallazgos ||
-    `- [C] Instalaciones físicas y perímetros exteriores debidamente protegidos contra plagas.\n- [C] Suministro de agua potable con monitoreo de cloro residual diario.\n- [CP] Registros de calibración de termómetros del área de pasteurización pendientes de firma del supervisor.\n- [C] Indumentaria reglamentaria y cofias en todo el personal manipulador.`;
+  const findings = report?.hallazgos ?? '';
 
-  const nonConformities =
-    report?.noConformidades ||
-    `- Numeral 2.4: Falta firma de supervisor en bitácora de calibración de termómetros de choque térmico.`;
+  const nonConformities = report?.noConformidades ?? '';
 
-  const recommendations =
-    report?.recomendaciones ||
-    `Se recomienda mantener el programa integral de Buenas Prácticas de Manufactura y subsanar las observaciones menores de documentación antes del próximo ciclo de vigilancia.`;
+  const recommendations = report?.recomendaciones ?? '';
 
-  const reportStatus = report?.status ?? 'BORRADOR';
-  const reportVersion = report?.version ?? 1;
+  const reportStatus = report?.status;
+  const reportVersion = report?.version;
 
   // Datos reales del motor de riesgo (RF-14). Si aún no se ha calculado
   // (evaluación no finalizada), se muestra un estado pendiente en vez de
@@ -154,7 +141,7 @@ export default function InspectionReportModal({
           </div>
 
           <div className="irm-action-buttons">
-            <button className="irm-btn irm-btn-print" onClick={handlePrint} title="Imprimir o guardar como PDF">
+            <button className="irm-btn irm-btn-print" onClick={handlePrint} title="Imprimir o guardar como PDF" disabled={loading || !report}>
               <span className="material-symbols-outlined" style={{ fontSize: '1.1rem' }}>print</span>
               Imprimir / PDF
             </button>
@@ -195,6 +182,11 @@ export default function InspectionReportModal({
                 sync
               </span>
               <p>Generando acta oficial de inspección...</p>
+            </div>
+          ) : !report ? (
+            <div className="empty" role="status" style={{ margin: '2rem' }}>
+              <p>No official inspection report has been generated for this assessment yet.</p>
+              <small>Complete the field assessment and submit the generated report for review before publishing an official record.</small>
             </div>
           ) : (
             <article className="irm-paper">

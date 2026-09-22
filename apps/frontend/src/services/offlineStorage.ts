@@ -406,9 +406,20 @@ export async function enqueueSync(evaluationId: number, answers: FormAnswers): P
     await new Promise<void>((resolve, reject) => {
       const tx = db.transaction(STORES.SYNC_QUEUE, 'readwrite');
       const store = tx.objectStore(STORES.SYNC_QUEUE);
-      const req = store.put(item);
-      req.onsuccess = () => resolve();
-      req.onerror = () => reject(req.error);
+      const cursorRequest = store.openCursor();
+      cursorRequest.onerror = () => reject(cursorRequest.error);
+      cursorRequest.onsuccess = () => {
+        const cursor = cursorRequest.result;
+        if (cursor) {
+          if ((cursor.value as SyncQueueItem).evaluationId === evaluationId) cursor.delete();
+          cursor.continue();
+          return;
+        }
+        store.add(item);
+      };
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error);
     });
   } catch (error) {
     console.warn('Fallo al encolar en IndexedDB:', error);
@@ -447,18 +458,22 @@ export async function removeSyncQueueItem(evaluationId: number): Promise<void> {
 
   try {
     const db = await openDB();
-    const tx = db.transaction(STORES.SYNC_QUEUE, 'readwrite');
-    const store = tx.objectStore(STORES.SYNC_QUEUE);
-    const req = store.openCursor();
-    req.onsuccess = () => {
-      const cursor = req.result;
-      if (cursor) {
-        if ((cursor.value as SyncQueueItem).evaluationId === evaluationId) {
-          cursor.delete();
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(STORES.SYNC_QUEUE, 'readwrite');
+      const store = tx.objectStore(STORES.SYNC_QUEUE);
+      const req = store.openCursor();
+      req.onerror = () => reject(req.error);
+      req.onsuccess = () => {
+        const cursor = req.result;
+        if (cursor) {
+          if ((cursor.value as SyncQueueItem).evaluationId === evaluationId) cursor.delete();
+          cursor.continue();
         }
-        cursor.continue();
-      }
-    };
+      };
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error);
+    });
   } catch {
     /* ignorar */
   }
