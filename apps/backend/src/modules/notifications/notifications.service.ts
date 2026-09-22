@@ -31,12 +31,12 @@ export const notificationsService = {
    * El envío de correo nunca lanza ni bloquea la creación de la
    * notificación in-app (ver mailService.sendMail).
    */
-  notify: async (userId: number, title: string, message: string) => {
+  notify: async (userId: number, title: string, message: string, html?: string) => {
     const notification = await notificationsModel.create(userId, title, message);
 
     const email = await notificationsModel.getUserEmail(userId);
     if (email) {
-      await mailService.sendMail({ to: email, subject: title, text: message });
+      await mailService.sendMail({ to: email, subject: title, text: message, html });
     }
 
     return notification;

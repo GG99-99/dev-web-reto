@@ -430,30 +430,68 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
       <div className="cp-hero">
         <div className="cp-hero-info">
           <small>Regulated Establishment Portal · BPM</small>
-          <h1>{mainInstitution?.name || 'Company Self-Service Portal'}</h1>
-          <p>
-            <span>🏢 RNC: <strong>{mainInstitution?.rnc || '130-99887-1'}</strong></span>
-            <span>📍 {mainInstitution?.streetName ? `${mainInstitution.streetName} #${mainInstitution.streetNum || ''}` : 'Santiago de los Caballeros, RD'}</span>
-            <span>📞 {mainInstitution?.phoneNumber || '(809) 580-0000'}</span>
-            <span>✉ {mainInstitution?.email || 'contacto@empresa.com.do'}</span>
-          </p>
+          {mainInstitution ? (
+            <>
+              <h1>{mainInstitution.name}</h1>
+              <p>
+                <span>🏢 RNC: <strong>{mainInstitution.rnc || 'No disponible'}</strong></span>
+                {mainInstitution.streetName && (
+                  <span>📍 {mainInstitution.streetName} #{mainInstitution.streetNum || ''}</span>
+                )}
+                {mainInstitution.phoneNumber && <span>📞 {mainInstitution.phoneNumber}</span>}
+                {mainInstitution.email && <span>✉ {mainInstitution.email}</span>}
+              </p>
+            </>
+          ) : (
+            <>
+              <h1>Portal de Autogestión de la Empresa</h1>
+              <p style={{ marginTop: '0.35rem', opacity: 0.95, maxWidth: '680px', lineHeight: '1.45' }}>
+                <span>🏢 Aún no tienes un establecimiento vinculado. Registra tu empresa o instalación con su RNC oficial para iniciar solicitudes de certificación sanitaria BPM.</span>
+              </p>
+            </>
+          )}
         </div>
         <div className="cp-hero-actions">
-          <button
-            type="button"
-            className="cp-btn-white"
-            onClick={() => setShowNewRequestModal(true)}
-          >
-            ➕ New BPM Request
-          </button>
-          <button
-            type="button"
-            className="cp-btn-white"
-            style={{ background: 'rgba(255, 255, 255, 0.2)', color: '#ffffff' }}
-            onClick={() => setShowNewInstitutionModal(true)}
-          >
-            🏭 Register Establishment
-          </button>
+          {mainInstitution ? (
+            <>
+              <button
+                type="button"
+                className="cp-btn-white"
+                onClick={() => setShowNewRequestModal(true)}
+              >
+                ➕ New BPM Request
+              </button>
+              <button
+                type="button"
+                className="cp-btn-white"
+                style={{ background: 'rgba(255, 255, 255, 0.2)', color: '#ffffff' }}
+                onClick={() => setShowNewInstitutionModal(true)}
+              >
+                🏭 Register Establishment
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                className="cp-btn-white"
+                onClick={() => setShowNewInstitutionModal(true)}
+              >
+                🏭 Register Establishment
+              </button>
+              <button
+                type="button"
+                className="cp-btn-white"
+                style={{ background: 'rgba(255, 255, 255, 0.2)', color: '#ffffff' }}
+                onClick={() => {
+                  notify?.('Primero debes registrar tu establecimiento antes de crear una solicitud BPM.')
+                  setShowNewInstitutionModal(true)
+                }}
+              >
+                ➕ New BPM Request
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -540,9 +578,16 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
                 <button
                   type="button"
                   className="cp-btn-primary"
-                  onClick={() => setShowNewRequestModal(true)}
+                  onClick={() => {
+                    if (institutions.length === 0) {
+                      notify?.('Primero debes registrar tu establecimiento antes de crear una solicitud BPM.')
+                      setShowNewInstitutionModal(true)
+                    } else {
+                      setShowNewRequestModal(true)
+                    }
+                  }}
                 >
-                  ➕ Create first BPM request
+                  {institutions.length === 0 ? '🏭 Register first establishment' : '➕ Create first BPM request'}
                 </button>
               </div>
             ) : (

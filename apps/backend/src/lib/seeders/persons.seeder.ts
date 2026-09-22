@@ -23,6 +23,7 @@ export const PERSONS = [
   { name: 'Carlos Rodríguez', cedula: '001-0000002-2', phone: '809-555-0102', email: 'coordinador@salud.gob.do' },
   { name: 'Luis Fernández', cedula: '001-0000003-3', phone: '809-555-0103', email: 'tecnico1@salud.gob.do' },
   { name: 'Rosa Jiménez', cedula: '001-0000004-4', phone: '809-555-0104', email: 'tecnico2@salud.gob.do' },
+  { name: 'Jeremy Garcia', cedula: '001-0000005-5', phone: '809-555-0105', email: 'jeremy0titan@gmail.com' },
 
   // --- lado empresa (tendrán User) ---
   { name: 'Pedro Martínez', cedula: '002-0000001-1', phone: '829-555-0201', email: 'admin@lacteosdelnorte.do' },

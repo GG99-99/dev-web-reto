@@ -36,8 +36,12 @@ function getTransporter(): Transporter | null {
     port: SMTP_PORT ? Number(SMTP_PORT) : 587,
     secure: SMTP_SECURE === 'true', // true para puerto 465, false para el resto (STARTTLS)
     auth: SMTP_USER && SMTP_PASS ? { user: SMTP_USER, pass: SMTP_PASS } : undefined,
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
   });
 
+  console.log(`[mail] Cliente SMTP inicializado (${SMTP_HOST}:${SMTP_PORT ? Number(SMTP_PORT) : 587}, secure: ${SMTP_SECURE === 'true'})`);
   return transporter;
 }
 
@@ -64,10 +68,11 @@ export const mailService = {
     }
 
     try {
-      await client.sendMail({ from, to, subject, text, html });
+      const info = await client.sendMail({ from, to, subject, text, html });
+      console.log(`[mail] ✅ Correo enviado exitosamente a: ${to} | Asunto: "${subject}" | MsgId: ${info.messageId}`);
       return true;
     } catch (error) {
-      console.error(`[mail] Error enviando correo a ${to}:`, error);
+      console.error(`[mail] ❌ Error enviando correo a ${to}:`, error);
       return false;
     }
   },
