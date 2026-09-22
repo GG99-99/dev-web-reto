@@ -71,7 +71,17 @@ export default function InspectionReportModal({
 
   // Imprimir o Guardar PDF Oficial
   const handlePrint = () => {
+    const originalTitle = document.title;
+    const cleanFolio = `ACTA-2026-EBR-${evaluationId.toString().padStart(4, '0')}`;
+    document.title = `Acta_Inspeccion_${cleanFolio}_DIGEMAPS`;
+    document.body.classList.add('irm-printing-active');
+
     window.print();
+
+    setTimeout(() => {
+      document.title = originalTitle;
+      document.body.classList.remove('irm-printing-active');
+    }, 1500);
   };
 
   // Enviar informe a revisión (Técnico Evaluador)
