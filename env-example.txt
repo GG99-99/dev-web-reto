@@ -12,3 +12,14 @@ JWT_REFRESH_SECRET="dev-refresh-secret-change-me"
 JWT_ACCESS_EXPIRES_IN="15m"
 JWT_REFRESH_EXPIRES_IN="7d"
 JWT_TEMP_EXPIRES_IN="5m"
+
+# Correo (RF-04). Si SMTP_HOST se deja vacío, los correos solo se registran
+# en consola (modo simulado) y la app sigue funcionando con normalidad.
+# Ejemplo con Gmail: host smtp.gmail.com, puerto 587, secure=false, y usar
+# una "contraseña de aplicación" en SMTP_PASS (no la contraseña normal).
+SMTP_HOST="smtp.gmail.com"
+SMTP_PORT="587"
+SMTP_SECURE="false"
+SMTP_USER="tucorreo@gmail.com"
+SMTP_PASS="contraseña-de-aplicación"   # no la contraseña normal de Gmail
+MAIL_FROM="RETO <tucorreo@gmail.com>"
