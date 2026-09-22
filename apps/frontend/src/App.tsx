@@ -73,7 +73,7 @@ export type Evaluation = {
 
 const sessionKey = "radar-session";
 const nav: { id: View; label: string; icon: string }[] = [
-  { id: "overview", label: "Command centre", icon: "▦" },
+  { id: "overview", label: "Command center", icon: "▦" },
   { id: "company", label: "Company portal", icon: "🏢" },
   { id: "calendar", label: "Calendar agenda", icon: "📅" },
   { id: "field", label: "Field assessment", icon: "✓" },
@@ -444,7 +444,7 @@ function App() {
             Operations <span>/</span>{" "}
             <strong>
               {visibleNav.find((item) => item.id === view)?.label ??
-                "Command centre"}
+                "Command center"}
             </strong>
           </div>
           <div className="header-actions" style={{ position: "relative" }}>
