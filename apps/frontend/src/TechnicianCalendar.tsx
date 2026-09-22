@@ -50,7 +50,10 @@ export default function TechnicianCalendar({ onOpenField, notify }: TechnicianCa
       // 2. Llamar endpoint de lista para enriquecer nombres y direcciones
       const listPromise = evaluationsService.list({ page: 1, pageSize: 100 });
 
-      const [calRes, listRes] = await Promise.all([calPromise, listPromise]);
+      const [calRes, listRes] = await Promise.all([
+        calPromise.catch(() => ({ valid: false, data: null })),
+        listPromise.catch(() => ({ valid: false, data: null }))
+      ]);
 
       const detailedMap = new Map<number, EvaluationListItem>();
       if (listRes.valid && listRes.data?.items) {
