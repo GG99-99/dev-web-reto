@@ -18,7 +18,7 @@ export const lapchAlertsService = {
 
   getById: async (alertId: number) => {
     const alert = await lapchAlertsModel.getById(alertId);
-    if (!alert) throw ApiError.notFound('La alerta LAPCH no existe');
+    if (!alert) throw ApiError.notFound('LAPCH alert not found');
     return alert;
   },
 
@@ -35,22 +35,22 @@ export const lapchAlertsService = {
   generateCase: async (alertId: number): Promise<GenerateCaseFromAlertResponse> => {
     const alert = await lapchAlertsService.getById(alertId);
     if (alert.resultado !== 'PROCEDE') {
-      throw ApiError.conflict('Solo se puede generar un caso cuando el resultado es PROCEDE');
+      throw ApiError.conflict('A case can only be generated when the result is PROCEDE');
     }
     if (alert.case) {
-      throw ApiError.conflict('Esta alerta ya tiene un caso generado');
+      throw ApiError.conflict('This alert already has a case generated');
     }
     const createdCase = await lapchAlertsModel.generateCase(alertId, alert.institutionId);
     return { case: createdCase };
   },
 
   /**
-   * ⚠️ GAP DE CONTRATO: `LapchAlert` no tiene una columna de estado
-   * "cerrado"/`closedAt` en el schema de Prisma, así que este endpoint no
-   * persiste ningún cambio nuevo: solo valida que la alerta tenga un
-   * `resultado` ya definido (no puede "cerrarse" una alerta sin resolver) y
-   * devuelve la alerta tal cual. TODO: agregar `LapchAlert.closedAt` en una
-   * migración si se necesita distinguir "resuelta" de "cerrada".
+   * ⚠️ CONTRACT GAP: `LapchAlert` does not have a status column
+   * "closed"/`closedAt` in the Prisma schema, so this endpoint does not
+   * persist any new change: it only validates that the alert has a
+   * `resultado` already defined (an unresolved alert cannot be "closed") and
+   * returns the alert as is. TODO: add `LapchAlert.closedAt` in a
+   * migration if it is necessary to distinguish "resolved" from "closed".
    */
   close: async (alertId: number) => {
     const alert = await lapchAlertsService.getById(alertId);

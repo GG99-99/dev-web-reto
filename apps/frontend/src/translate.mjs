@@ -1,0 +1,100 @@
+const fs = require('fs');
+
+let content = fs.readFileSync('d:/ProgrammingProjects/RetoDesarrolloWeb/dev-web-reto/apps/frontend/src/LiveField.tsx', 'utf-8');
+
+const replacements = [
+  ["inform('Conexión reestablecida. Se reanudará la sincronización en segundo plano.')", "inform('Connection restored. Background synchronization will resume.')"],
+  ["inform('Sin conexión a internet. Modo offline PWA activado con IndexedDB.')", "inform('No internet connection. PWA offline mode enabled with IndexedDB.')"],
+  ["inform('Borrador sincronizado correctamente con el servidor.')", "inform('Draft successfully synchronized with the server.')"],
+  ["inform('Guardado en IndexedDB local. Se sincronizará al detectar conexión.')", "inform('Saved in local IndexedDB. Will sync when connection is detected.')"],
+  ["inform('No fue posible contactar al servidor. Cambios guardados localmente.')", "inform('Could not contact the server. Changes saved locally.')"],
+  ["inform(`Sincronización PWA completada: ${synced} evaluación(es) actualizadas.`)", "inform(`PWA sync completed: ${synced} assessment(s) updated.`)"],
+  ["inform('No se pudieron cargar los alimentos para esta categoría.')", "inform('Could not load food items for this category.')"],
+  ["inform('Seleccione el representante presente y el alimento a evaluar antes de iniciar.')", "inform('Select the present representative and the food item to assess before starting.')"],
+  ["inform('Evaluación iniciada oficialmente. Puede comenzar a calificar los criterios.')", "inform('Assessment officially started. You can begin rating the criteria.')"],
+  ["inform(err?.response?.data?.message || 'Error al iniciar la evaluación.')", "inform(err?.response?.data?.message || 'Error starting the assessment.')"],
+  ["const questionComment = notes[question.key] || `Evidencia fotográfica para ${question.codeLabel}`", "const questionComment = notes[question.key] || `Photographic evidence for ${question.codeLabel}`"],
+  ["inform(`Evidencia subida exitosamente con coordenadas GPS (${gps?.lat.toFixed(4)}, ${gps?.lng.toFixed(4)}).`)", "inform(`Evidence successfully uploaded with GPS coordinates (${gps?.lat.toFixed(4)}, ${gps?.lng.toFixed(4)}).`)"],
+  ["inform('No se pudo subir la evidencia en este momento.')", "inform('Could not upload evidence at this time.')"],
+  ["inform('Evidencia eliminada.')", "inform('Evidence removed.')"],
+  ["inform('No se pudo eliminar la evidencia.')", "inform('Could not remove evidence.')"],
+  ["inform('Debe responder los criterios aplicables antes de finalizar la evaluación.')", "inform('You must answer applicable criteria before finishing the assessment.')"],
+  ["confirm('¿Está seguro de finalizar esta evaluación? Las respuestas quedarán bloqueadas y se emitirá el informe técnico.')", "confirm('Are you sure you want to finish this assessment? Answers will be locked and the technical report will be issued.')"],
+  ["inform(`¡Evaluación finalizada! Nivel de riesgo dictaminado: ${res.data.score.nivelRiesgo}.`)", "inform(`Assessment finished! Determined risk level: ${res.data.score.nivelRiesgo}.`)"],
+  ["inform(err?.response?.data?.message || 'No fue posible finalizar la evaluación.')", "inform(err?.response?.data?.message || 'Could not finish the assessment.')"],
+  ["{isOnline ? 'Motor PWA En Línea • Sincronizado' : 'Modo Offline PWA Activo (IndexedDB)'}", "{isOnline ? 'Online PWA Engine • Synchronized' : 'PWA Offline Mode Active (IndexedDB)'}"],
+  ["<span>{liveRisk.totalAnswered} respuestas locales cacheadas</span>", "<span>{liveRisk.totalAnswered} locally cached answers</span>"],
+  ["{pendingSyncCount} pendientes de sincronización", "{pendingSyncCount} pending sync"],
+  ["title=\"Ubicación capturada por GPS\"", "title=\"Location captured by GPS\""],
+  ["title=\"Hora del último guardado\"", "title=\"Last saved time\""],
+  ["<span>Guardado: {lastSavedTime}</span>", "<span>Saved: {lastSavedTime}</span>"],
+  ["title=\"Almacenamiento IndexedDB\"", "title=\"IndexedDB Storage\""],
+  ["Evaluación Asignada:", "Assigned Assessment:"],
+  ["'Establecimiento'", "'Facility'"],
+  ["{finished ? 'Evaluación Finalizada' : started ? 'Inspección en Curso' : 'Programada'}", "{finished ? 'Finished Assessment' : started ? 'Inspection in Progress' : 'Scheduled'}"],
+  ["Expediente #{activeItem.evaluationId}", "Record #{activeItem.evaluationId}"],
+  ["Ficha BPM 2026", "GMP Form 2026"],
+  ["'Establecimiento en Auditoría'", "'Facility under Audit'"],
+  ["toLocaleDateString('es-DO', {", "toLocaleDateString('en-US', {"],
+  ["toLocaleDateString('es-DO')", "toLocaleDateString('en-US')"],
+  ["Motor de Riesgo Dinámico (RF-14)", "Dynamic Risk Engine (RF-14)"],
+  ["'RIESGO BAJO'", "'LOW RISK'"],
+  ["'RIESGO MEDIO'", "'MEDIUM RISK'"],
+  ["'RIESGO ALTO'", "'HIGH RISK'"],
+  ["Cumplimiento BPM", "GMP Compliance"],
+  ["Índice EBR Acumulado", "Cumulative RBA Index"],
+  ["Frec: {liveRisk.frequency.toLowerCase()}", "Freq: {liveRisk.frequency.toLowerCase()}"],
+  ["Paso Requerido", "Required Step"],
+  ["Confirmar Datos de la Visita en Planta", "Confirm Plant Visit Data"],
+  ["Seleccione el representante del establecimiento que acompaña la inspección y el alimento principal objeto de la evaluación según RF-12.", "Select the facility representative accompanying the inspection and the main food item subject to the assessment according to RF-12."],
+  ["Representante de Planta Presente", "Present Plant Representative"],
+  ["Seleccionar Representante", "Select Representative"],
+  ["'Representante #'", "'Representative #'"],
+  ["Categoría del Alimento", "Food Category"],
+  ["Seleccionar Categoría", "Select Category"],
+  ["Alimento Específico", "Specific Food Item"],
+  ["'Seleccionar Alimento' : 'Seleccione primero una categoría'", "'Select Food Item' : 'Select a category first'"],
+  ["Iniciar Evaluación de Buenas Prácticas →", "Start Good Practices Assessment →"],
+  ["¡Evaluación finalizada y dictamen emitido con éxito!", "Assessment finished and verdict successfully issued!"],
+  ["Puntaje: {finishSummary.score?.puntajeObtenido} | Cumplimiento: {finishSummary.score?.porcentajeCumplimiento}% | Nivel de Riesgo: <b>{finishSummary.score?.nivelRiesgo}</b> | Frecuencia de Inspección: <b>{finishSummary.score?.frecuenciaInspeccion}</b>. El expediente ha pasado a revisión del Coordinador.", "Score: {finishSummary.score?.puntajeObtenido} | Compliance: {finishSummary.score?.porcentajeCumplimiento}% | Risk Level: <b>{finishSummary.score?.nivelRiesgo}</b> | Inspection Frequency: <b>{finishSummary.score?.frecuenciaInspeccion}</b>. The case has moved to Coordinator review."],
+  ["Capítulos Sanitarios BPM", "GMP Sanitary Chapters"],
+  ["{chapters.length} Capítulos", "{chapters.length} Chapters"],
+  ["aria-label=\"Estructura de la Ficha BPM\"", "aria-label=\"GMP Form Structure\""],
+  ["Resumen de Capítulo Actual", "Current Chapter Summary"],
+  ["<span>Evaluadas:</span>", "<span>Assessed:</span>"],
+  ["<span>No Conformidades (NC):</span>", "<span>Non-Conformities (NC):</span>"],
+  ["} hallazgos", "} findings"],
+  ["{isNC ? 'No Conformidad' : 'Observación EBR'}", "{isNC ? 'Non-Conformity' : 'RBA Observation'}"],
+  ["[ C ] Cumple", "[ C ] Complies"],
+  ["[ CP ] Parcial", "[ CP ] Partial"],
+  ["[ NC ] No Cumple", "[ NC ] Does Not Comply"],
+  ["[ N/A ] Exento", "[ N/A ] Exempt"],
+  ["'Observación Técnica Obligatoria (Hallazgo No Conformidad)'", "'Mandatory Technical Observation (Non-Conformity Finding)'"],
+  ["'Detalle de Cumplimiento Parcial'", "'Partial Compliance Detail'"],
+  ["'Nota del Evaluador'", "'Assessor Note'"],
+  ["placeholder=\"Documente la evidencia técnica o el hallazgo observado in situ...\"", "placeholder=\"Document the technical evidence or finding observed on-site...\""],
+  ["Evidencia Fotográfica / Documental (RF-15)", "Photographic / Documentary Evidence (RF-15)"],
+  ["} archivo(s)", "} file(s)"],
+  ["`Evidencia #${ev.evidenceId}`", "`Evidence #${ev.evidenceId}`"],
+  ["title=\"Eliminar evidencia\"", "title=\"Remove evidence\""],
+  ["+ Capturar Foto / Archivo (GPS Auto)", "+ Capture Photo / File (Auto GPS)"],
+  ["Seleccione un capítulo sanitario para comenzar la evaluación.", "Select a sanitary chapter to begin the assessment."],
+  ["Guardar Borrador {isOnline ? 'en Servidor' : 'en Dispositivo (Offline)'}", "Guardar Borrador {isOnline ? 'on Server' : 'on Device (Offline)'}"], // partial, let me just fix entire line
+  ["Guardar Borrador {isOnline ? 'on Server' : 'on Device (Offline)'}", "Save Draft {isOnline ? 'on Server' : 'on Device (Offline)'}"],
+  ["Sincronizar Pendientes ({pendingSyncCount})", "Sync Pending ({pendingSyncCount})"],
+  ["Último guardado: {lastSavedTime}", "Last saved: {lastSavedTime}"],
+  ["Ver Dictamen Oficial (PDF)", "View Official Verdict (PDF)"],
+  ["Finalizar y Calcular Riesgo Final (RF-14 / RF-16)", "Finish and Calculate Final Risk (RF-14 / RF-16)"],
+];
+
+let newContent = content;
+replacements.forEach(([from, to]) => {
+  newContent = newContent.split(from).join(to);
+});
+
+// manually do the Guardar Borrador step since it's nested string:
+newContent = newContent.replace("Guardar Borrador {isOnline ? 'en Servidor' : 'en Dispositivo (Offline)'}", "Save Draft {isOnline ? 'on Server' : 'on Device (Offline)'}");
+
+
+fs.writeFileSync('d:/ProgrammingProjects/RetoDesarrolloWeb/dev-web-reto/apps/frontend/src/LiveField.tsx', newContent, 'utf-8');
+console.log('done');

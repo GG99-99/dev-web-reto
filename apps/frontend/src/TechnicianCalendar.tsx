@@ -69,11 +69,11 @@ export default function TechnicianCalendar({ onOpenField, notify }: TechnicianCa
             evaluationId: calItem.evaluationId,
             scheduledDate: new Date(calItem.scheduledDate),
             status: calItem.status,
-            priority: detail?.priority ?? 'MEDIA',
-            reason: detail?.reason ?? 'Inspección Higiénico-Sanitaria BPM',
-            observations: detail?.observations ?? 'Coordinar ingreso con el encargado de planta.',
-            institutionName: detail?.institution?.name ?? `Establecimiento #${calItem.institutionId ?? calItem.evaluationId}`,
-            address: detail?.institution?.streetName ?? 'República Dominicana',
+            priority: detail?.priority ?? 'MEDIUM',
+            reason: detail?.reason ?? 'GMP Hygienic-Sanitary Inspection',
+            observations: detail?.observations ?? 'Coordinate entry with plant manager.',
+            institutionName: detail?.institution?.name ?? `Establishment #${calItem.institutionId ?? calItem.evaluationId}`,
+            address: detail?.institution?.streetName ?? 'Dominican Republic',
           });
         });
       } else if (listRes.valid && listRes.data?.items) {
@@ -83,11 +83,11 @@ export default function TechnicianCalendar({ onOpenField, notify }: TechnicianCa
             evaluationId: item.evaluationId,
             scheduledDate: new Date(item.scheduledDate),
             status: item.status,
-            priority: item.priority ?? 'MEDIA',
-            reason: item.reason ?? 'Inspección Sanitaria BPM',
+            priority: item.priority ?? 'MEDIUM',
+            reason: item.reason ?? 'GMP Sanitary Inspection',
             observations: item.observations ?? '',
-            institutionName: item.institution?.name ?? `Establecimiento #${item.institutionId}`,
-            address: item.institution?.streetName ?? 'República Dominicana',
+            institutionName: item.institution?.name ?? `Establishment #${item.institutionId}`,
+            address: item.institution?.streetName ?? 'Dominican Republic',
           });
         });
       }
@@ -95,7 +95,7 @@ export default function TechnicianCalendar({ onOpenField, notify }: TechnicianCa
       setEvents(mergedEvents);
     } catch (err: unknown) {
       console.error('Error al cargar calendario de evaluaciones:', err);
-      notify?.('No se pudo sincronizar el calendario con el servidor.');
+      notify?.('Could not synchronize the calendar with the server.');
     } finally {
       setLoading(false);
     }
@@ -140,7 +140,7 @@ export default function TechnicianCalendar({ onOpenField, notify }: TechnicianCa
 
   // Etiqueta del Mes y Año
   const formattedMonth = useMemo(() => {
-    return new Intl.DateTimeFormat('es-DO', { month: 'long', year: 'numeric' }).format(currentDate);
+    return new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(currentDate);
   }, [currentDate]);
 
   // Cálculo de Días para la Grilla Mensual
@@ -222,29 +222,29 @@ export default function TechnicianCalendar({ onOpenField, notify }: TechnicianCa
       <div className="tc-header">
         <div className="tc-title-area">
           <small className="eyebrow" style={{ color: '#00236f', fontWeight: 700, textTransform: 'uppercase' }}>
-            Vigilancia Sanitaria • RF-11
+            Sanitary Surveillance • RF-11
           </small>
-          <h1>Agenda y Calendario de Evaluaciones</h1>
-          <p>Planificación de visitas de campo, inspecciones asignadas y seguimiento de estados BPM.</p>
+          <h1>Schedule and Evaluation Calendar</h1>
+          <p>Planning of field visits, assigned inspections, and GMP status tracking.</p>
         </div>
 
         {/* Leyenda Semántica */}
         <div className="tc-legend">
           <div className="tc-legend-item">
             <span className="tc-legend-dot programada" />
-            <span>Programada</span>
+            <span>Scheduled</span>
           </div>
           <div className="tc-legend-item">
             <span className="tc-legend-dot reprogramada" />
-            <span>Reprogramada</span>
+            <span>Rescheduled</span>
           </div>
           <div className="tc-legend-item">
             <span className="tc-legend-dot finalizada" />
-            <span>Finalizada</span>
+            <span>Completed</span>
           </div>
           <div className="tc-legend-item">
             <span className="tc-legend-dot cancelada" />
-            <span>Cancelada</span>
+            <span>Canceled</span>
           </div>
         </div>
       </div>
@@ -253,13 +253,13 @@ export default function TechnicianCalendar({ onOpenField, notify }: TechnicianCa
       <div className="tc-toolbar">
         <div className="tc-nav-group">
           <button className="tc-btn-nav" onClick={handleToday}>
-            Hoy
+            Today
           </button>
-          <button className="tc-btn-nav" onClick={handlePrev} title="Anterior">
+          <button className="tc-btn-nav" onClick={handlePrev} title="Previous">
             <span className="material-symbols-outlined" style={{ fontSize: '1.1rem' }}>chevron_left</span>
           </button>
           <span className="tc-month-label">{formattedMonth}</span>
-          <button className="tc-btn-nav" onClick={handleNext} title="Siguiente">
+          <button className="tc-btn-nav" onClick={handleNext} title="Next">
             <span className="material-symbols-outlined" style={{ fontSize: '1.1rem' }}>chevron_right</span>
           </button>
         </div>
@@ -270,19 +270,19 @@ export default function TechnicianCalendar({ onOpenField, notify }: TechnicianCa
             className={`tc-view-btn ${view === 'month' ? 'active' : ''}`}
             onClick={() => setView('month')}
           >
-            Mes
+            Month
           </button>
           <button
             className={`tc-view-btn ${view === 'week' ? 'active' : ''}`}
             onClick={() => setView('week')}
           >
-            Semana
+            Week
           </button>
           <button
             className={`tc-view-btn ${view === 'day' ? 'active' : ''}`}
             onClick={() => setView('day')}
           >
-            Día
+            Day
           </button>
         </div>
       </div>
@@ -294,19 +294,19 @@ export default function TechnicianCalendar({ onOpenField, notify }: TechnicianCa
             <span className="material-symbols-outlined" style={{ fontSize: '2rem', animation: 'spin 1s infinite linear' }}>
               sync
             </span>
-            <p>Sincronizando agenda con el backend...</p>
+            <p>Synchronizing schedule with backend...</p>
           </div>
         ) : view === 'month' ? (
           <>
             {/* Cabecera de días de la semana */}
             <div className="tc-weekdays-header">
-              <div>Dom</div>
-              <div>Lun</div>
-              <div>Mar</div>
-              <div>Mié</div>
-              <div>Jue</div>
-              <div>Vie</div>
-              <div>Sáb</div>
+              <div>Sun</div>
+              <div>Mon</div>
+              <div>Tue</div>
+              <div>Wed</div>
+              <div>Thu</div>
+              <div>Fri</div>
+              <div>Sat</div>
             </div>
 
             {/* Grilla Mensual */}
@@ -336,7 +336,7 @@ export default function TechnicianCalendar({ onOpenField, notify }: TechnicianCa
 
                     <div className="tc-events-list">
                       {dayEvents.map((ev) => {
-                        const timeString = ev.scheduledDate.toLocaleTimeString('es-DO', {
+                        const timeString = ev.scheduledDate.toLocaleTimeString('en-US', {
                           hour: '2-digit',
                           minute: '2-digit',
                         });
@@ -368,7 +368,7 @@ export default function TechnicianCalendar({ onOpenField, notify }: TechnicianCa
             {weekDays.map((dayDate, idx) => {
               const dayEvents = getEventsForDate(dayDate);
               const isToday = dayDate.toDateString() === new Date('2026-09-21T09:00:00.000Z').toDateString();
-              const dayName = new Intl.DateTimeFormat('es-DO', { weekday: 'short' }).format(dayDate);
+              const dayName = new Intl.DateTimeFormat('en-US', { weekday: 'short' }).format(dayDate);
 
               return (
                 <div key={idx} className={`tc-week-col ${isToday ? 'today' : ''}`}>
@@ -385,14 +385,14 @@ export default function TechnicianCalendar({ onOpenField, notify }: TechnicianCa
                         onClick={() => setSelectedEvent(ev)}
                       >
                         <span className="tc-event-time">
-                          {ev.scheduledDate.toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' })}
+                          {ev.scheduledDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                         </span>
                         <span className="tc-event-title">{ev.institutionName}</span>
                       </button>
                     ))}
                     {dayEvents.length === 0 && (
                       <span style={{ fontSize: '0.75rem', color: '#a0aec0', textAlign: 'center', marginTop: '1rem' }}>
-                        Sin citas
+                        No appointments
                       </span>
                     )}
                   </div>
@@ -404,22 +404,22 @@ export default function TechnicianCalendar({ onOpenField, notify }: TechnicianCa
           /* Vista Diaria */
           <div className="tc-day-view-container">
             <h2 style={{ fontSize: '1.2rem', color: '#00236f', margin: '0 0 0.5rem 0' }}>
-              Agenda para el {new Intl.DateTimeFormat('es-DO', { dateStyle: 'full' }).format(currentDate)}
+              Schedule for {new Intl.DateTimeFormat('en-US', { dateStyle: 'full' }).format(currentDate)}
             </h2>
 
             {activeDayEvents.length === 0 ? (
-              <p style={{ color: '#535f73' }}>No hay evaluaciones programadas para este día.</p>
+              <p style={{ color: '#535f73' }}>No evaluations scheduled for this day.</p>
             ) : (
               activeDayEvents.map((ev) => (
                 <div key={ev.evaluationId} className="tc-day-agenda-item">
                   <div className="tc-day-agenda-time">
-                    {ev.scheduledDate.toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' })}
+                    {ev.scheduledDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                   </div>
                   <div className="tc-day-agenda-info">
                     <h3>{ev.institutionName}</h3>
                     <p>
-                      <strong>Motivo:</strong> {ev.reason} • <strong>Estado:</strong> {ev.status} •{' '}
-                      <strong>Prioridad:</strong> {ev.priority}
+                      <strong>Reason:</strong> {ev.reason} • <strong>Status:</strong> {ev.status} •{' '}
+                      <strong>Priority:</strong> {ev.priority}
                     </p>
                     <p style={{ fontSize: '0.8rem', color: '#718096', marginTop: '0.2rem' }}>
                       📍 {ev.address}
@@ -432,7 +432,7 @@ export default function TechnicianCalendar({ onOpenField, notify }: TechnicianCa
                     }}
                   >
                     <span className="material-symbols-outlined" style={{ fontSize: '1.1rem' }}>play_circle</span>
-                    Evaluar
+                    Evaluate
                   </button>
                 </div>
               ))
@@ -448,7 +448,7 @@ export default function TechnicianCalendar({ onOpenField, notify }: TechnicianCa
             <div className="tc-modal-header">
               <div>
                 <h2>{selectedEvent.institutionName}</h2>
-                <p>Inspección Oficial Programada • No. #{selectedEvent.evaluationId}</p>
+                <p>Scheduled Official Inspection • No. #{selectedEvent.evaluationId}</p>
               </div>
               <button className="tc-modal-close" onClick={() => setSelectedEvent(null)}>
                 &times;
@@ -458,15 +458,15 @@ export default function TechnicianCalendar({ onOpenField, notify }: TechnicianCa
             <div className="tc-modal-body">
               <div className="tc-detail-grid">
                 <div className="tc-detail-item">
-                  <label>Fecha y Hora</label>
+                  <label>Date and Time</label>
                   <span>
-                    {selectedEvent.scheduledDate.toLocaleDateString('es-DO', {
+                    {selectedEvent.scheduledDate.toLocaleDateString('en-US', {
                       weekday: 'short',
                       day: 'numeric',
                       month: 'long',
                     })}{' '}
-                    a las{' '}
-                    {selectedEvent.scheduledDate.toLocaleTimeString('es-DO', {
+                    at{' '}
+                    {selectedEvent.scheduledDate.toLocaleTimeString('en-US', {
                       hour: '2-digit',
                       minute: '2-digit',
                     })}
@@ -474,29 +474,29 @@ export default function TechnicianCalendar({ onOpenField, notify }: TechnicianCa
                 </div>
 
                 <div className="tc-detail-item">
-                  <label>Estado</label>
+                  <label>Status</label>
                   <span style={{ fontWeight: 800 }}>{selectedEvent.status}</span>
                 </div>
 
                 <div className="tc-detail-item">
-                  <label>Prioridad</label>
-                  <span>{selectedEvent.priority ?? 'MEDIA'}</span>
+                  <label>Priority</label>
+                  <span>{selectedEvent.priority ?? 'MEDIUM'}</span>
                 </div>
 
                 <div className="tc-detail-item">
-                  <label>Ubicación</label>
-                  <span>{selectedEvent.address ?? 'República Dominicana'}</span>
+                  <label>Location</label>
+                  <span>{selectedEvent.address ?? 'Dominican Republic'}</span>
                 </div>
               </div>
 
               <div className="tc-detail-item">
-                <label>Motivo de la Evaluación</label>
+                <label>Evaluation Reason</label>
                 <span>{selectedEvent.reason}</span>
               </div>
 
               {selectedEvent.observations && (
                 <div className="tc-detail-item">
-                  <label>Instrucciones de Coordinación</label>
+                  <label>Coordination Instructions</label>
                   <span style={{ color: '#535f73', fontStyle: 'italic' }}>
                     "{selectedEvent.observations}"
                   </span>
@@ -510,7 +510,7 @@ export default function TechnicianCalendar({ onOpenField, notify }: TechnicianCa
                 className="tc-btn-nav"
                 onClick={() => setSelectedEvent(null)}
               >
-                Cerrar
+                Close
               </button>
               <button
                 type="button"
@@ -522,7 +522,7 @@ export default function TechnicianCalendar({ onOpenField, notify }: TechnicianCa
                 }}
               >
                 <span className="material-symbols-outlined" style={{ fontSize: '1.1rem' }}>checklist</span>
-                ⚡ Abrir Ficha de Campo
+                ⚡ Open Field Form
               </button>
             </div>
           </div>

@@ -244,12 +244,12 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
   useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true)
-      inform('Conexión reestablecida. Se reanudará la sincronización en segundo plano.')
+      inform('Connection restored. Background synchronization will resume.')
       void checkAndFlushSyncQueue()
     }
     const handleOffline = () => {
       setIsOnline(false)
-      inform('Sin conexión a internet. Modo offline PWA activado con IndexedDB.')
+      inform('No internet connection. PWA offline mode enabled with IndexedDB.')
     }
 
     window.addEventListener('online', handleOnline)
@@ -480,19 +480,19 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
         if (!result.valid) {
           inform(result.error.message)
         } else {
-          inform('Borrador sincronizado correctamente con el servidor.')
+          inform('Draft successfully synchronized with the server.')
           await offlineStorage.removeSyncQueueItem(activeItem.evaluationId)
           await refreshPendingSyncCount()
         }
       } else {
         await offlineStorage.enqueueSync(activeItem.evaluationId, answersList)
         await refreshPendingSyncCount()
-        inform('Guardado en IndexedDB local. Se sincronizará al detectar conexión.')
+        inform('Saved in local IndexedDB. Will sync when connection is detected.')
       }
     } catch {
       await offlineStorage.enqueueSync(activeItem.evaluationId, answersList)
       await refreshPendingSyncCount()
-      inform('No fue posible contactar al servidor. Cambios guardados localmente.')
+      inform('Could not contact the server. Changes saved locally.')
     } finally {
       setBusy(false)
     }
@@ -523,7 +523,7 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
     await refreshPendingSyncCount()
     setBusy(false)
     if (synced > 0) {
-      inform(`Sincronización PWA completada: ${synced} evaluación(es) actualizadas.`)
+      inform(`PWA sync completed: ${synced} assessment(s) updated.`)
     }
   }
 
@@ -538,7 +538,7 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
       const res = await catalogsService.listFoods(Number(catId))
       if (res.valid) setFoods(res.data)
     } catch {
-      inform('No se pudieron cargar los alimentos para esta categoría.')
+      inform('Could not load food items for this category.')
     }
   }
 
@@ -546,7 +546,7 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
   async function startAssessment() {
     if (!activeItem) return
     if (!representId || !foodId) {
-      inform('Seleccione el representante presente y el alimento a evaluar antes de iniciar.')
+      inform('Select the present representative and the food item to assess before starting.')
       return
     }
 
@@ -561,9 +561,9 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
         return
       }
       setStarted(true)
-      inform('Evaluación iniciada oficialmente. Puede comenzar a calificar los criterios.')
+      inform('Assessment officially started. You can begin rating the criteria.')
     } catch (err: any) {
-      inform(err?.response?.data?.message || 'Error al iniciar la evaluación.')
+      inform(err?.response?.data?.message || 'Error starting the assessment.')
     } finally {
       setBusy(false)
     }
@@ -575,7 +575,7 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
     setBusy(true)
 
     try {
-      const questionComment = notes[question.key] || `Evidencia fotográfica para ${question.codeLabel}`
+      const questionComment = notes[question.key] || `Photographic evidence for ${question.codeLabel}`
       const type = file.type.startsWith('video/')
         ? 'VIDEO'
         : file.type.startsWith('image/')
@@ -603,9 +603,9 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
       }
 
       setEvidences((current) => [...current, res.data])
-      inform(`Evidencia subida exitosamente con coordenadas GPS (${gps?.lat.toFixed(4)}, ${gps?.lng.toFixed(4)}).`)
+      inform(`Evidence successfully uploaded with GPS coordinates (${gps?.lat.toFixed(4)}, ${gps?.lng.toFixed(4)}).`)
     } catch {
-      inform('No se pudo subir la evidencia en este momento.')
+      inform('Could not upload evidence at this time.')
     } finally {
       setBusy(false)
     }
@@ -619,12 +619,12 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
       const res = await evidencesService.remove(evidenceId)
       if (res.valid) {
         setEvidences((current) => current.filter((e) => e.evidenceId !== evidenceId))
-        inform('Evidencia eliminada.')
+        inform('Evidence removed.')
       } else {
         inform(res.error.message)
       }
     } catch {
-      inform('No se pudo eliminar la evidencia.')
+      inform('Could not remove evidence.')
     } finally {
       setBusy(false)
     }
@@ -634,11 +634,11 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
   async function finishAssessment() {
     if (!activeItem) return
     if (liveRisk.totalAnswered === 0) {
-      inform('Debe responder los criterios aplicables antes de finalizar la evaluación.')
+      inform('You must answer applicable criteria before finishing the assessment.')
       return
     }
 
-    if (!confirm('¿Está seguro de finalizar esta evaluación? Las respuestas quedarán bloqueadas y se emitirá el informe técnico.')) {
+    if (!confirm('Are you sure you want to finish this assessment? Answers will be locked and the technical report will be issued.')) {
       return
     }
 
@@ -659,9 +659,9 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
 
       setFinished(true)
       setFinishSummary(res.data)
-      inform(`¡Evaluación finalizada! Nivel de riesgo dictaminado: ${res.data.score.nivelRiesgo}.`)
+      inform(`Assessment finished! Determined risk level: ${res.data.score.nivelRiesgo}.`)
     } catch (err: any) {
-      inform(err?.response?.data?.message || 'No fue posible finalizar la evaluación.')
+      inform(err?.response?.data?.message || 'Could not finish the assessment.')
     } finally {
       setBusy(false)
     }
@@ -699,13 +699,13 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
           />
           <div>
             <div className="sync-title">
-              {isOnline ? 'Motor PWA En Línea • Sincronizado' : 'Modo Offline PWA Activo (IndexedDB)'}
+              {isOnline ? 'Online PWA Engine • Synchronized' : 'PWA Offline Mode Active (IndexedDB)'}
             </div>
             <div className="sync-subtext">
-              <span>{liveRisk.totalAnswered} respuestas locales cacheadas</span>
+              <span>{liveRisk.totalAnswered} locally cached answers</span>
               {pendingSyncCount > 0 && (
                 <mark className="high">
-                  {pendingSyncCount} pendientes de sincronización
+                  {pendingSyncCount} pending sync
                 </mark>
               )}
             </div>
@@ -714,18 +714,18 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
 
         <div className="sync-device-telemetry">
           {gps && (
-            <div className="telemetry-item" title="Ubicación capturada por GPS">
+            <div className="telemetry-item" title="Location captured by GPS">
               <span className="material-symbols-outlined">near_me</span>
               <span>GPS: {gps.lat.toFixed(4)}°, {gps.lng.toFixed(4)}°</span>
             </div>
           )}
           {lastSavedTime && (
-            <div className="telemetry-item" title="Hora del último guardado">
+            <div className="telemetry-item" title="Last saved time">
               <span className="material-symbols-outlined">save</span>
-              <span>Guardado: {lastSavedTime}</span>
+              <span>Saved: {lastSavedTime}</span>
             </div>
           )}
-          <div className="telemetry-item" title="Almacenamiento IndexedDB">
+          <div className="telemetry-item" title="IndexedDB Storage">
             <span className="material-symbols-outlined">database</span>
             <span>IndexedDB v1</span>
           </div>
@@ -737,7 +737,7 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
         <div className="field-eval-selector">
           <label htmlFor="eval-select">
             <span className="material-symbols-outlined">assignment</span>
-            Evaluación Asignada:
+            Assigned Assessment:
           </label>
           <select
             id="eval-select"
@@ -746,7 +746,7 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
           >
             {availableEvals.map((e) => (
               <option key={e.evaluationId} value={e.evaluationId}>
-                #{e.evaluationId} — {e.institution?.name || 'Establecimiento'} ({e.status}) — {new Date(e.scheduledDate).toLocaleDateString('es-DO')}
+                #{e.evaluationId} — {e.institution?.name || 'Facility'} ({e.status}) — {new Date(e.scheduledDate).toLocaleDateString('en-US')}
               </option>
             ))}
           </select>
@@ -758,12 +758,12 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
         <div>
           <div className="hero-meta-strip">
             <span className={`hero-badge ${started ? 'active' : 'case'}`}>
-              {finished ? 'Evaluación Finalizada' : started ? 'Inspección en Curso' : 'Programada'}
+              {finished ? 'Finished Assessment' : started ? 'Inspection in Progress' : 'Scheduled'}
             </span>
-            <span className="hero-badge case">Expediente #{activeItem.evaluationId}</span>
-            <span className="hero-badge version">Ficha BPM 2026</span>
+            <span className="hero-badge case">Record #{activeItem.evaluationId}</span>
+            <span className="hero-badge version">GMP Form 2026</span>
           </div>
-          <h1>{activeItem.institution?.name || 'Establecimiento en Auditoría'}</h1>
+          <h1>{activeItem.institution?.name || 'Facility under Audit'}</h1>
           <div className="hero-details-row">
             {(activeItem.institution as any)?.rnc && (
               <span className="hero-detail">
@@ -779,7 +779,7 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
             )}
             <span className="hero-detail">
               <span className="material-symbols-outlined">event</span>
-              {new Date(activeItem.scheduledDate).toLocaleDateString('es-DO', {
+              {new Date(activeItem.scheduledDate).toLocaleDateString('en-US', {
                 weekday: 'long',
                 year: 'numeric',
                 month: 'long',
@@ -794,20 +794,20 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
           <div className="risk-widget-head">
             <span className="risk-widget-title">
               <span className="material-symbols-outlined">speed</span>
-              Motor de Riesgo Dinámico (RF-14)
+              Dynamic Risk Engine (RF-14)
             </span>
             <span className={`risk-badge ${liveRisk.level.toLowerCase()}`}>
               {liveRisk.level === 'BAJO'
-                ? 'RIESGO BAJO'
+                ? 'LOW RISK'
                 : liveRisk.level === 'MEDIO'
-                ? 'RIESGO MEDIO'
-                : 'RIESGO ALTO'}
+                ? 'MEDIUM RISK'
+                : 'HIGH RISK'}
             </span>
           </div>
 
           <div className="risk-metrics-grid">
             <div className="risk-metric-box">
-              <span className="risk-metric-label">Cumplimiento BPM</span>
+              <span className="risk-metric-label">GMP Compliance</span>
               <div className="risk-metric-val">
                 <strong>{liveRisk.percent}</strong>
                 <span>%</span>
@@ -821,7 +821,7 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
             </div>
 
             <div className="risk-metric-box">
-              <span className="risk-metric-label">Índice EBR Acumulado</span>
+              <span className="risk-metric-label">Cumulative RBA Index</span>
               <div className="risk-metric-val">
                 <strong>{liveRisk.riskScore}</strong>
                 <span>/ 10.0</span>
@@ -830,7 +830,7 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
                 <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>
                   calendar_clock
                 </span>
-                Frec: {liveRisk.frequency.toLowerCase()}
+                Freq: {liveRisk.frequency.toLowerCase()}
               </span>
             </div>
           </div>
@@ -841,36 +841,36 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
       {!started && (
         <section className="field-start-modal">
           <div className="hero-meta-strip">
-            <span className="hero-badge active">Paso Requerido</span>
+            <span className="hero-badge active">Required Step</span>
           </div>
-          <h2>Confirmar Datos de la Visita en Planta</h2>
+          <h2>Confirm Plant Visit Data</h2>
           <p>
-            Seleccione el representante del establecimiento que acompaña la inspección y el alimento principal objeto de la evaluación según RF-12.
+            Select the facility representative accompanying the inspection and the main food item subject to the assessment according to RF-12.
           </p>
 
           <div className="start-fields-grid">
             <label>
-              Representante de Planta Presente
+              Present Plant Representative
               <select
                 value={representId}
                 onChange={(e) => setRepresentId(e.target.value)}
               >
-                <option value="">Seleccionar Representante</option>
+                <option value="">Select Representative</option>
                 {representatives.map((rep) => (
                   <option key={rep.representId} value={rep.representId}>
-                    {rep.person?.name || `Representante #${rep.representId}`} ({rep.type})
+                    {rep.person?.name || `Representative #${rep.representId}`} ({rep.type})
                   </option>
                 ))}
               </select>
             </label>
 
             <label>
-              Categoría del Alimento
+              Food Category
               <select
                 defaultValue=""
                 onChange={(e) => void chooseCategory(e.target.value)}
               >
-                <option value="">Seleccionar Categoría</option>
+                <option value="">Select Category</option>
                 {categories.map((cat) => (
                   <option key={cat.categoryId} value={cat.categoryId}>
                     {cat.name}
@@ -880,14 +880,14 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
             </label>
 
             <label style={{ gridColumn: '1 / -1' }}>
-              Alimento Específico
+              Specific Food Item
               <select
                 value={foodId}
                 onChange={(e) => setFoodId(e.target.value)}
                 disabled={!foods.length}
               >
                 <option value="">
-                  {foods.length ? 'Seleccionar Alimento' : 'Seleccione primero una categoría'}
+                  {foods.length ? 'Select Food Item' : 'Select a category first'}
                 </option>
                 {foods.map((food) => (
                   <option key={food.foodId} value={food.foodId}>
@@ -906,7 +906,7 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
             onClick={() => void startAssessment()}
           >
             <span className="material-symbols-outlined">play_arrow</span>
-            Iniciar Evaluación de Buenas Prácticas →
+            Start Good Practices Assessment →
           </button>
         </section>
       )}
@@ -915,9 +915,9 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
       {finishSummary && (
         <div className="notice" style={{ background: '#ecfdf5', borderColor: '#a7f3d0', color: '#065f46', marginBottom: '20px' }}>
           <div>
-            <strong>¡Evaluación finalizada y dictamen emitido con éxito!</strong>
+            <strong>Assessment finished and verdict successfully issued!</strong>
             <p style={{ margin: '4px 0 0 0', fontSize: '13px' }}>
-              Puntaje: {finishSummary.score?.puntajeObtenido} | Cumplimiento: {finishSummary.score?.porcentajeCumplimiento}% | Nivel de Riesgo: <b>{finishSummary.score?.nivelRiesgo}</b> | Frecuencia de Inspección: <b>{finishSummary.score?.frecuenciaInspeccion}</b>. El expediente ha pasado a revisión del Coordinador.
+              Score: {finishSummary.score?.puntajeObtenido} | Compliance: {finishSummary.score?.porcentajeCumplimiento}% | Risk Level: <b>{finishSummary.score?.nivelRiesgo}</b> | Inspection Frequency: <b>{finishSummary.score?.frecuenciaInspeccion}</b>. The case has moved to Coordinator review.
             </p>
           </div>
         </div>
@@ -928,13 +928,13 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
         {/* Barra lateral de Capítulos BPM */}
         <aside className="chapters-sidebar">
           <div className="chapters-header">
-            <span className="chapters-title">Capítulos Sanitarios BPM</span>
+            <span className="chapters-title">GMP Sanitary Chapters</span>
             <span className="chapters-count-badge">
-              {chapters.length} Capítulos
+              {chapters.length} Chapters
             </span>
           </div>
 
-          <nav className="chapters-list" aria-label="Estructura de la Ficha BPM">
+          <nav className="chapters-list" aria-label="GMP Form Structure">
             {chapters.map((ch, idx) => {
               const chQuestions = ch.questions
               const answeredCount = chQuestions.filter((q) => answers[q.key] !== undefined).length
@@ -968,17 +968,17 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
 
           {activeChapter && (
             <div className="block-summary-card">
-              <span className="block-summary-title">Resumen de Capítulo Actual</span>
+              <span className="block-summary-title">Current Chapter Summary</span>
               <div className="block-summary-row">
-                <span>Evaluadas:</span>
+                <span>Assessed:</span>
                 <strong>
                   {activeChapter.questions.filter((q) => answers[q.key] !== undefined).length} de {activeChapter.questions.length}
                 </strong>
               </div>
               <div className="block-summary-row">
-                <span>No Conformidades (NC):</span>
+                <span>Non-Conformities (NC):</span>
                 <span className="block-nc-badge">
-                  {activeChapter.questions.filter((q) => answers[q.key] === 'NC').length} hallazgos
+                  {activeChapter.questions.filter((q) => answers[q.key] === 'NC').length} findings
                 </span>
               </div>
             </div>
@@ -1015,7 +1015,7 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
 
                     {(isNC || isCP) && (
                       <mark className={isNC ? 'high' : 'medium'}>
-                        {isNC ? 'No Conformidad' : 'Observación EBR'}
+                        {isNC ? 'Non-Conformity' : 'RBA Observation'}
                       </mark>
                     )}
                   </div>
@@ -1033,7 +1033,7 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
                       <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
                         check_circle
                       </span>
-                      [ C ] Cumple
+                      [ C ] Complies
                     </button>
 
                     <button
@@ -1045,7 +1045,7 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
                       <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
                         error
                       </span>
-                      [ CP ] Parcial
+                      [ CP ] Partial
                     </button>
 
                     <button
@@ -1057,7 +1057,7 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
                       <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
                         cancel
                       </span>
-                      [ NC ] No Cumple
+                      [ NC ] Does Not Comply
                     </button>
 
                     <button
@@ -1066,7 +1066,7 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
                       disabled={!started || finished || busy}
                       onClick={() => handleAnswerChange(question, 'N/A')}
                     >
-                      [ N/A ] Exento
+                      [ N/A ] Exempt
                     </button>
                   </div>
 
@@ -1078,14 +1078,14 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
                           edit_note
                         </span>
                         {isNC
-                          ? 'Observación Técnica Obligatoria (Hallazgo No Conformidad)'
+                          ? 'Mandatory Technical Observation (Non-Conformity Finding)'
                           : isCP
-                          ? 'Detalle de Cumplimiento Parcial'
-                          : 'Nota del Evaluador'}
+                          ? 'Partial Compliance Detail'
+                          : 'Assessor Note'}
                       </label>
                       <textarea
                         className="criteria-obs-textarea"
-                        placeholder="Documente la evidencia técnica o el hallazgo observado in situ..."
+                        placeholder="Document the technical evidence or finding observed on-site..."
                         value={notes[question.key] || ''}
                         disabled={!started || finished || busy}
                         onChange={(e) => handleNoteChange(question.key, e.target.value)}
@@ -1098,10 +1098,10 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
                     <div className="evidences-deck-head">
                       <span className="evidences-deck-title">
                         <span className="material-symbols-outlined">photo_camera</span>
-                        Evidencia Fotográfica / Documental (RF-15)
+                        Photographic / Documentary Evidence (RF-15)
                       </span>
                       <span className="evidences-deck-counter">
-                        {qEvidences.length} archivo(s)
+                        {qEvidences.length} file(s)
                       </span>
                     </div>
 
@@ -1113,7 +1113,7 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
                           </span>
                           <div className="evidence-thumb-info">
                             <span className="evidence-thumb-name">
-                              {ev.url ? ev.url.split('/').pop() : `Evidencia #${ev.evidenceId}`}
+                              {ev.url ? ev.url.split('/').pop() : `Evidence #${ev.evidenceId}`}
                             </span>
                             {ev.latitude !== null && ev.latitude !== undefined && (
                               <span className="evidence-thumb-geo">
@@ -1128,7 +1128,7 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
                             <button
                               type="button"
                               className="evidence-del-btn"
-                              title="Eliminar evidencia"
+                              title="Remove evidence"
                               onClick={() => void deleteEvidence(ev.evidenceId)}
                             >
                               <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
@@ -1145,7 +1145,7 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
                           <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
                             add_a_photo
                           </span>
-                          + Capturar Foto / Archivo (GPS Auto)
+                          + Capture Photo / File (Auto GPS)
                           <input
                             type="file"
                             accept="image/*,video/*,.pdf,.doc,.docx"
@@ -1167,7 +1167,7 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
               )
             })
           ) : (
-            <div className="empty">Seleccione un capítulo sanitario para comenzar la evaluación.</div>
+            <div className="empty">Select a sanitary chapter to begin the assessment.</div>
           )}
         </div>
       </div>
@@ -1184,7 +1184,7 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
             <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
               save
             </span>
-            Guardar Borrador {isOnline ? 'en Servidor' : 'en Dispositivo (Offline)'}
+            Save Draft {isOnline ? 'on Server' : 'on Device (Offline)'}
           </button>
 
           {pendingSyncCount > 0 && isOnline && (
@@ -1197,13 +1197,13 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
               <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
                 cloud_sync
               </span>
-              Sincronizar Pendientes ({pendingSyncCount})
+              Sync Pending ({pendingSyncCount})
             </button>
           )}
 
           {lastSavedTime && (
             <span className="auto-save-time hidden sm:inline">
-              Último guardado: {lastSavedTime}
+              Last saved: {lastSavedTime}
             </span>
           )}
         </div>
@@ -1219,7 +1219,7 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
               <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
                 description
               </span>
-              Ver Dictamen Oficial (PDF)
+              View Official Verdict (PDF)
             </button>
           )}
 
@@ -1232,7 +1232,7 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
             <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
               calculate
             </span>
-            Finalizar y Calcular Riesgo Final (RF-14 / RF-16)
+            Finish and Calculate Final Risk (RF-14 / RF-16)
           </button>
         </div>
       </div>

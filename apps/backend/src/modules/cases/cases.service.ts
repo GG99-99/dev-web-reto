@@ -46,15 +46,15 @@ export const casesService = {
 
   getById: async (caseId: number): Promise<CaseDetail> => {
     const found = await casesModel.getById(caseId);
-    if (!found) throw ApiError.notFound('El caso no existe');
+    if (!found) throw ApiError.notFound('Case not found');
     return found as unknown as CaseDetail;
   },
 
-  /** COORDINADOR/ADMIN: acceso total. TECNICO_EVALUADOR: solo si es el técnico asignado. */
+  /** COORDINADOR/ADMIN: full access. TECNICO_EVALUADOR: only if they are the assigned technician. */
   assertAccess: (caseDetail: { technicianId: number | null }, requester: { userId: number; role: string | null }) => {
     if (requester.role === 'COORDINADOR' || requester.role === 'ADMIN') return;
     if (requester.role === 'TECNICO_EVALUADOR' && caseDetail.technicianId === requester.userId) return;
-    throw ApiError.forbidden('No tienes acceso a este caso');
+    throw ApiError.forbidden('You do not have access to this case');
   },
 
   create: async (data: CreateInstitutionalCaseRequest) => {
@@ -79,13 +79,13 @@ export const casesService = {
    */
   close: async (caseId: number, requesterId: number, resultadoFinal: string, emitirInforme: boolean): Promise<CloseCaseResponse> => {
     const existing = await casesService.getById(caseId);
-    if (existing.status === 'CERRADO') throw ApiError.conflict('El caso ya está cerrado');
+    if (existing.status === 'CERRADO') throw ApiError.conflict('This case is already closed');
 
     const closed = await casesModel.close(caseId, resultadoFinal);
 
     let informeOficialUrl: string | undefined;
     if (emitirInforme) {
-      const fileName = `informe-cierre-caso-${caseId}.txt`;
+      const fileName = `closing-report-case-${caseId}.txt`;
       const storedName = `${crypto.randomUUID()}.txt`;
       const content = renderClosingSummary(closed as unknown as CaseDetail, resultadoFinal);
       await fs.writeFile(path.join(UPLOADS_DIR, storedName), content, 'utf-8');
@@ -102,37 +102,37 @@ export const casesService = {
     return { case: closed as unknown as CaseDetail, informeOficialUrl };
   },
 
-  /** GET /cases/:id/close/pdf — COORDINADOR/ADMIN, o ADMIN_EMPRESA dueño de esa institución. */
+  /** GET /cases/:id/close/pdf — COORDINADOR/ADMIN, or ADMIN_EMPRESA who owns that institution. */
   assertCanDownloadOfficialReport: async (caseDetail: { institutionId: number }, requester: { personId: number; role: string | null }) => {
     if (requester.role === 'COORDINADOR' || requester.role === 'ADMIN') return;
     if (requester.role === 'ADMIN_EMPRESA') {
       await institutionsService.assertAccess(requester.personId, requester.role, caseDetail.institutionId);
       return;
     }
-    throw ApiError.forbidden('No tienes acceso al informe oficial de este caso');
+    throw ApiError.forbidden('You do not have access to the official report for this case');
   },
 
   getOfficialReportAttachment: async (caseId: number) => {
     const attachment = await casesModel.getOfficialReportAttachment(caseId);
-    if (!attachment) throw ApiError.notFound('Este caso todavía no tiene un informe oficial generado');
+    if (!attachment) throw ApiError.notFound('This case does not yet have an official report generated');
     return attachment;
   },
 };
 
 function renderClosingSummary(caseDetail: CaseDetail, resultadoFinal: string): string {
   return [
-    'INFORME OFICIAL DE CIERRE DE EXPEDIENTE',
-    '(documento generado automáticamente — formato provisional en texto plano,',
-    ' pendiente de reemplazar por un PDF real, ver TODO en cases.service.ts)',
+    'OFFICIAL CASE CLOSURE REPORT',
+    '(automatically generated document — provisional plain text format,',
+    ' pending replacement with a real PDF, see TODO in cases.service.ts)',
     '',
-    `Caso #${caseDetail.caseId}`,
-    `Institución: ${caseDetail.institution.name} (RNC ${caseDetail.institution.rnc})`,
-    `Origen: ${caseDetail.origin}`,
-    `Prioridad: ${caseDetail.priority}`,
-    `Abierto el: ${caseDetail.openedAt.toISOString()}`,
-    `Cerrado el: ${new Date().toISOString()}`,
+    `Case #${caseDetail.caseId}`,
+    `Institution: ${caseDetail.institution.name} (RNC ${caseDetail.institution.rnc})`,
+    `Origin: ${caseDetail.origin}`,
+    `Priority: ${caseDetail.priority}`,
+    `Opened at: ${caseDetail.openedAt.toISOString()}`,
+    `Closed at: ${new Date().toISOString()}`,
     '',
-    'Resultado final:',
+    'Final result:',
     resultadoFinal,
   ].join('\n');
 }

@@ -18,7 +18,7 @@ export const complaintsService = {
 
   getById: async (complaintId: number) => {
     const complaint = await complaintsModel.getById(complaintId);
-    if (!complaint) throw ApiError.notFound('La denuncia no existe');
+    if (!complaint) throw ApiError.notFound('Complaint not found');
     return complaint;
   },
 
@@ -34,13 +34,13 @@ export const complaintsService = {
   generateCase: async (complaintId: number) => {
     const complaint = await complaintsService.getById(complaintId);
     if (complaint.resultado !== 'PROCEDE') {
-      throw ApiError.conflict('Solo se puede generar un caso cuando el resultado es PROCEDE');
+      throw ApiError.conflict('A case can only be generated when the result is PROCEDE');
     }
     if (complaint.case) {
-      throw ApiError.conflict('Esta denuncia ya tiene un caso generado');
+      throw ApiError.conflict('This complaint already has a case generated');
     }
     if (!complaint.institutionId) {
-      throw ApiError.validation('La denuncia no tiene una institución asociada; no se puede generar un caso');
+      throw ApiError.validation('This complaint has no associated institution; a case cannot be generated');
     }
     const createdCase = await complaintsModel.generateCase(complaintId, complaint.institutionId);
     return { case: createdCase };

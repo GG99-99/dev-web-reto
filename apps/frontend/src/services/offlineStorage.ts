@@ -176,7 +176,7 @@ export async function getCachedTemplateTree(templateId: number): Promise<FormTem
 
 export const DEFAULT_BPM_TEMPLATE: FormTemplateTree = ({
   formTemplateId: 1,
-  name: 'Ficha de Inspección Oficial de Buenas Prácticas de Manufactura (EBR/BPM)',
+  name: 'Official Inspection Form for Good Manufacturing Practices (EBR/BPM)',
   version: '2.4',
   isActive: true,
   createdAt: new Date().toISOString(),
@@ -184,37 +184,37 @@ export const DEFAULT_BPM_TEMPLATE: FormTemplateTree = ({
     {
       h1Id: 1,
       formTemplateId: 1,
-      name: '1. Edificaciones e Instalaciones',
+      name: '1. Buildings and Facilities',
       h1Asks: [],
       h2s: [
         {
           h2Id: 101,
           h1Id: 1,
-          name: '1.1 Localización y alrededores',
+          name: '1.1 Location and surroundings',
           h2Asks: [
-            { h2AskId: 1001, h2Id: 101, active: true, name: '¿Los alrededores están limpios, libres de basura y aguas estancadas que puedan atraer plagas?' },
-            { h2AskId: 1002, h2Id: 101, active: true, name: '¿El establecimiento está aislado de focos de insalubridad y actividades que comprometan la inocuidad?' },
+            { h2AskId: 1001, h2Id: 101, active: true, name: 'Are the surroundings clean, free of garbage and stagnant water that could attract pests?' },
+            { h2AskId: 1002, h2Id: 101, active: true, name: 'Is the establishment isolated from sources of unsanitary conditions and activities that compromise food safety?' },
           ],
           h3s: [],
         },
         {
           h2Id: 102,
           h1Id: 1,
-          name: '1.2 Diseño y construcción',
+          name: '1.2 Design and construction',
           h2Asks: [
-            { h2AskId: 1003, h2Id: 102, active: true, name: '¿Las edificaciones son sólidas y los materiales de construcción no transmiten sustancias tóxicas?' },
-            { h2AskId: 1004, h2Id: 102, active: true, name: '¿Existe separación física entre las áreas limpias de procesamiento y las áreas sucias de recepción/desechos?' },
+            { h2AskId: 1003, h2Id: 102, active: true, name: 'Are the buildings solid and the construction materials do not transmit toxic substances?' },
+            { h2AskId: 1004, h2Id: 102, active: true, name: 'Is there physical separation between clean processing areas and dirty reception/waste areas?' },
           ],
           h3s: [],
         },
         {
           h2Id: 103,
           h1Id: 1,
-          name: '1.3 Pisos, paredes y techos',
+          name: '1.3 Floors, walls, and ceilings',
           h2Asks: [
-            { h2AskId: 1005, h2Id: 103, active: true, name: '¿Los pisos son de material impermeable, no absorbente, lavable y con pendiente hacia los desagües?' },
-            { h2AskId: 1006, h2Id: 103, active: true, name: '¿Las paredes tienen superficies lisas, de colores claros, impermeables y fáciles de limpiar y desinfectar?' },
-            { h2AskId: 1007, h2Id: 103, active: true, name: '¿Las uniones entre pisos y paredes son redondeadas (mediacaña) para facilitar el lavado?' },
+            { h2AskId: 1005, h2Id: 103, active: true, name: 'Are the floors made of waterproof, non-absorbent, washable material and sloped towards the drains?' },
+            { h2AskId: 1006, h2Id: 103, active: true, name: 'Do the walls have smooth surfaces, light colors, are they waterproof and easy to clean and disinfect?' },
+            { h2AskId: 1007, h2Id: 103, active: true, name: 'Are the joints between floors and walls rounded (coved) to facilitate washing?' },
           ],
           h3s: [],
         },
@@ -223,26 +223,26 @@ export const DEFAULT_BPM_TEMPLATE: FormTemplateTree = ({
     {
       h1Id: 2,
       formTemplateId: 1,
-      name: '2. Equipos y Utensilios',
+      name: '2. Equipment and Utensils',
       h1Asks: [],
       h2s: [
         {
           h2Id: 201,
           h1Id: 2,
-          name: '2.1 Superficies de contacto',
+          name: '2.1 Contact surfaces',
           h2Asks: [
-            { h2AskId: 2001, h2Id: 201, active: true, name: '¿Las superficies en contacto directo con los alimentos son de acero inoxidable o material sanitario liso, no poroso e inerte?' },
-            { h2AskId: 2002, h2Id: 201, active: true, name: '¿Los equipos están diseñados y construidos de manera que permitan un fácil desmontaje para limpieza y desinfección?' },
+            { h2AskId: 2001, h2Id: 201, active: true, name: 'Are the surfaces in direct contact with food made of stainless steel or smooth, non-porous, and inert sanitary material?' },
+            { h2AskId: 2002, h2Id: 201, active: true, name: 'Is the equipment designed and built in a way that allows easy disassembly for cleaning and disinfection?' },
           ],
           h3s: [],
         },
         {
           h2Id: 202,
           h1Id: 2,
-          name: '2.2 Control e instrumentos de medición',
+          name: '2.2 Control and measuring instruments',
           h2Asks: [
-            { h2AskId: 2003, h2Id: 202, active: true, name: '¿Los termómetros, manómetros y dispositivos de control cuentan con calibración vigente y registro?' },
-            { h2AskId: 2004, h2Id: 202, active: true, name: '¿Existe un programa documentado de mantenimiento preventivo y correctivo para los equipos críticos?' },
+            { h2AskId: 2003, h2Id: 202, active: true, name: 'Do thermometers, pressure gauges, and control devices have current calibration and records?' },
+            { h2AskId: 2004, h2Id: 202, active: true, name: 'Is there a documented preventive and corrective maintenance program for critical equipment?' },
           ],
           h3s: [],
         },
@@ -251,26 +251,26 @@ export const DEFAULT_BPM_TEMPLATE: FormTemplateTree = ({
     {
       h1Id: 3,
       formTemplateId: 1,
-      name: '3. Personal Manipulador e Higiene',
+      name: '3. Handling Personnel and Hygiene',
       h1Asks: [],
       h2s: [
         {
           h2Id: 301,
           h1Id: 3,
-          name: '3.1 Estado de salud y capacitación',
+          name: '3.1 Health status and training',
           h2Asks: [
-            { h2AskId: 3001, h2Id: 301, active: true, name: '¿El personal cuenta con certificado médico de salud y constancia de capacitación en BPM vigente?' },
-            { h2AskId: 3002, h2Id: 301, active: true, name: '¿Se supervisa que operarios con heridas o síntomas de enfermedad transmisible no manipulen alimentos?' },
+            { h2AskId: 3001, h2Id: 301, active: true, name: 'Does the staff have a medical health certificate and proof of current GMP training?' },
+            { h2AskId: 3002, h2Id: 301, active: true, name: 'Is it supervised that operators with wounds or symptoms of a communicable disease do not handle food?' },
           ],
           h3s: [],
         },
         {
           h2Id: 302,
           h1Id: 3,
-          name: '3.2 Indumentaria y hábitos higiénicos',
+          name: '3.2 Clothing and hygiene habits',
           h2Asks: [
-            { h2AskId: 3003, h2Id: 302, active: true, name: '¿El personal viste uniforme limpio de color claro, con calzado adecuado, cofia y cubrebocas?' },
-            { h2AskId: 3004, h2Id: 302, active: true, name: '¿Se prohíbe el uso de joyas, esmalte de uñas, cosméticos o fumar/comer en zonas de producción?' },
+            { h2AskId: 3003, h2Id: 302, active: true, name: 'Does the staff wear a clean light-colored uniform, with appropriate footwear, hairnet, and face mask?' },
+            { h2AskId: 3004, h2Id: 302, active: true, name: 'Is the use of jewelry, nail polish, cosmetics, or smoking/eating prohibited in production areas?' },
           ],
           h3s: [],
         },
@@ -279,26 +279,26 @@ export const DEFAULT_BPM_TEMPLATE: FormTemplateTree = ({
     {
       h1Id: 4,
       formTemplateId: 1,
-      name: '4. Requisitos Higiénicos de Producción',
+      name: '4. Hygienic Production Requirements',
       h1Asks: [],
       h2s: [
         {
           h2Id: 401,
           h1Id: 4,
-          name: '4.1 Materias primas e insumos',
+          name: '4.1 Raw materials and supplies',
           h2Asks: [
-            { h2AskId: 4001, h2Id: 401, active: true, name: '¿Las materias primas son inspeccionadas a su recepción y cuentan con ficha técnica y lote verificable?' },
-            { h2AskId: 4002, h2Id: 401, active: true, name: '¿Los insumos no conformes se identifican y almacenan en áreas claramente señalizadas para su rechazo?' },
+            { h2AskId: 4001, h2Id: 401, active: true, name: 'Are raw materials inspected upon receipt and have a technical data sheet and verifiable batch?' },
+            { h2AskId: 4002, h2Id: 401, active: true, name: 'Are non-conforming supplies identified and stored in clearly marked areas for rejection?' },
           ],
           h3s: [],
         },
         {
           h2Id: 402,
           h1Id: 4,
-          name: '4.2 Control de operaciones y prevención de contaminación cruzada',
+          name: '4.2 Operations control and prevention of cross-contamination',
           h2Asks: [
-            { h2AskId: 4003, h2Id: 402, active: true, name: '¿Se aplican medidas efectivas para prevenir la contaminación física, química y microbiológica durante el proceso?' },
-            { h2AskId: 4004, h2Id: 402, active: true, name: '¿Se monitorean los parámetros críticos del proceso (temperatura, tiempo, pH, presión) con registros actualizados?' },
+            { h2AskId: 4003, h2Id: 402, active: true, name: 'Are effective measures applied to prevent physical, chemical, and microbiological contamination during the process?' },
+            { h2AskId: 4004, h2Id: 402, active: true, name: 'Are critical process parameters (temperature, time, pH, pressure) monitored with updated records?' },
           ],
           h3s: [],
         },
@@ -307,25 +307,25 @@ export const DEFAULT_BPM_TEMPLATE: FormTemplateTree = ({
     {
       h1Id: 5,
       formTemplateId: 1,
-      name: '5. Almacenamiento y Transporte',
+      name: '5. Storage and Transportation',
       h1Asks: [],
       h2s: [
         {
           h2Id: 501,
           h1Id: 5,
-          name: '5.1 Condiciones de almacenamiento',
+          name: '5.1 Storage conditions',
           h2Asks: [
-            { h2AskId: 5001, h2Id: 501, active: true, name: '¿Los alimentos están estibados sobre tarimas/palets con separación adecuada de paredes y piso (mínimo 15 cm)?' },
-            { h2AskId: 5002, h2Id: 501, active: true, name: '¿Las cámaras frigoríficas mantienen las temperaturas reglamentarias con registros de termógrafo continuos?' },
+            { h2AskId: 5001, h2Id: 501, active: true, name: 'Are foods stowed on pallets with adequate separation from walls and floor (minimum 15 cm)?' },
+            { h2AskId: 5002, h2Id: 501, active: true, name: 'Do cold rooms maintain regulatory temperatures with continuous thermograph records?' },
           ],
           h3s: [],
         },
         {
           h2Id: 502,
           h1Id: 5,
-          name: '5.2 Vehículos de transporte',
+          name: '5.2 Transportation vehicles',
           h2Asks: [
-            { h2AskId: 5003, h2Id: 502, active: true, name: '¿Los vehículos de transporte de alimentos están limpios, desinfectados y autorizados sanitariamente?' },
+            { h2AskId: 5003, h2Id: 502, active: true, name: 'Are food transportation vehicles clean, disinfected, and health-authorized?' },
           ],
           h3s: [],
         },
@@ -334,26 +334,26 @@ export const DEFAULT_BPM_TEMPLATE: FormTemplateTree = ({
     {
       h1Id: 6,
       formTemplateId: 1,
-      name: '6. Saneamiento y Control de Plagas',
+      name: '6. Sanitation and Pest Control',
       h1Asks: [],
       h2s: [
         {
           h2Id: 601,
           h1Id: 6,
-          name: '6.1 Limpieza y desinfección',
+          name: '6.1 Cleaning and disinfection',
           h2Asks: [
-            { h2AskId: 6001, h2Id: 601, active: true, name: '¿Existe un Programa Maestro de Limpieza y Desinfección documentado con productos autorizados y fichas de seguridad?' },
-            { h2AskId: 6002, h2Id: 601, active: true, name: '¿Los productos químicos de limpieza y plaguicidas se almacenan bajo llave separados de los alimentos?' },
+            { h2AskId: 6001, h2Id: 601, active: true, name: 'Is there a documented Master Cleaning and Disinfection Program with authorized products and safety data sheets?' },
+            { h2AskId: 6002, h2Id: 601, active: true, name: 'Are chemical cleaning products and pesticides stored under lock and key separately from food?' },
           ],
           h3s: [],
         },
         {
           h2Id: 602,
           h1Id: 6,
-          name: '6.2 Manejo integrado de plagas (MIP)',
+          name: '6.2 Integrated pest management (IPM)',
           h2Asks: [
-            { h2AskId: 6003, h2Id: 602, active: true, name: '¿Existe un programa de control de plagas ejecutado por empresa certificada, con plano de cebaderos y trampas de luz?' },
-            { h2AskId: 6004, h2Id: 602, active: true, name: '¿Las instalaciones cuentan con barreras físicas (mallas mosquiteras, cortinas de aire, sellos) que impiden el ingreso de plagas?' },
+            { h2AskId: 6003, h2Id: 602, active: true, name: 'Is there a pest control program executed by a certified company, with a map of bait stations and light traps?' },
+            { h2AskId: 6004, h2Id: 602, active: true, name: 'Do the facilities have physical barriers (mosquito nets, air curtains, seals) that prevent the entry of pests?' },
           ],
           h3s: [],
         },
@@ -362,16 +362,16 @@ export const DEFAULT_BPM_TEMPLATE: FormTemplateTree = ({
     {
       h1Id: 7,
       formTemplateId: 1,
-      name: '7. Aseguramiento de la Calidad y Trazabilidad',
+      name: '7. Quality Assurance and Traceability',
       h1Asks: [],
       h2s: [
         {
           h2Id: 701,
           h1Id: 7,
-          name: '7.1 Sistema de trazabilidad y retiro de mercado',
+          name: '7.1 Traceability and recall system',
           h2Asks: [
-            { h2AskId: 7001, h2Id: 701, active: true, name: '¿El establecimiento cuenta con un sistema de trazabilidad que permite rastrear cada lote desde la materia prima hasta el cliente?' },
-            { h2AskId: 7002, h2Id: 701, active: true, name: '¿Existe un procedimiento documentado y probado para el retiro rápido y seguro de productos del mercado (Recall)?' },
+            { h2AskId: 7001, h2Id: 701, active: true, name: 'Does the establishment have a traceability system that allows tracking each batch from raw material to the customer?' },
+            { h2AskId: 7002, h2Id: 701, active: true, name: 'Is there a documented and tested procedure for the rapid and safe withdrawal of products from the market (Recall)?' },
           ],
           h3s: [],
         },

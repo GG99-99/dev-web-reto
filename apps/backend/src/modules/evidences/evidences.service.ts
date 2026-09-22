@@ -31,10 +31,10 @@ export const evidencesService = {
   ) => {
     const evaluation = await evaluationsService.getById(evaluationId);
     if (evaluation.technicianId !== requesterId) {
-      throw ApiError.forbidden('Solo el técnico asignado puede subir evidencias de esta evaluación');
+      throw ApiError.forbidden('Only the assigned technician can upload evidence for this evaluation');
     }
     if (evaluation.status === 'FINALIZADA' || evaluation.status === 'CANCELADA') {
-      throw ApiError.conflict('No se pueden subir evidencias a una evaluación finalizada o cancelada');
+      throw ApiError.conflict('Evidence cannot be uploaded to a completed or cancelled evaluation');
     }
 
     return evidencesModel.create({
@@ -53,11 +53,11 @@ export const evidencesService = {
 
   remove: async (evidenceId: number, requesterId: number, role: string | null) => {
     const evidence = await evidencesModel.getById(evidenceId);
-    if (!evidence) throw ApiError.notFound('La evidencia no existe');
+    if (!evidence) throw ApiError.notFound('Evidence not found');
 
     const evaluation = await evaluationsService.getById(evidence.evaluationId);
     if (role !== 'ADMIN' && evaluation.technicianId !== requesterId) {
-      throw ApiError.forbidden('Solo el técnico asignado o un ADMIN pueden eliminar esta evidencia');
+      throw ApiError.forbidden('Only the assigned technician or an ADMIN can delete this evidence');
     }
 
     await evidencesModel.delete(evidenceId);

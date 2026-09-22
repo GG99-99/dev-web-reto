@@ -52,7 +52,7 @@ app.get('/*catchall', (req: Request, res: Response) => {
             valid: false,
             error: {
                 code: 'NOT_FOUND',
-                message: `Ruta no encontrada: ${req.path}`,
+                message: `Route not found: ${req.path}`,
             },
         })
     }

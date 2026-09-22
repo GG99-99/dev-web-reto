@@ -43,7 +43,7 @@ export const usersService = {
 
   getById: async (userId: number) => {
     const user = await usersModel.getById(userId);
-    if (!user) throw ApiError.notFound('El usuario no existe');
+    if (!user) throw ApiError.notFound('User not found');
     return user;
   },
 
@@ -70,11 +70,11 @@ export const usersService = {
     if (status === 'RECHAZADO') {
       await usersModel.createNotification(
         userId,
-        'Registro rechazado',
-        motivoRechazo?.trim() || 'Tu solicitud de registro fue rechazada por un administrador.',
+        'Registration rejected',
+        motivoRechazo?.trim() || 'Your registration request was rejected by an administrator.',
       );
     } else {
-      await usersModel.createNotification(userId, 'Registro aprobado', 'Tu cuenta fue aprobada. Ya puedes iniciar sesión.');
+      await usersModel.createNotification(userId, 'Registration approved', 'Your account has been approved. You can now log in.');
     }
 
     void user; // solo se usó para validar existencia

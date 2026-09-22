@@ -8,8 +8,8 @@ import { z } from 'zod';
  */
 
 export const LoginSchema = z.object({
-  usuario: z.string().min(1, 'El usuario (email o cédula) es requerido'),
-  password: z.string().min(1, 'La contraseña es requerida'),
+  usuario: z.string().min(1, 'Username (email or ID) is required'),
+  password: z.string().min(1, 'Password is required'),
 });
 
 export const RefreshSchema = z.object({
@@ -22,15 +22,15 @@ export const ForgotPasswordSchema = z.object({
 
 export const ResetPasswordSchema = z.object({
   token: z.string().min(1),
-  newPassword: z.string().min(8, 'La nueva contraseña debe tener al menos 8 caracteres'),
+  newPassword: z.string().min(8, 'New password must be at least 8 characters'),
 });
 
 export const ChangePasswordSchema = z.object({
   currentPassword: z.string().min(1),
-  newPassword: z.string().min(8, 'La nueva contraseña debe tener al menos 8 caracteres'),
+  newPassword: z.string().min(8, 'New password must be at least 8 characters'),
 });
 
 export const Verify2FASchema = z.object({
   tempToken: z.string().min(1),
-  code: z.string().regex(/^\d{6}$/, 'El código OTP debe tener 6 dígitos'),
+  code: z.string().regex(/^\d{6}$/, 'OTP code must be exactly 6 digits'),
 });

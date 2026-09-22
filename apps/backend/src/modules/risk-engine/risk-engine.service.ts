@@ -47,7 +47,7 @@ export const riskEngineService = {
     const applicable = answers.filter((a) => a.value !== 'N/A');
 
     if (applicable.length === 0) {
-      throw ApiError.validation('No hay respuestas aplicables (todas N/A) para calcular el riesgo');
+      throw ApiError.validation('No applicable answers (all N/A); risk cannot be calculated');
     }
 
     const cumplimientoPromedio =
@@ -59,7 +59,7 @@ export const riskEngineService = {
     const rule = await riskEngineModel.findMatchingRule(puntajeObtenido);
     if (!rule) {
       throw ApiError.internal(
-        'No hay una RiskFrequencyRule que cubra el puntaje calculado; revisa el catálogo de reglas (GET /catalogs/risk-frequency-rules)',
+        'No RiskFrequencyRule found covering the calculated score; check the rules catalog (GET /catalogs/risk-frequency-rules)',
       );
     }
 
@@ -80,7 +80,7 @@ export const riskEngineService = {
 
   getByEvaluation: async (evaluationId: number) => {
     const score = await riskEngineModel.getScoreByEvaluation(evaluationId);
-    if (!score) throw ApiError.notFound('Esta evaluación todavía no tiene un puntaje calculado');
+    if (!score) throw ApiError.notFound('This evaluation does not yet have a calculated score');
     return score;
   },
 

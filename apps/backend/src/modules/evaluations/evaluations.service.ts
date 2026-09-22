@@ -38,14 +38,14 @@ export const evaluationsService = {
 
   getById: async (evaluationId: number) => {
     const evaluation = await evaluationsModel.getById(evaluationId);
-    if (!evaluation) throw ApiError.notFound('La evaluación no existe');
+    if (!evaluation) throw ApiError.notFound('Evaluation not found');
     return evaluation;
   },
 
   assertAccess: (evaluation: { technicianId: number }, requester: { userId: number; role: string | null }) => {
     if (requester.role === 'COORDINADOR' || requester.role === 'ADMIN') return;
     if (requester.role === 'TECNICO_EVALUADOR' && evaluation.technicianId === requester.userId) return;
-    throw ApiError.forbidden('No tienes acceso a esta evaluación');
+    throw ApiError.forbidden('You do not have access to this evaluation');
   },
 
   create: async (data: CreateEvaluationRequest) => {
@@ -69,7 +69,7 @@ export const evaluationsService = {
   cancel: async (evaluationId: number) => {
     const evaluation = await evaluationsService.getById(evaluationId);
     if (evaluation.status === 'FINALIZADA') {
-      throw ApiError.conflict('No se puede cancelar una evaluación ya finalizada');
+      throw ApiError.conflict('A completed evaluation cannot be cancelled');
     }
     return evaluationsModel.cancel(evaluationId);
   },

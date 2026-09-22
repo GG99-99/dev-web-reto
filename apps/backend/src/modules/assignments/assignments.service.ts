@@ -19,7 +19,7 @@ export const assignmentsService = {
   assign: async (caseId: number, assignedById: number, data: AssignTechnicianRequest) => {
     const existing = await casesService.getById(caseId);
     if (existing.technicianId) {
-      throw ApiError.conflict('El caso ya tiene un técnico asignado; usa /reassign');
+      throw ApiError.conflict('This case already has an assigned technician; use /reassign');
     }
     const assignment = await assignmentsModel.create(caseId, data.technicianId, assignedById, data.notes, false);
     await notifyTechnicianAssigned(caseId, data.technicianId, false);
@@ -27,18 +27,18 @@ export const assignmentsService = {
   },
 
   reassign: async (caseId: number, assignedById: number, data: AssignTechnicianRequest) => {
-    await casesService.getById(caseId); // 404 si no existe (no exige asignación previa)
+    await casesService.getById(caseId);
     const assignment = await assignmentsModel.create(caseId, data.technicianId, assignedById, data.notes, true);
     await notifyTechnicianAssigned(caseId, data.technicianId, true);
     return assignment;
   },
 };
 
-/** Notifica (in-app + correo) al técnico que se le acaba de asignar/reasignar un caso. */
+/** Notifies the technician in-app when they are assigned/reassigned to a case. */
 async function notifyTechnicianAssigned(caseId: number, technicianId: number, isReassignment: boolean) {
-  const title = isReassignment ? 'Caso reasignado' : 'Nuevo caso asignado';
+  const title = isReassignment ? 'Case reassigned' : 'New case assigned';
   const message = isReassignment
-    ? `Se te ha reasignado el caso #${caseId}. Revisa los detalles en el sistema.`
-    : `Se te ha asignado el caso #${caseId}. Revisa los detalles en el sistema.`;
+    ? `Case #${caseId} has been reassigned to you. Please review the details in the system.`
+    : `Case #${caseId} has been assigned to you. Please review the details in the system.`;
   await notificationsService.notify(technicianId, title, message);
 }

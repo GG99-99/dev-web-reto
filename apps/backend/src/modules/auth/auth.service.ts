@@ -36,7 +36,7 @@ const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000; // 1 hora
 /** Construye el par de tokens + AuthenticatedUser una vez pasado el login/2FA. */
 async function buildLoginResponse(userId: number): Promise<LoginResponse> {
   const user = await authModel.getUserWithRoleByUserIdSafe(userId);
-  if (!user) throw ApiError.internal('El usuario autenticado ya no existe');
+  if (!user) throw ApiError.internal('The authenticated user no longer exists');
 
   const accessToken = signAccessToken({
     userId: user.userId,
@@ -50,9 +50,6 @@ async function buildLoginResponse(userId: number): Promise<LoginResponse> {
     accessToken,
     refreshToken,
     requiresTwoFactor: false,
-    // `AuthenticatedUser` = Prisma.UserGetPayload<{ include: { person, role } }>;
-    // se omite `password` a propósito (nunca debe viajar al cliente) aunque el
-    // tipo generado por Prisma lo incluiría por defecto.
     user: user as unknown as AuthenticatedUser,
   };
 }
@@ -65,35 +62,31 @@ export const authService = {
     const person = await personService.getWithUserByUsuario(usuario);
 
     if (!person || !person.user) {
-      throw ApiError.unauthorized('Usuario o contraseña incorrectos');
+      throw ApiError.unauthorized('Incorrect username or password');
     }
 
     const { user } = person;
 
     const passwordMatches = await comparePassword(password, user.password);
     if (!passwordMatches) {
-      throw ApiError.unauthorized('Usuario o contraseña incorrectos');
+      throw ApiError.unauthorized('Incorrect username or password');
     }
 
     if (user.status !== 'APROBADO') {
       throw ApiError.forbidden(
         user.status === 'PENDIENTE_VALIDACION'
-          ? 'Tu registro está pendiente de validación por un administrador'
-          : 'Tu registro fue rechazado. Contacta a un administrador',
+          ? 'Your registration is pending approval by an administrator'
+          : 'Your registration was rejected. Please contact an administrator',
       );
     }
 
     if (!user.isActive) {
-      throw ApiError.forbidden('Tu cuenta está desactivada');
+      throw ApiError.forbidden('Your account has been deactivated');
     }
 
     const twoFactor = await authModel.getTwoFactor(user.userId);
     if (twoFactor?.enabled) {
       const tempToken = signTempToken({ userId: user.userId, purpose: '2fa' });
-      // Nota de contrato: `LoginResponse.accessToken/refreshToken` no son
-      // opcionales en @reto/shared/auth.ts a pesar de que, según el `@remarks`
-      // de esa misma interfaz, deben ir ausentes cuando `requiresTwoFactor`
-      // es true. Se devuelven como string vacío para no romper el tipo.
       return {
         accessToken: '',
         refreshToken: '',
@@ -113,12 +106,12 @@ export const authService = {
     try {
       payload = verifyRefreshToken(refreshToken);
     } catch {
-      throw ApiError.unauthorized('Refresh token inválido o expirado');
+      throw ApiError.unauthorized('Invalid or expired refresh token');
     }
 
     const user = await authModel.getUserWithRoleByUserId(payload.userId);
     if (!user || !user.isActive || user.status !== 'APROBADO') {
-      throw ApiError.unauthorized('El usuario ya no tiene acceso');
+      throw ApiError.unauthorized('User no longer has access');
     }
 
     return {
@@ -135,16 +128,11 @@ export const authService = {
   /***********
   |   LOGOUT  |
    ***********/
-  // NOTA: los accessToken/refreshToken son JWT sin estado (no hay tabla de
-  // sesiones/whitelist en el schema actual), por lo que no pueden invalidarse
-  // server-side de verdad hasta agregar un registro de refresh tokens vigentes
-  // (ver TODO en documentos/backend.txt). Por ahora solo se valida el token
-  // recibido para responder de forma consistente con el contrato.
   logout: async (refreshToken: string): Promise<void> => {
     try {
       verifyRefreshToken(refreshToken);
     } catch {
-      throw ApiError.unauthorized('Refresh token inválido o expirado');
+      throw ApiError.unauthorized('Invalid or expired refresh token');
     }
   },
 
@@ -153,20 +141,19 @@ export const authService = {
    *********************/
   forgotPassword: async ({ email }: ForgotPasswordRequest): Promise<void> => {
     const person = await personService.getWithUserByEmail(email);
-    // Nunca revelamos si el email existe o no (evita enumeración de usuarios).
+    // Never reveal whether the email exists or not (prevents user enumeration).
     if (!person?.user) return;
 
     const resetToken = await authModel.createPasswordResetToken(person.user.userId, PASSWORD_RESET_TTL_MS);
 
-    // TODO(backend.txt): no hay proveedor de correo configurado en el monorepo.
-    // Se deja el token logueado para desarrollo; en producción debe enviarse
-    // por email usando el link .../reset-password?token=<token>.
-    console.info(`[auth] password reset token para ${email}: ${resetToken.token}`);
+    // TODO: No email provider is configured in the monorepo.
+    // The token is logged for development; in production it should be sent via email.
+    console.info(`[auth] password reset token for ${email}: ${resetToken.token}`);
   },
 
   resetPassword: async ({ token, newPassword }: ResetPasswordRequest): Promise<void> => {
     const record = await authModel.getValidPasswordResetToken(token);
-    if (!record) throw ApiError.validation('El token de recuperación es inválido o expiró');
+    if (!record) throw ApiError.validation('The recovery token is invalid or has expired');
 
     const passwordHash = await hashPassword(newPassword);
     await authModel.updatePassword(record.userId, passwordHash);
@@ -175,10 +162,10 @@ export const authService = {
 
   changePassword: async (userId: number, { currentPassword, newPassword }: ChangePasswordRequest): Promise<void> => {
     const user = await authModel.getUserWithRoleByUserId(userId);
-    if (!user) throw ApiError.notFound('El usuario no existe');
+    if (!user) throw ApiError.notFound('User not found');
 
     const matches = await comparePassword(currentPassword, user.password);
-    if (!matches) throw ApiError.validation('La contraseña actual es incorrecta');
+    if (!matches) throw ApiError.validation('Current password is incorrect');
 
     const passwordHash = await hashPassword(newPassword);
     await authModel.updatePassword(userId, passwordHash);
@@ -189,7 +176,7 @@ export const authService = {
    *********/
   enable2FA: async (userId: number): Promise<Enable2FAResponse> => {
     const user = await authModel.getUserWithRoleByUserId(userId);
-    if (!user) throw ApiError.notFound('El usuario no existe');
+    if (!user) throw ApiError.notFound('User not found');
 
     const secret = generateTotpSecret();
     await authModel.upsertTwoFactor(userId, secret, true);
@@ -205,14 +192,14 @@ export const authService = {
     try {
       payload = verifyTempToken(tempToken);
     } catch {
-      throw ApiError.unauthorized('El token temporal es inválido o expiró');
+      throw ApiError.unauthorized('The temporary token is invalid or has expired');
     }
 
     const twoFactor = await authModel.getTwoFactor(payload.userId);
-    if (!twoFactor?.enabled) throw ApiError.validation('El 2FA no está activo para este usuario');
+    if (!twoFactor?.enabled) throw ApiError.validation('2FA is not enabled for this user');
 
     const isValid = verifyTotp(twoFactor.secret, code);
-    if (!isValid) throw ApiError.validation('Código OTP incorrecto');
+    if (!isValid) throw ApiError.validation('Incorrect OTP code');
 
     return buildLoginResponse(payload.userId);
   },

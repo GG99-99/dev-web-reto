@@ -10,7 +10,7 @@ export function validateJwt(req: Request, _res: Response, next: NextFunction) {
   const header = req.headers.authorization;
 
   if (!header || !header.startsWith('Bearer ')) {
-    throw ApiError.unauthorized('Token de acceso no proporcionado');
+    throw ApiError.unauthorized('Access token not provided');
   }
 
   const token = header.slice('Bearer '.length).trim();
@@ -18,7 +18,7 @@ export function validateJwt(req: Request, _res: Response, next: NextFunction) {
   try {
     req.user = verifyAccessToken(token);
   } catch {
-    throw ApiError.unauthorized('Token inválido o expirado');
+    throw ApiError.unauthorized('Invalid or expired token');
   }
 
   next();

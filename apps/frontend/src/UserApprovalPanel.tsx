@@ -17,7 +17,7 @@ export default function UserApprovalPanel({ notify }: UserApprovalPanelProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [busyId, setBusyId] = useState<number | null>(null);
 
-  // Modal para rechazo con motivo
+  // Modal for rejection with reason
   const [rejectModalUser, setRejectModalUser] = useState<UserWithPerson | null>(null);
   const [motivoRechazo, setMotivoRechazo] = useState('');
 
@@ -29,8 +29,8 @@ export default function UserApprovalPanel({ notify }: UserApprovalPanelProps) {
         setUsers(response.data.items);
       }
     } catch (err: unknown) {
-      console.error('Error al cargar usuarios:', err);
-      notify?.('No se pudieron cargar los usuarios. Verifica la conexión con el backend.');
+      console.error('Error loading users:', err);
+      notify?.('Could not load users. Check connection to the backend.');
     } finally {
       setLoading(false);
     }
@@ -40,7 +40,7 @@ export default function UserApprovalPanel({ notify }: UserApprovalPanelProps) {
     void loadUsers();
   }, []);
 
-  // Conteos para los tabs y las métricas
+  // Counts for tabs and metrics
   const counts = useMemo(() => {
     const pending = users.filter((u) => u.status === 'PENDIENTE_VALIDACION').length;
     const approved = users.filter((u) => u.status === 'APROBADO').length;
@@ -48,15 +48,15 @@ export default function UserApprovalPanel({ notify }: UserApprovalPanelProps) {
     return { pending, approved, rejected, total: users.length };
   }, [users]);
 
-  // Filtrado reactivo por pestaña y búsqueda
+  // Reactive filtering by tab and search
   const filteredUsers = useMemo(() => {
     return users.filter((user) => {
-      // Filtro de tab
+      // Tab filter
       if (activeTab === 'PENDIENTE' && user.status !== 'PENDIENTE_VALIDACION') return false;
       if (activeTab === 'APROBADO' && user.status !== 'APROBADO') return false;
       if (activeTab === 'RECHAZADO' && user.status !== 'RECHAZADO') return false;
 
-      // Filtro de búsqueda
+      // Search filter
       if (!searchQuery.trim()) return true;
       const q = searchQuery.toLowerCase();
       const name = user.person?.name?.toLowerCase() ?? '';
@@ -68,36 +68,36 @@ export default function UserApprovalPanel({ notify }: UserApprovalPanelProps) {
     });
   }, [users, activeTab, searchQuery]);
 
-  // Acción de Aprobar Usuario
+  // Approve User Action
   const handleApprove = async (user: UserWithPerson) => {
     setBusyId(user.userId);
     try {
       const result = await usersService.updateStatus(user.userId, { status: 'APROBADO' });
       if (result.valid) {
-        notify?.(`✅ El usuario ${user.person?.name ?? 'solicitante'} ha sido APROBADO exitosamente.`);
+        notify?.(`✅ User ${user.person?.name ?? 'applicant'} has been successfully APPROVED.`);
         await loadUsers();
       }
     } catch (err: unknown) {
-      console.error('Error al aprobar usuario:', err);
-      notify?.('Ocurrió un error al intentar aprobar el usuario.');
+      console.error('Error approving user:', err);
+      notify?.('An error occurred while attempting to approve the user.');
     } finally {
       setBusyId(null);
     }
   };
 
-  // Abrir Modal de Rechazo
+  // Open Reject Modal
   const openRejectModal = (user: UserWithPerson) => {
     setRejectModalUser(user);
     setMotivoRechazo('');
   };
 
-  // Confirmar Rechazo con motivo
+  // Confirm Reject with reason
   const handleConfirmReject = async (e: FormEvent) => {
     e.preventDefault();
     if (!rejectModalUser) return;
 
     if (!motivoRechazo.trim()) {
-      notify?.('Debe especificar un motivo de rechazo.');
+      notify?.('A rejection reason must be specified.');
       return;
     }
 
@@ -109,13 +109,13 @@ export default function UserApprovalPanel({ notify }: UserApprovalPanelProps) {
       });
 
       if (result.valid) {
-        notify?.(`❌ El registro de ${rejectModalUser.person?.name ?? 'usuario'} ha sido RECHAZADO.`);
+        notify?.(`❌ The record for ${rejectModalUser.person?.name ?? 'user'} has been REJECTED.`);
         setRejectModalUser(null);
         await loadUsers();
       }
     } catch (err: unknown) {
-      console.error('Error al rechazar usuario:', err);
-      notify?.('Ocurrió un error al intentar rechazar el usuario.');
+      console.error('Error rejecting user:', err);
+      notify?.('An error occurred while attempting to reject the user.');
     } finally {
       setBusyId(null);
     }
@@ -123,25 +123,24 @@ export default function UserApprovalPanel({ notify }: UserApprovalPanelProps) {
 
   return (
     <section className="uap-container">
-      {/* Encabezado Principal */}
+      {/* Main Header */}
       <div className="uap-header">
         <div>
           <small className="eyebrow" style={{ color: '#00236f', fontWeight: 700, textTransform: 'uppercase' }}>
-            Administración Central • RF-02
+            Central Administration • RF-02
           </small>
-          <h1>Validación y Aprobación de Usuarios</h1>
+          <h1>User Validation and Approval</h1>
           <p>
-            Revisa, aprueba o rechaza solicitudes de acceso y autorregistros de representantes de empresas y técnicos en
-            la plataforma sanitaria.
+            Review, approve, or reject access requests and self-registrations of company representatives and technicians on the sanitary platform.
           </p>
         </div>
         <button className="uap-btn uap-btn-approve" onClick={() => void loadUsers()} disabled={loading}>
           <span className="material-symbols-outlined" style={{ fontSize: '1.1rem' }}>sync</span>
-          Actualizar Lista
+          Refresh List
         </button>
       </div>
 
-      {/* Tarjetas de Métricas Resumen */}
+      {/* Summary Metrics Cards */}
       <div className="uap-stats">
         <div className="uap-stat-card">
           <div className="uap-stat-icon pending">
@@ -149,7 +148,7 @@ export default function UserApprovalPanel({ notify }: UserApprovalPanelProps) {
           </div>
           <div className="uap-stat-info">
             <span className="uap-stat-value">{counts.pending}</span>
-            <span className="uap-stat-label">Pendientes Validación</span>
+            <span className="uap-stat-label">Pending Validation</span>
           </div>
         </div>
 
@@ -159,7 +158,7 @@ export default function UserApprovalPanel({ notify }: UserApprovalPanelProps) {
           </div>
           <div className="uap-stat-info">
             <span className="uap-stat-value">{counts.approved}</span>
-            <span className="uap-stat-label">Usuarios Aprobados</span>
+            <span className="uap-stat-label">Approved Users</span>
           </div>
         </div>
 
@@ -169,7 +168,7 @@ export default function UserApprovalPanel({ notify }: UserApprovalPanelProps) {
           </div>
           <div className="uap-stat-info">
             <span className="uap-stat-value">{counts.rejected}</span>
-            <span className="uap-stat-label">Solicitudes Rechazadas</span>
+            <span className="uap-stat-label">Rejected Requests</span>
           </div>
         </div>
 
@@ -179,12 +178,12 @@ export default function UserApprovalPanel({ notify }: UserApprovalPanelProps) {
           </div>
           <div className="uap-stat-info">
             <span className="uap-stat-value">{counts.total}</span>
-            <span className="uap-stat-label">Total en Directorio</span>
+            <span className="uap-stat-label">Total in Directory</span>
           </div>
         </div>
       </div>
 
-      {/* Barra de Filtros y Búsqueda */}
+      {/* Filter and Search Bar */}
       <div className="uap-controls">
         <div className="uap-filter-tabs" role="tablist">
           <button
@@ -192,7 +191,7 @@ export default function UserApprovalPanel({ notify }: UserApprovalPanelProps) {
             onClick={() => setActiveTab('PENDIENTE')}
           >
             <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>hourglass_top</span>
-            Pendientes
+            Pending
             {counts.pending > 0 && <span className="uap-badge-count">{counts.pending}</span>}
           </button>
 
@@ -201,7 +200,7 @@ export default function UserApprovalPanel({ notify }: UserApprovalPanelProps) {
             onClick={() => setActiveTab('APROBADO')}
           >
             <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>check_circle</span>
-            Aprobados ({counts.approved})
+            Approved ({counts.approved})
           </button>
 
           <button
@@ -209,7 +208,7 @@ export default function UserApprovalPanel({ notify }: UserApprovalPanelProps) {
             onClick={() => setActiveTab('RECHAZADO')}
           >
             <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>cancel</span>
-            Rechazados ({counts.rejected})
+            Rejected ({counts.rejected})
           </button>
 
           <button
@@ -217,7 +216,7 @@ export default function UserApprovalPanel({ notify }: UserApprovalPanelProps) {
             onClick={() => setActiveTab('ALL')}
           >
             <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>list</span>
-            Todos ({counts.total})
+            All ({counts.total})
           </button>
         </div>
 
@@ -225,25 +224,25 @@ export default function UserApprovalPanel({ notify }: UserApprovalPanelProps) {
           <span className="material-symbols-outlined" style={{ color: '#535f73', fontSize: '1.2rem' }}>search</span>
           <input
             type="text"
-            placeholder="Buscar por nombre, cédula o email..."
+            placeholder="Search by name, ID, or email..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
       </div>
 
-      {/* Tabla de Usuarios */}
+      {/* Users Table */}
       <div className="uap-table-wrap">
         <table className="uap-table">
           <thead>
             <tr>
-              <th>Usuario / Solicitante</th>
-              <th>Cédula</th>
-              <th>Teléfono</th>
-              <th>Rol Asignado</th>
-              <th>Fecha de Registro</th>
-              <th>Estado</th>
-              <th style={{ textAlign: 'right' }}>Acciones</th>
+              <th>User / Applicant</th>
+              <th>ID</th>
+              <th>Phone</th>
+              <th>Assigned Role</th>
+              <th>Registration Date</th>
+              <th>Status</th>
+              <th style={{ textAlign: 'right' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -251,14 +250,14 @@ export default function UserApprovalPanel({ notify }: UserApprovalPanelProps) {
               <tr>
                 <td colSpan={7} className="uap-empty-state">
                   <div className="uap-empty-icon material-symbols-outlined">sync</div>
-                  <p>Cargando directorio de usuarios...</p>
+                  <p>Loading user directory...</p>
                 </td>
               </tr>
             ) : filteredUsers.length === 0 ? (
               <tr>
                 <td colSpan={7} className="uap-empty-state">
                   <div className="uap-empty-icon material-symbols-outlined">manage_accounts</div>
-                  <p>No se encontraron usuarios bajo este filtro.</p>
+                  <p>No users found under this filter.</p>
                 </td>
               </tr>
             ) : (
@@ -282,7 +281,7 @@ export default function UserApprovalPanel({ notify }: UserApprovalPanelProps) {
                       <div className="uap-user-cell">
                         <div className="uap-avatar">{initials}</div>
                         <div className="uap-user-meta">
-                          <span className="uap-user-name">{user.person?.name ?? `Usuario #${user.userId}`}</span>
+                          <span className="uap-user-name">{user.person?.name ?? `User #${user.userId}`}</span>
                           <span className="uap-user-email">{user.person?.email ?? '—'}</span>
                         </div>
                       </div>
@@ -292,7 +291,7 @@ export default function UserApprovalPanel({ notify }: UserApprovalPanelProps) {
                     </td>
                     <td>{user.person?.phone ?? '—'}</td>
                     <td>
-                      <span className="uap-role-pill">{user.role?.name ?? 'SIN_ROL'}</span>
+                      <span className="uap-role-pill">{user.role?.name ?? 'NO_ROLE'}</span>
                     </td>
                     <td>
                       <small style={{ color: '#535f73' }}>
@@ -303,19 +302,19 @@ export default function UserApprovalPanel({ notify }: UserApprovalPanelProps) {
                       {isPending && (
                         <span className="uap-status-badge pending">
                           <span className="uap-status-dot" />
-                          Pendiente
+                          Pending
                         </span>
                       )}
                       {isApproved && (
                         <span className="uap-status-badge approved">
                           <span className="uap-status-dot" />
-                          Aprobado
+                          Approved
                         </span>
                       )}
                       {isRejected && (
                         <span className="uap-status-badge rejected">
                           <span className="uap-status-dot" />
-                          Rechazado
+                          Rejected
                         </span>
                       )}
                     </td>
@@ -327,19 +326,19 @@ export default function UserApprovalPanel({ notify }: UserApprovalPanelProps) {
                               className="uap-btn uap-btn-approve"
                               onClick={() => void handleApprove(user)}
                               disabled={isBusy}
-                              title="Aprobar acceso a la plataforma"
+                              title="Approve access to the platform"
                             >
                               <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>check</span>
-                              Aprobar
+                              Approve
                             </button>
                             <button
                               className="uap-btn uap-btn-reject"
                               onClick={() => openRejectModal(user)}
                               disabled={isBusy}
-                              title="Rechazar solicitud con motivo"
+                              title="Reject request with reason"
                             >
                               <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>close</span>
-                              Rechazar
+                              Reject
                             </button>
                           </>
                         )}
@@ -348,10 +347,10 @@ export default function UserApprovalPanel({ notify }: UserApprovalPanelProps) {
                             className="uap-btn uap-btn-approve"
                             onClick={() => void handleApprove(user)}
                             disabled={isBusy}
-                            title="Reconsiderar y aprobar usuario"
+                            title="Reconsider and approve user"
                           >
                             <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>check</span>
-                            Aprobar
+                            Approve
                           </button>
                         )}
                         {isApproved && (
@@ -359,10 +358,10 @@ export default function UserApprovalPanel({ notify }: UserApprovalPanelProps) {
                             className="uap-btn uap-btn-reject"
                             onClick={() => openRejectModal(user)}
                             disabled={isBusy}
-                            title="Revocar acceso / Marcar como rechazado"
+                            title="Revoke access / Mark as rejected"
                           >
                             <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>block</span>
-                            Revocar
+                            Revoke
                           </button>
                         )}
                       </div>
@@ -375,7 +374,7 @@ export default function UserApprovalPanel({ notify }: UserApprovalPanelProps) {
         </table>
       </div>
 
-      {/* Modal para Rechazo con Motivo Obligatorio */}
+      {/* Modal for Mandatory Reason Rejection */}
       {rejectModalUser && (
         <div className="uap-modal-backdrop" onClick={() => setRejectModalUser(null)}>
           <div className="uap-modal" onClick={(e) => e.stopPropagation()}>
@@ -383,23 +382,23 @@ export default function UserApprovalPanel({ notify }: UserApprovalPanelProps) {
               <div className="uap-modal-icon">
                 <span className="material-symbols-outlined">warning</span>
               </div>
-              <h3 className="uap-modal-title">Rechazar Solicitud de Usuario</h3>
+              <h3 className="uap-modal-title">Reject User Request</h3>
             </div>
 
             <form onSubmit={handleConfirmReject}>
               <div className="uap-modal-body">
                 <div className="uap-modal-target">
-                  <strong>Solicitante:</strong> {rejectModalUser.person?.name} ({rejectModalUser.person?.email})
+                  <strong>Applicant:</strong> {rejectModalUser.person?.name} ({rejectModalUser.person?.email})
                   <br />
-                  <strong>Cédula:</strong> {rejectModalUser.person?.cedula} | <strong>Rol:</strong>{' '}
+                  <strong>ID:</strong> {rejectModalUser.person?.cedula} | <strong>Role:</strong>{' '}
                   {rejectModalUser.role?.name}
                 </div>
 
                 <label className="uap-modal-label">
-                  Motivo de Rechazo (requerido por auditoría):
+                  Rejection Reason (required for auditing):
                   <textarea
                     className="uap-modal-textarea"
-                    placeholder="Ejemplo: Cédula ilegible o falta de correspondencia con el RNC de la empresa solicitada..."
+                    placeholder="Example: Illegible ID or mismatch with the requested company's tax ID..."
                     value={motivoRechazo}
                     onChange={(e) => setMotivoRechazo(e.target.value)}
                     required
@@ -414,7 +413,7 @@ export default function UserApprovalPanel({ notify }: UserApprovalPanelProps) {
                   onClick={() => setRejectModalUser(null)}
                   disabled={busyId !== null}
                 >
-                  Cancelar
+                  Cancel
                 </button>
                 <button
                   type="submit"
@@ -422,7 +421,7 @@ export default function UserApprovalPanel({ notify }: UserApprovalPanelProps) {
                   disabled={busyId !== null || !motivoRechazo.trim()}
                 >
                   <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>close</span>
-                  Confirmar Rechazo
+                  Confirm Rejection
                 </button>
               </div>
             </form>

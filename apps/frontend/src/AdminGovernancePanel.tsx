@@ -44,7 +44,7 @@ export default function AdminGovernancePanel({ notify }: AdminGovernancePanelPro
         .then((res) => {
           if (res.valid) setRules(res.data)
         })
-        .catch(() => notify('Error al cargar la matriz de reglas de riesgo.'))
+        .catch(() => notify('Error loading the risk rules matrix.'))
         .finally(() => setLoading(false))
     } else if (activeTab === 'food-catalogs') {
       setLoading(true)
@@ -58,7 +58,7 @@ export default function AdminGovernancePanel({ notify }: AdminGovernancePanelPro
             }
           }
         })
-        .catch(() => notify('Error al cargar categorías de alimentos.'))
+        .catch(() => notify('Error loading food categories.'))
         .finally(() => setLoading(false))
     } else if (activeTab === 'users') {
       setLoading(true)
@@ -67,7 +67,7 @@ export default function AdminGovernancePanel({ notify }: AdminGovernancePanelPro
         .then((res) => {
           if (res.valid) setUsers(res.data.items || [])
         })
-        .catch(() => notify('Error al cargar directorio de usuarios.'))
+        .catch(() => notify('Error loading users directory.'))
         .finally(() => setLoading(false))
     }
   }, [activeTab])
@@ -121,14 +121,14 @@ export default function AdminGovernancePanel({ notify }: AdminGovernancePanelPro
     try {
       const res = await riskEngineService.updateFrequencyRule(ruleId, body)
       if (res.valid) {
-        notify(`Regla "${editingRule.riskLevel}" actualizada correctamente.`)
+        notify(`Rule "${editingRule.riskLevel}" updated successfully.`)
         setRules((prev) =>
           prev.map((r) => (r.ruleId === ruleId ? { ...r, ...body } : r))
         )
         setEditingRule(null)
       }
     } catch {
-      notify('Error al guardar la regla de frecuencia.')
+      notify('Error saving the frequency rule.')
     } finally {
       setSavingRule(false)
     }
@@ -139,27 +139,27 @@ export default function AdminGovernancePanel({ notify }: AdminGovernancePanelPro
     try {
       const res = await usersService.updateStatus(userId, { status: newStatus as any })
       if (res.valid) {
-        notify(`Estado de usuario actualizado a "${newStatus}".`)
+        notify(`User status updated to "${newStatus}".`)
         setUsers((prev) =>
           prev.map((u) => (u.userId === userId ? { ...u, status: newStatus } : u))
         )
       }
     } catch {
-      notify('No se pudo actualizar el estado del usuario.')
+      notify('Could not update user status.')
     }
   }
 
   // Delete user (soft delete via isActive=false — see users.service.ts:deactivate)
   const handleDeleteUser = async (userId: number, name: string) => {
-    if (!confirm(`¿Está seguro de eliminar o desactivar la cuenta de "${name}"?`)) return
+    if (!confirm(`Are you sure you want to delete or deactivate the account of "${name}"?`)) return
     try {
       const res = await usersService.deactivate(userId)
       if (res.valid) {
-        notify(`Usuario "${name}" desactivado del sistema.`)
+        notify(`User "${name}" deactivated from the system.`)
         setUsers((prev) => prev.filter((u) => u.userId !== userId))
       }
     } catch {
-      notify('Error al eliminar usuario.')
+      notify('Error deleting user.')
     }
   }
 
@@ -210,12 +210,12 @@ export default function AdminGovernancePanel({ notify }: AdminGovernancePanelPro
       {/* 1. Header Hero */}
       <div className="gov-hero">
         <div className="gov-hero-info">
-          <small>Administración Central · Sistema RADAR Sanitario</small>
-          <h1>Gobernanza de Reglas, Catálogos y Usuarios</h1>
-          <p>Parametrización de matrices de riesgo EBR, catálogo normalizado de alimentos y control global de acceso.</p>
+          <small>Central Administration · Health RADAR System</small>
+          <h1>Governance of Rules, Catalogs, and Users</h1>
+          <p>Parameterization of EBR risk matrices, standardized food catalog, and global access control.</p>
         </div>
         <div className="gov-hero-badge">
-          <span>⚙ Rol: <strong>ADMIN</strong></span>
+          <span>⚙ Role: <strong>ADMIN</strong></span>
         </div>
       </div>
 
@@ -226,21 +226,21 @@ export default function AdminGovernancePanel({ notify }: AdminGovernancePanelPro
           className={`gov-tab-btn ${activeTab === 'risk-rules' ? 'active' : ''}`}
           onClick={() => setActiveTab('risk-rules')}
         >
-          <span>⚖</span> Matriz de Reglas de Riesgo (RF-14)
+          <span>⚖</span> Risk Rules Matrix (RF-14)
         </button>
         <button
           type="button"
           className={`gov-tab-btn ${activeTab === 'food-catalogs' ? 'active' : ''}`}
           onClick={() => setActiveTab('food-catalogs')}
         >
-          <span>🥦</span> Catálogo de Alimentos & Riesgo
+          <span>🥦</span> Food & Risk Catalog
         </button>
         <button
           type="button"
           className={`gov-tab-btn ${activeTab === 'users' ? 'active' : ''}`}
           onClick={() => setActiveTab('users')}
         >
-          <span>👥</span> Control Global de Usuarios (RF-02)
+          <span>👥</span> Global User Control (RF-02)
         </button>
       </div>
 
@@ -249,9 +249,9 @@ export default function AdminGovernancePanel({ notify }: AdminGovernancePanelPro
         <div className="gov-card">
           <div className="gov-card-header">
             <div>
-              <h2><span>⚖</span> Matriz de Frecuencia de Inspección</h2>
+              <h2><span>⚖</span> Inspection Frequency Matrix</h2>
               <div className="gov-card-desc">
-                Define los umbrales de puntuación de riesgo total, la periodicidad de vigilancia y la prioridad regulatoria.
+                Defines total risk score thresholds, surveillance periodicity, and regulatory priority.
               </div>
             </div>
           </div>
@@ -260,19 +260,19 @@ export default function AdminGovernancePanel({ notify }: AdminGovernancePanelPro
             <table className="gov-table">
               <thead>
                 <tr>
-                  <th>Nivel de Riesgo</th>
-                  <th>Puntaje Mínimo</th>
-                  <th>Puntaje Máximo</th>
-                  <th>Frecuencia Reglamentaria</th>
-                  <th>Prioridad de Inspección</th>
-                  <th style={{ textAlign: 'right' }}>Acciones</th>
+                  <th>Risk Level</th>
+                  <th>Minimum Score</th>
+                  <th>Maximum Score</th>
+                  <th>Regulatory Frequency</th>
+                  <th>Inspection Priority</th>
+                  <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {rules.length === 0 ? (
                   <tr>
                     <td colSpan={6} style={{ textAlign: 'center', padding: '30px', color: '#94a3b8' }}>
-                      {loading ? 'Cargando reglas...' : 'No hay reglas de frecuencia configuradas.'}
+                      {loading ? 'Loading rules...' : 'No frequency rules configured.'}
                     </td>
                   </tr>
                 ) : (
@@ -297,7 +297,7 @@ export default function AdminGovernancePanel({ notify }: AdminGovernancePanelPro
                             className="gov-btn gov-btn-secondary"
                             onClick={() => setEditingRule(rule)}
                           >
-                            ✏ Editar Parámetros
+                            ✏ Edit Parameters
                           </button>
                         </td>
                       </tr>
@@ -315,16 +315,16 @@ export default function AdminGovernancePanel({ notify }: AdminGovernancePanelPro
         <div className="gov-card">
           <div className="gov-card-header">
             <div>
-              <h2><span>🥦</span> Catálogo de Categorías y Subcategorías Alimentarias</h2>
+              <h2><span>🥦</span> Food Categories and Subcategories Catalog</h2>
               <div className="gov-card-desc">
-                Matriz de riesgo intrínseco por tipo de alimento según la normativa sanitaria.
+                Intrinsic risk matrix by food type according to health regulations.
               </div>
             </div>
             <div className="gov-search-row">
               <input
                 type="text"
                 className="gov-input"
-                placeholder="Filtrar subcategoría..."
+                placeholder="Filter subcategory..."
                 value={foodSearch}
                 onChange={(e) => setFoodSearch(e.target.value)}
               />
@@ -335,7 +335,7 @@ export default function AdminGovernancePanel({ notify }: AdminGovernancePanelPro
             {/* Left: Category selector */}
             <div className="gov-cat-list">
               <div style={{ padding: '8px 6px', fontSize: '0.78rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>
-                Categorías ({categories.length})
+                Categories ({categories.length})
               </div>
               {categories.map((cat) => (
                 <div
@@ -356,15 +356,15 @@ export default function AdminGovernancePanel({ notify }: AdminGovernancePanelPro
                   <thead>
                     <tr>
                       <th>ID</th>
-                      <th>Subcategoría de Alimento</th>
-                      <th>Nivel de Riesgo Intrínseco</th>
+                      <th>Food Subcategory</th>
+                      <th>Intrinsic Risk Level</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredSubcategories.length === 0 ? (
                       <tr>
                         <td colSpan={3} style={{ textAlign: 'center', padding: '30px', color: '#94a3b8' }}>
-                          No hay subcategorías registradas para esta categoría.
+                          No subcategories registered for this category.
                         </td>
                       </tr>
                     ) : (
@@ -376,7 +376,7 @@ export default function AdminGovernancePanel({ notify }: AdminGovernancePanelPro
                             <td><strong>{sub.name}</strong></td>
                             <td>
                               <span className={`gov-badge ${getRiskBadgeClass(riskLabel)}`}>
-                                Nivel {sub.risk} ({riskLabel})
+                                Level {sub.risk} ({riskLabel})
                               </span>
                             </td>
                           </tr>
@@ -390,7 +390,7 @@ export default function AdminGovernancePanel({ notify }: AdminGovernancePanelPro
               {foods.length > 0 && (
                 <div style={{ marginTop: '10px' }}>
                   <h4 style={{ margin: '0 0 8px 0', fontSize: '0.9rem', color: '#475569' }}>
-                    Alimentos de Referencia ({foods.length}):
+                    Reference Foods ({foods.length}):
                   </h4>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                     {foods.map((food) => (
@@ -421,16 +421,16 @@ export default function AdminGovernancePanel({ notify }: AdminGovernancePanelPro
         <div className="gov-card">
           <div className="gov-card-header">
             <div>
-              <h2><span>👥</span> Directorio y Gobernanza de Cuentas de Usuario</h2>
+              <h2><span>👥</span> User Account Directory and Governance</h2>
               <div className="gov-card-desc">
-                Gestión de roles institucionales, estados de validación y control de acceso RBAC.
+                Management of institutional roles, validation statuses, and RBAC access control.
               </div>
             </div>
             <div className="gov-search-row">
               <input
                 type="text"
                 className="gov-input"
-                placeholder="Buscar por nombre, cédula o email..."
+                placeholder="Search by name, ID, or email..."
                 value={userSearch}
                 onChange={(e) => setUserSearch(e.target.value)}
                 style={{ width: '260px' }}
@@ -440,7 +440,7 @@ export default function AdminGovernancePanel({ notify }: AdminGovernancePanelPro
                 value={userRoleFilter}
                 onChange={(e) => setUserRoleFilter(e.target.value)}
               >
-                <option value="ALL">Todos los roles</option>
+                <option value="ALL">All roles</option>
                 <option value="ADMIN">ADMIN</option>
                 <option value="COORDINADOR">COORDINADOR</option>
                 <option value="TECNICO_EVALUADOR">TECNICO_EVALUADOR</option>
@@ -452,10 +452,10 @@ export default function AdminGovernancePanel({ notify }: AdminGovernancePanelPro
                 value={userStatusFilter}
                 onChange={(e) => setUserStatusFilter(e.target.value)}
               >
-                <option value="ALL">Todos los estados</option>
-                <option value="APROBADO">Aprobados</option>
-                <option value="PENDIENTE_VALIDACION">Pendiente Validación</option>
-                <option value="RECHAZADO">Rechazados</option>
+                <option value="ALL">All statuses</option>
+                <option value="APROBADO">Approved</option>
+                <option value="PENDIENTE_VALIDACION">Pending Validation</option>
+                <option value="RECHAZADO">Rejected</option>
               </select>
             </div>
           </div>
@@ -464,38 +464,38 @@ export default function AdminGovernancePanel({ notify }: AdminGovernancePanelPro
             <table className="gov-table">
               <thead>
                 <tr>
-                  <th>Nombre y Cédula</th>
-                  <th>Contacto</th>
-                  <th>Rol Asignado</th>
-                  <th>Estado</th>
-                  <th style={{ textAlign: 'right' }}>Acciones</th>
+                  <th>Name and ID</th>
+                  <th>Contact</th>
+                  <th>Assigned Role</th>
+                  <th>Status</th>
+                  <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredUsers.length === 0 ? (
                   <tr>
                     <td colSpan={5} style={{ textAlign: 'center', padding: '30px', color: '#94a3b8' }}>
-                      {loading ? 'Cargando usuarios...' : 'No se encontraron usuarios con los filtros indicados.'}
+                      {loading ? 'Loading users...' : 'No users found with the specified filters.'}
                     </td>
                   </tr>
                 ) : (
                   filteredUsers.map((u) => (
                     <tr key={u.userId}>
                       <td>
-                        <strong>{u.person?.name || 'Usuario sin nombre'}</strong>
+                        <strong>{u.person?.name || 'Unnamed user'}</strong>
                         <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                          Cédula: {u.person?.cedula || 'N/A'}
+                          ID: {u.person?.cedula || 'N/A'}
                         </div>
                       </td>
                       <td>
-                        <div>{u.person?.email || 'Sin correo'}</div>
+                        <div>{u.person?.email || 'No email'}</div>
                         <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
                           {u.person?.phone || ''}
                         </div>
                       </td>
                       <td>
                         <span className="gov-badge gov-badge-role">
-                          {u.role?.name || 'SIN_ROL'}
+                          {u.role?.name || 'NO_ROLE'}
                         </span>
                       </td>
                       <td>
@@ -510,9 +510,9 @@ export default function AdminGovernancePanel({ notify }: AdminGovernancePanelPro
                               type="button"
                               className="gov-btn gov-btn-primary"
                               onClick={() => handleUpdateUserStatus(u.userId, 'APROBADO')}
-                              title="Aprobar acceso al sistema"
+                              title="Approve system access"
                             >
-                              ✓ Aprobar
+                              ✓ Approve
                             </button>
                           )}
                           {u.status === 'APROBADO' && (
@@ -520,16 +520,16 @@ export default function AdminGovernancePanel({ notify }: AdminGovernancePanelPro
                               type="button"
                               className="gov-btn gov-btn-secondary"
                               onClick={() => handleUpdateUserStatus(u.userId, 'RECHAZADO')}
-                              title="Suspender acceso"
+                              title="Suspend access"
                             >
-                              Suspender
+                              Suspend
                             </button>
                           )}
                           <button
                             type="button"
                             className="gov-btn gov-btn-danger"
                             onClick={() => handleDeleteUser(u.userId, u.person?.name || '')}
-                            title="Eliminar usuario"
+                            title="Delete user"
                           >
                             ✕
                           </button>
@@ -547,9 +547,9 @@ export default function AdminGovernancePanel({ notify }: AdminGovernancePanelPro
       {/* 6. Edit Rule Modal */}
       {editingRule && (
         <div className="gov-modal-overlay">
-          <div className="gov-modal" role="dialog" aria-label="Editar regla de riesgo">
+          <div className="gov-modal" role="dialog" aria-label="Edit risk rule">
             <div className="gov-modal-header">
-              <h3>Editar Regla: {editingRule.riskLevel}</h3>
+              <h3>Edit Rule: {editingRule.riskLevel}</h3>
               <button
                 type="button"
                 className="gov-btn gov-btn-secondary"
@@ -563,7 +563,7 @@ export default function AdminGovernancePanel({ notify }: AdminGovernancePanelPro
               <div className="gov-modal-body">
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div className="gov-form-group">
-                    <label htmlFor="minScore">Puntaje Mínimo:</label>
+                    <label htmlFor="minScore">Minimum Score:</label>
                     <input
                       id="minScore"
                       name="minScore"
@@ -575,7 +575,7 @@ export default function AdminGovernancePanel({ notify }: AdminGovernancePanelPro
                     />
                   </div>
                   <div className="gov-form-group">
-                    <label htmlFor="maxScore">Puntaje Máximo (vacío = sin límite):</label>
+                    <label htmlFor="maxScore">Maximum Score (empty = no limit):</label>
                     <input
                       id="maxScore"
                       name="maxScore"
@@ -588,7 +588,7 @@ export default function AdminGovernancePanel({ notify }: AdminGovernancePanelPro
                 </div>
 
                 <div className="gov-form-group">
-                  <label htmlFor="riskLevel">Nivel de Riesgo:</label>
+                  <label htmlFor="riskLevel">Risk Level:</label>
                   <select
                     id="riskLevel"
                     name="riskLevel"
@@ -602,7 +602,7 @@ export default function AdminGovernancePanel({ notify }: AdminGovernancePanelPro
                 </div>
 
                 <div className="gov-form-group">
-                  <label htmlFor="frequency">Frecuencia Reglamentaria de Inspección:</label>
+                  <label htmlFor="frequency">Regulatory Inspection Frequency:</label>
                   <select
                     id="frequency"
                     name="frequency"
@@ -623,14 +623,14 @@ export default function AdminGovernancePanel({ notify }: AdminGovernancePanelPro
                   onClick={() => setEditingRule(null)}
                   disabled={savingRule}
                 >
-                  Cancelar
+                  Cancel
                 </button>
                 <button
                   type="submit"
                   className="gov-btn gov-btn-primary"
                   disabled={savingRule}
                 >
-                  {savingRule ? 'Guardando...' : 'Guardar Cambios'}
+                  {savingRule ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
             </form>

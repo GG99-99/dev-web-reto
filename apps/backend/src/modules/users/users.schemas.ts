@@ -23,12 +23,12 @@ const PersonInputSchema = z.object({
 
 export const RegisterUserSchema = z.object({
   person: PersonInputSchema,
-  password: z.string().min(8, 'La contraseña debe tener al menos 8 caracteres'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
   roleId: z.coerce.number().int().positive(),
   cartaAutorizacionFileId: z.coerce.number().int().positive().optional(),
 });
 
-/** PATCH /users/:id — edición parcial de los datos de `Person`. */
+/** PATCH /users/:id — partial update of `Person` data. */
 export const UpdateUserSchema = PersonInputSchema.partial();
 
 export const UpdateUserStatusSchema = z.object({

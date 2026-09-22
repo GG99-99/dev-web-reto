@@ -34,19 +34,19 @@ export class ApiError extends Error {
   static validation(message: string, details?: unknown) {
     return new ApiError('VALIDATION_ERROR', message, details);
   }
-  static unauthorized(message = 'No autenticado') {
+  static unauthorized(message = 'Not authenticated') {
     return new ApiError('UNAUTHORIZED', message);
   }
-  static forbidden(message = 'No tienes permiso para esta acción') {
+  static forbidden(message = 'You do not have permission for this action') {
     return new ApiError('FORBIDDEN', message);
   }
-  static notFound(message = 'Recurso no encontrado') {
+  static notFound(message = 'Resource not found') {
     return new ApiError('NOT_FOUND', message);
   }
   static conflict(message: string, details?: unknown) {
     return new ApiError('CONFLICT', message, details);
   }
-  static internal(message = 'Error interno del servidor') {
+  static internal(message = 'Internal server error') {
     return new ApiError('INTERNAL_ERROR', message);
   }
 }

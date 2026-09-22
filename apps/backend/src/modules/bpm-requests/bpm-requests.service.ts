@@ -31,11 +31,11 @@ export const bpmRequestsService = {
 
   getById: async (bpmRequestId: number) => {
     const bpmRequest = await bpmRequestsModel.getById(bpmRequestId);
-    if (!bpmRequest) throw ApiError.notFound('La solicitud BPM no existe');
+    if (!bpmRequest) throw ApiError.notFound('BPM request not found');
     return bpmRequest;
   },
 
-  /** Lanza si el `requester` no es ni el autor, ni representante/dueño de la institución, ni COORDINADOR/ADMIN. */
+  /** Throws if the requester is not the author, institution owner/rep, or COORDINADOR/ADMIN. */
   assertAccess: async (
     bpmRequest: { createdById: number; institutionId?: number },
     requester: { userId: number; role: string | null; personId?: number },
@@ -46,15 +46,15 @@ export const bpmRequestsService = {
       const owned = await dashboardModel.getOwnedInstitutionIds(requester.personId);
       if (owned.includes(bpmRequest.institutionId)) return;
     }
-    throw ApiError.forbidden('No tienes acceso a esta solicitud');
+    throw ApiError.forbidden('You do not have access to this request');
   },
 
   assertIsAuthorAndDraft: (bpmRequest: { createdById: number; status: string }, requester: { userId: number }) => {
     if (bpmRequest.createdById !== requester.userId) {
-      throw ApiError.forbidden('Solo el autor puede modificar esta solicitud');
+      throw ApiError.forbidden('Only the author can modify this request');
     }
     if (bpmRequest.status !== 'BORRADOR') {
-      throw ApiError.conflict('La solicitud ya no está en borrador');
+      throw ApiError.conflict('This request is no longer in draft status');
     }
   },
 
@@ -71,7 +71,7 @@ export const bpmRequestsService = {
   addAttachment: async (bpmRequestId: number, requesterId: number, file: Express.Multer.File) => {
     const bpmRequest = await bpmRequestsService.getById(bpmRequestId);
     if (bpmRequest.createdById !== requesterId) {
-      throw ApiError.forbidden('Solo el autor puede adjuntar documentación');
+      throw ApiError.forbidden('Only the author can attach documentation to this request');
     }
 
     return prisma.attachment.create({

@@ -23,57 +23,56 @@ import prisma from '@reto/db';
  */
 
 export const formExecutionService = {
-  getTemplates: async () => formTemplatesModel.getMany(),
+  getTemplates: async (): Promise<any> => formTemplatesModel.getMany(),
 
-  getTemplateTree: async (formTemplateId: number) => {
+  getTemplateTree: async (formTemplateId: number): Promise<any> => {
     const tree = await formTemplatesModel.getTreeById(formTemplateId);
-    if (!tree) throw ApiError.notFound('La plantilla de formulario no existe');
+    if (!tree) throw ApiError.notFound('Form template not found');
     return tree;
   },
 
-  getExecutionDetail: async (evaluationId: number) => {
+  getExecutionDetail: async (evaluationId: number): Promise<any> => {
     const detail = await formExecutionModel.getExecutionDetail(evaluationId);
-    if (!detail) throw ApiError.notFound('La evaluación no existe');
+    if (!detail) throw ApiError.notFound('Evaluation not found');
     return detail;
   },
 
-  start: async (evaluationId: number, requesterId: number, data: { representId: number; foodId: number }) => {
+  start: async (evaluationId: number, requesterId: number, data: { representId: number; foodId: number }): Promise<any> => {
     const evaluation = await evaluationsService.getById(evaluationId);
     if (evaluation.technicianId !== requesterId) {
-      throw ApiError.forbidden('Solo el técnico asignado puede iniciar esta evaluación');
+      throw ApiError.forbidden('Only the assigned technician can start this evaluation');
     }
     if (evaluation.status !== 'PROGRAMADA' && evaluation.status !== 'REPROGRAMADA') {
-      throw ApiError.conflict('La evaluación no está en un estado que permita iniciarla');
+      throw ApiError.conflict('The evaluation is not in a state that allows it to be started');
     }
 
     const template = await formTemplatesModel.getActive();
-    if (!template) throw ApiError.internal('No hay una plantilla de formulario activa configurada');
+    if (!template) throw ApiError.internal('No active form template is configured');
 
     return formExecutionModel.start(evaluationId, {
       formTemplateId: template.formTemplateId,
       institutionId: evaluation.institutionId,
       representId: data.representId,
       foodId: data.foodId,
-      motive: evaluation.reason ?? 'Evaluación de Buenas Prácticas de Manufactura (BPM)',
+      motive: evaluation.reason ?? 'Good Manufacturing Practices (BPM) Evaluation',
     });
   },
 
   saveAnswers: async (evaluationId: number, requesterId: number, answers: FormAnswers): Promise<FormAnswers> => {
     const evaluation = await evaluationsService.getById(evaluationId);
     if (evaluation.technicianId !== requesterId) {
-      throw ApiError.forbidden('Solo el técnico asignado puede editar esta evaluación');
+      throw ApiError.forbidden('Only the assigned technician can edit this evaluation');
     }
     if (evaluation.status !== 'EN_PROCESO') {
-      throw ApiError.conflict('La evaluación debe estar en curso (iniciada) para registrar respuestas');
+      throw ApiError.conflict('The evaluation must be in progress (started) to record answers');
     }
     if (!evaluation.formResponseId) {
-      throw ApiError.conflict('La evaluación no tiene una ficha iniciada (POST /evaluations/:id/start primero)');
+      throw ApiError.conflict('The evaluation does not have an active form session (POST /evaluations/:id/start first)');
     }
 
-    // RF-17: bloqueado si ya existe un informe enviado/aprobado.
     const existingReport = await prisma.evaluationReport.findUnique({ where: { evaluationId } });
     if (existingReport?.locked) {
-      throw ApiError.forbidden('El informe de esta evaluación está bloqueado; no se pueden editar las respuestas');
+      throw ApiError.forbidden('This evaluation report is locked; answers cannot be edited');
     }
 
     return formExecutionModel.upsertAnswers(evaluation.formResponseId, answers);
@@ -82,19 +81,19 @@ export const formExecutionService = {
   finish: async (evaluationId: number, requesterId: number): Promise<FinishEvaluationResponse> => {
     const evaluation = await evaluationsService.getById(evaluationId);
     if (evaluation.technicianId !== requesterId) {
-      throw ApiError.forbidden('Solo el técnico asignado puede finalizar esta evaluación');
+      throw ApiError.forbidden('Only the assigned technician can finalize this evaluation');
     }
     if (evaluation.status !== 'EN_PROCESO') {
-      throw ApiError.conflict('La evaluación debe estar en curso para finalizarla');
+      throw ApiError.conflict('The evaluation must be in progress to be finalized');
     }
     if (!evaluation.formResponseId) {
-      throw ApiError.conflict('La evaluación no tiene una ficha diligenciada');
+      throw ApiError.conflict('The evaluation does not have a completed form session');
     }
 
     const formResponse = await prisma.formResponse.findUniqueOrThrow({ where: { formResponseId: evaluation.formResponseId } });
     const answers = readAnswers(formResponse.answers);
     if (answers.length === 0) {
-      throw ApiError.validation('No se puede finalizar una evaluación sin respuestas registradas');
+      throw ApiError.validation('Cannot finalize an evaluation with no recorded answers');
     }
 
     // 1) RF-14: motor de riesgo

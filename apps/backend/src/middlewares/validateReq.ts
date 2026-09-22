@@ -14,7 +14,7 @@ export function validateReq(schema: z.ZodTypeAny, source: Source = 'body') {
     const result = await schema.safeParseAsync(req[source]);
 
     if (!result.success) {
-      throw ApiError.validation('Error de validación', result.error.flatten());
+      throw ApiError.validation('Validation error', result.error.flatten());
     }
 
     if (!req.validated) req.validated = {};

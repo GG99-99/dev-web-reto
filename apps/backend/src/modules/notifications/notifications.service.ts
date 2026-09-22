@@ -12,8 +12,8 @@ export const notificationsService = {
 
   markRead: async (notificationId: number, userId: number) => {
     const notification = await notificationsModel.getById(notificationId);
-    if (!notification) throw ApiError.notFound('La notificación no existe');
-    if (notification.userId !== userId) throw ApiError.forbidden('No tienes acceso a esta notificación');
+    if (!notification) throw ApiError.notFound('Notification not found');
+    if (notification.userId !== userId) throw ApiError.forbidden('You do not have access to this notification');
     return notificationsModel.markRead(notificationId);
   },
 

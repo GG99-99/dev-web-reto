@@ -5,7 +5,7 @@ import { ApiError } from '@/lib/common/ApiError';
 export const personService = {
   getById: async (personId: number) => {
     const person = await personModel.getById(personId);
-    if (!person) throw ApiError.notFound('La persona no existe');
+    if (!person) throw ApiError.notFound('Person not found');
     return person;
   },
 
@@ -21,21 +21,21 @@ export const personService = {
     return personModel.getWithUserByCedula(cedula);
   },
 
-  /** `usuario` del login puede ser email o cédula; probamos ambos formatos. */
+  /** `usuario` on login can be email or national ID; we try both. */
   getWithUserByUsuario: async (usuario: string) => {
     const byEmail = await personModel.getWithUserByEmail(usuario);
     if (byEmail) return byEmail;
     return personModel.getWithUserByCedula(usuario);
   },
 
-  /** Verifica que cédula y email no estén registrados aún (RF-02: alta de usuario). */
+  /** Verifies that cedula and email are not already registered. */
   assertIsNew: async (cedula: string, email: string) => {
     const [byCedula, byEmail] = await Promise.all([
       personModel.getByCedula(cedula),
       personModel.getByEmail(email),
     ]);
-    if (byCedula) throw ApiError.conflict('Ya existe una persona registrada con esa cédula');
-    if (byEmail) throw ApiError.conflict('Ya existe una persona registrada con ese email');
+    if (byCedula) throw ApiError.conflict('A person with that national ID is already registered');
+    if (byEmail) throw ApiError.conflict('A person with that email is already registered');
   },
 
   create: async (data: Prisma.PersonCreateInput, tx?: Prisma.TransactionClient) => {

@@ -12,7 +12,7 @@ export const catalogsService = {
 
   getSubCategories: async (categoryId: number) => {
     const exists = await catalogsModel.categoryExists(categoryId);
-    if (!exists) throw ApiError.notFound('La categoría no existe');
+    if (!exists) throw ApiError.notFound('Category not found');
     return catalogsModel.getSubCategoriesByCategory(categoryId);
   },
 

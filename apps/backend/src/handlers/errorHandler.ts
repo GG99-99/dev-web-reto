@@ -27,24 +27,25 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
   if (err instanceof ZodError) {
     const response: ApiErrorResponse = {
       valid: false,
-      error: { code: 'VALIDATION_ERROR', message: 'Error de validación', details: err.flatten() },
+      error: { code: 'VALIDATION_ERROR', message: 'Validation error', details: err.flatten() },
     };
     return res.status(400).json(response);
   }
 
-  // Errores conocidos de Prisma (duplicados, FK inexistente, registro no encontrado)
+  // Prisma known errors (duplicates, missing FK, record not found)
   if (err instanceof Prisma.PrismaClientKnownRequestError) {
-    if (err.code === 'P2002') {
+    const prismaErr = err as Prisma.PrismaClientKnownRequestError;
+    if (prismaErr.code === 'P2002') {
       const response: ApiErrorResponse = {
         valid: false,
-        error: { code: 'CONFLICT', message: 'Ya existe un registro con esos datos únicos', details: err.meta },
+        error: { code: 'CONFLICT', message: 'A record with those unique values already exists', details: prismaErr.meta },
       };
       return res.status(409).json(response);
     }
-    if (err.code === 'P2025') {
+    if (prismaErr.code === 'P2025') {
       const response: ApiErrorResponse = {
         valid: false,
-        error: { code: 'NOT_FOUND', message: 'Recurso no encontrado', details: err.meta },
+        error: { code: 'NOT_FOUND', message: 'Resource not found', details: prismaErr.meta },
       };
       return res.status(404).json(response);
     }
@@ -53,7 +54,7 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
   console.error('[errorHandler]', err);
   const response: ApiErrorResponse = {
     valid: false,
-    error: { code: 'INTERNAL_ERROR', message: 'Error interno del servidor' },
+    error: { code: 'INTERNAL_ERROR', message: 'Internal server error' },
   };
   return res.status(500).json(response);
 }

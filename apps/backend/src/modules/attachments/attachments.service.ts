@@ -40,20 +40,20 @@ export const attachmentsService = {
 
   getById: async (attachmentId: number, requester: { userId: number; role: string | null }) => {
     const attachment = await attachmentsModel.getById(attachmentId);
-    if (!attachment) throw ApiError.notFound('El adjunto no existe');
+    if (!attachment) throw ApiError.notFound('Attachment not found');
 
     if (requester.role !== 'ADMIN' && attachment.uploadedById !== requester.userId) {
-      throw ApiError.forbidden('No tienes acceso a este adjunto');
+      throw ApiError.forbidden('You do not have access to this attachment');
     }
     return attachment;
   },
 
   remove: async (attachmentId: number, requester: { userId: number; role: string | null }) => {
     const attachment = await attachmentsModel.getById(attachmentId);
-    if (!attachment) throw ApiError.notFound('El adjunto no existe');
+    if (!attachment) throw ApiError.notFound('Attachment not found');
 
     if (requester.role !== 'ADMIN' && attachment.uploadedById !== requester.userId) {
-      throw ApiError.forbidden('Solo el dueño del recurso o un ADMIN pueden eliminarlo');
+      throw ApiError.forbidden('Only the resource owner or an ADMIN can delete this attachment');
     }
 
     await attachmentsModel.delete(attachmentId);

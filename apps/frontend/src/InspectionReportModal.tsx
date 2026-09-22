@@ -69,11 +69,11 @@ export default function InspectionReportModal({
     void loadReportData();
   }, [evaluationId]);
 
-  // Imprimir o Guardar PDF Oficial
+  // Print or Save Official PDF
   const handlePrint = () => {
     const originalTitle = document.title;
     const cleanFolio = `ACTA-2026-EBR-${evaluationId.toString().padStart(4, '0')}`;
-    document.title = `Acta_Inspeccion_${cleanFolio}_DIGEMAPS`;
+    document.title = `Inspection_Report_${cleanFolio}_DIGEMAPS`;
     document.body.classList.add('irm-printing-active');
 
     window.print();
@@ -84,7 +84,7 @@ export default function InspectionReportModal({
     }, 1500);
   };
 
-  // Enviar informe a revisión (Técnico Evaluador)
+  // Submit report for review (Evaluator Technician)
   const handleSubmitReport = async () => {
     if (!report) return;
     setBusy(true);
@@ -102,14 +102,14 @@ export default function InspectionReportModal({
     }
   };
 
-  // Aprobar informe (Coordinador / Admin)
+  // Approve report (Coordinator / Admin)
   const handleApproveReport = async () => {
     if (!report) return;
     setBusy(true);
     try {
       const result = await reportsService.review(report.reportId, {
         action: 'APROBAR',
-        comments: 'Dictamen técnico aprobado conforme a la normativa BPM vigente.',
+        comments: 'Technical report approved in accordance with current GMP regulations.',
       });
       if (result.valid) {
         notify?.('✅ Report formally APPROVED.');
@@ -167,7 +167,7 @@ export default function InspectionReportModal({
           </div>
 
           <div className="irm-action-buttons">
-            <button className="irm-btn irm-btn-print" onClick={handlePrint} title="Imprimir o guardar como PDF" disabled={loading || !report}>
+            <button className="irm-btn irm-btn-print" onClick={handlePrint} title="Print or save as PDF" disabled={loading || !report}>
               <span className="material-symbols-outlined" style={{ fontSize: '1.1rem' }}>print</span>
               Print / PDF
             </button>
@@ -194,7 +194,7 @@ export default function InspectionReportModal({
               </button>
             )}
 
-            <button className="irm-btn irm-btn-close" onClick={onClose} title="Cerrar">
+            <button className="irm-btn irm-btn-close" onClick={onClose} title="Close">
               &times;
             </button>
           </div>
@@ -212,17 +212,17 @@ export default function InspectionReportModal({
           ) : evaluation?.status === 'CANCELADA' ? (
             <div className="empty" role="status" style={{ margin: '2rem', textAlign: 'center', maxWidth: 540, marginLeft: 'auto', marginRight: 'auto' }}>
               <div style={{ display: 'inline-block', padding: '0.4rem 1rem', background: '#fee2e2', color: '#991b1b', borderRadius: '999px', fontWeight: 800, fontSize: '0.82rem', marginBottom: '1rem', textTransform: 'uppercase' }}>
-                ● Evaluación Cancelada
+                ● Evaluation Cancelled
               </div>
               <h3 style={{ fontSize: '1.2rem', color: '#1e293b', marginBottom: '0.5rem' }}>
                 {establishmentName}
               </h3>
               <p style={{ color: '#64748b', fontSize: '0.9rem', lineHeight: '1.5' }}>
-                Esta evaluación sanitaria (No. #{evaluationId}) fue cancelada antes de su finalización. Por normativa legal y sanitaria, las inspecciones canceladas no emiten Informe Técnico ni Dictamen Oficial.
+                This sanitary evaluation (No. #{evaluationId}) was cancelled before its completion. According to legal and sanitary regulations, cancelled inspections do not issue a Technical Report or Official Statement.
               </p>
               {evaluation?.observations && (
                 <div style={{ marginTop: '1.25rem', padding: '0.85rem', background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0', textAlign: 'left', fontSize: '0.85rem' }}>
-                  <strong style={{ color: '#475569' }}>Motivo / Observaciones:</strong>
+                  <strong style={{ color: '#475569' }}>Reason / Observations:</strong>
                   <div style={{ color: '#334155', marginTop: 4 }}>{evaluation.observations}</div>
                 </div>
               )}
@@ -248,7 +248,7 @@ export default function InspectionReportModal({
                   <path id="curveBottom" d="M 172,100 A 72,72 0 0,1 28,100" fill="none" />
                   <text fontSize="8" fontWeight="800" fill="#00236f" letterSpacing="1.8">
                     <textPath href="#curveBottom" startOffset="50%" textAnchor="middle">
-                      REPÚBLICA DOMINICANA • SANIDAD
+                      DOMINICAN REPUBLIC • HEALTH
                     </textPath>
                   </text>
                   <g transform="translate(68, 68) scale(0.53)">
@@ -266,13 +266,13 @@ export default function InspectionReportModal({
               <div className="irm-doc-header">
                 {/* Escudo Nacional Dominicano Vectorial */}
                 <div className="irm-coat-arms-wrapper">
-                  <svg className="irm-coat-arms" viewBox="0 0 120 120" width="78" height="78" aria-label="Escudo Oficial de la República Dominicana">
+                  <svg className="irm-coat-arms" viewBox="0 0 120 120" width="78" height="78" aria-label="Official Coat of Arms of the Dominican Republic">
                     {/* Hojas de Laurel y Palma */}
                     <path d="M26,86 C14,58 23,32 38,18 C33,30 31,50 36,68 Z" fill="#236e32" opacity="0.95" />
                     <path d="M94,86 C106,58 97,32 82,18 C87,30 89,50 84,68 Z" fill="#236e32" opacity="0.95" />
                     {/* Cinta Superior: DIOS PATRIA LIBERTAD */}
                     <path d="M28,15 Q60,6 92,15 Q80,21 60,18 Q40,21 28,15 Z" fill="#00236f" />
-                    <text x="60" y="14.8" textAnchor="middle" fill="#ffffff" fontSize="4.6" fontWeight="900" letterSpacing="0.8">DIOS PATRIA LIBERTAD</text>
+                    <text x="60" y="14.8" textAnchor="middle" fill="#ffffff" fontSize="4.6" fontWeight="900" letterSpacing="0.8">GOD HOMELAND LIBERTY</text>
                     {/* Escudo Cuartelado */}
                     <g transform="translate(36, 26) scale(0.4)">
                       <rect x="0" y="0" width="60" height="50" fill="#00236f" rx="3" />
@@ -290,18 +290,18 @@ export default function InspectionReportModal({
                     </g>
                     {/* Cinta Inferior: REPÚBLICA DOMINICANA */}
                     <path d="M18,97 Q60,108 102,97 Q84,89 60,93 Q36,89 18,97 Z" fill="#ce1126" />
-                    <text x="60" y="98.5" textAnchor="middle" fill="#ffffff" fontSize="4.6" fontWeight="900" letterSpacing="0.6">REPÚBLICA DOMINICANA</text>
+                    <text x="60" y="98.5" textAnchor="middle" fill="#ffffff" fontSize="4.6" fontWeight="900" letterSpacing="0.6">DOMINICAN REPUBLIC</text>
                   </svg>
                 </div>
 
                 <div className="irm-doc-header-text">
-                  <div className="irm-doc-country">REPÚBLICA DOMINICANA</div>
-                  <div className="irm-doc-ministry">MINISTERIO DE SALUD PÚBLICA Y ASISTENCIA SOCIAL (MISPAS)</div>
+                  <div className="irm-doc-country">DOMINICAN REPUBLIC</div>
+                  <div className="irm-doc-ministry">MINISTRY OF PUBLIC HEALTH AND SOCIAL ASSISTANCE (MISPAS)</div>
                   <div className="irm-doc-department">
-                    Viceministerio de Garantía de la Calidad • DIGEMAPS
+                    Vice Ministry of Quality Assurance • DIGEMAPS
                   </div>
                   <div className="irm-doc-subdepartment">
-                    Dirección de Vigilancia Sanitaria y Control de Riesgo de Alimentos
+                    Directorate of Health Surveillance and Food Risk Control
                   </div>
                 </div>
 
@@ -315,31 +315,31 @@ export default function InspectionReportModal({
                 {/* Título Oficial del Certificado */}
                 <div className="irm-doc-title-container">
                   <div className="irm-doc-title-main">
-                    ACTA OFICIAL DE INSPECCIÓN SANITARIA Y EVALUACIÓN BASADA EN RIESGO
+                    OFFICIAL HEALTH INSPECTION AND RISK-BASED EVALUATION RECORD
                   </div>
                   <div className="irm-doc-title-sub">
-                    BUENAS PRÁCTICAS DE MANUFACTURA (BPM) • DICTAMEN TÉCNICO OFICIAL
+                    GOOD MANUFACTURING PRACTICES (GMP) • OFFICIAL TECHNICAL REPORT
                   </div>
                 </div>
 
                 {/* Barra de Folio y Metadatos de Autenticidad */}
                 <div className="irm-doc-folio-bar">
                   <div className="irm-folio-item">
-                    <span className="irm-folio-lbl">Folio / No. Acta:</span>
+                    <span className="irm-folio-lbl">Folio / Record No.:</span>
                     <strong>ACTA-2026-EBR-{evaluationId.toString().padStart(4, '0')}</strong>
                   </div>
                   <div className="irm-folio-item">
-                    <span className="irm-folio-lbl">Versión:</span>
-                    <span>v{reportVersion ?? 1} (Oficial)</span>
+                    <span className="irm-folio-lbl">Version:</span>
+                    <span>v{reportVersion ?? 1} (Official)</span>
                   </div>
                   <div className="irm-folio-item">
-                    <span className="irm-folio-lbl">Fecha de Inspección:</span>
+                    <span className="irm-folio-lbl">Inspection Date:</span>
                     <span>{dateString}</span>
                   </div>
                   <div className="irm-folio-item irm-folio-status">
                     <span className="irm-status-pill approved">
                       <span className="material-symbols-outlined" style={{ fontSize: '0.9rem' }}>verified</span>
-                      DICTAMEN OFICIAL VÁLIDO
+                      VALID OFFICIAL REPORT
                     </span>
                   </div>
                 </div>
@@ -349,28 +349,28 @@ export default function InspectionReportModal({
               <section className="irm-section">
                 <div className="irm-section-title">
                   <span className="material-symbols-outlined" style={{ fontSize: '1.05rem' }}>domain</span>
-                  1. Identificación del Establecimiento Inspeccionado
+                  1. Identification of the Inspected Establishment
                 </div>
                 <div className="irm-grid-2">
                   <div className="irm-field">
-                    <span className="irm-label">Razón Social / Nombre Comercial</span>
+                    <span className="irm-label">Legal Name / Trade Name</span>
                     <span className="irm-val" style={{ fontWeight: 800, color: '#00236f', fontSize: '0.98rem' }}>{establishmentName}</span>
                   </div>
                   <div className="irm-field">
-                    <span className="irm-label">RNC / Registro Tributario</span>
-                    <span className="irm-val">{(evaluation?.institution as any)?.rnc ?? 'No disponible'}</span>
+                    <span className="irm-label">RNC / Tax Registry</span>
+                    <span className="irm-val">{(evaluation?.institution as any)?.rnc ?? 'Not available'}</span>
                   </div>
                   <div className="irm-field">
-                    <span className="irm-label">Ubicación y Dirección Física</span>
+                    <span className="irm-label">Location and Physical Address</span>
                     <span className="irm-val">{address}</span>
                   </div>
                   <div className="irm-field">
-                    <span className="irm-label">Municipio / Provincia</span>
-                    <span className="irm-val">{(evaluation?.institution as any)?.municipality?.name ?? evaluation?.institution?.streetName ?? 'No disponible'}</span>
+                    <span className="irm-label">Municipality / Province</span>
+                    <span className="irm-val">{(evaluation?.institution as any)?.municipality?.name ?? evaluation?.institution?.streetName ?? 'Not available'}</span>
                   </div>
                   <div className="irm-field" style={{ gridColumn: 'span 2' }}>
-                    <span className="irm-label">Actividad Económica Regulada</span>
-                    <span className="irm-val" style={{ color: '#334155' }}>{(evaluation?.institution as any)?.actividadEconomica ?? 'Elaboración y distribución de alimentos / BPM'}</span>
+                    <span className="irm-label">Regulated Economic Activity</span>
+                    <span className="irm-val" style={{ color: '#334155' }}>{(evaluation?.institution as any)?.actividadEconomica ?? 'Food preparation and distribution / GMP'}</span>
                   </div>
                 </div>
               </section>
@@ -379,19 +379,19 @@ export default function InspectionReportModal({
               <section className="irm-section">
                 <div className="irm-section-title">
                   <span className="material-symbols-outlined" style={{ fontSize: '1.05rem' }}>badge</span>
-                  2. Datos de Auditoría y Personal Técnico Autorizado
+                  2. Audit Data and Authorized Technical Personnel
                 </div>
                 <div className="irm-grid-3">
                   <div className="irm-field">
-                    <span className="irm-label">Fecha de Ejecución en Campo</span>
+                    <span className="irm-label">Field Execution Date</span>
                     <span className="irm-val">{dateString}</span>
                   </div>
                   <div className="irm-field">
-                    <span className="irm-label">Inspector Técnico Sanitario</span>
+                    <span className="irm-label">Sanitary Technical Inspector</span>
                     <span className="irm-val" style={{ fontWeight: 700 }}>{technicianName}</span>
                   </div>
                   <div className="irm-field">
-                    <span className="irm-label">Cédula de Identidad del Inspector</span>
+                    <span className="irm-label">Inspector's Identity Card</span>
                     <span className="irm-val">{technicianCedula}</span>
                   </div>
                 </div>
@@ -401,35 +401,35 @@ export default function InspectionReportModal({
               <section className="irm-section">
                 <div className="irm-section-title">
                   <span className="material-symbols-outlined" style={{ fontSize: '1.05rem' }}>analytics</span>
-                  3. Calificación Sanitaria y Nivel de Riesgo (EBR / BPM)
+                  3. Sanitary Rating and Risk Level (RBE / GMP)
                 </div>
                 <div className="irm-risk-box">
                   <div className="irm-risk-stat">
-                    <span className="irm-label">Cumplimiento BPM</span>
+                    <span className="irm-label">GMP Compliance</span>
                     <span className="irm-risk-stat-num">{compliancePct}</span>
-                    <span className="irm-risk-stat-sub">Parámetros Evaluados</span>
+                    <span className="irm-risk-stat-sub">Evaluated Parameters</span>
                   </div>
                   <div className="irm-risk-stat">
-                    <span className="irm-label">Índice de Riesgo EBR</span>
+                    <span className="irm-label">RBE Risk Index</span>
                     <span className="irm-risk-stat-num" style={{ color: '#00236f' }}>{riskIndex}</span>
-                    <span className="irm-risk-stat-sub">Puntaje Ponderado</span>
+                    <span className="irm-risk-stat-sub">Weighted Score</span>
                   </div>
                   <div className="irm-risk-stat">
-                    <span className="irm-label">Nivel de Riesgo Oficial</span>
+                    <span className="irm-label">Official Risk Level</span>
                     <div style={{ marginTop: '0.35rem' }}>
                       <span className={`irm-risk-stat-badge ${riskLevel ?? ''}`}>{riskLevelLabel}</span>
                     </div>
                   </div>
                   <div className="irm-risk-stat">
-                    <span className="irm-label">Frecuencia de Vigilancia</span>
+                    <span className="irm-label">Surveillance Frequency</span>
                     <span className="irm-val" style={{ fontWeight: 800, marginTop: '0.4rem', color: '#00236f' }}>
                       {frequencyLabel}
                     </span>
-                    <span className="irm-risk-stat-sub">Próxima Visita Oficial</span>
+                    <span className="irm-risk-stat-sub">Next Official Visit</span>
                   </div>
                 </div>
                 <p className="irm-cert-declaration">
-                  <strong>DICTAMEN SANITARIO VINCULANTE:</strong> Conforme al marco metodológico del Viceministerio de Garantía de la Calidad y DIGEMAPS, el presente informe certifica que el establecimiento ha completado el ciclo de auditoría de Buenas Prácticas de Manufactura, quedando clasificado bajo el nivel de riesgo oficial indicado para los fines de programación y fiscalización sanitaria.
+                  <strong>BINDING SANITARY REPORT:</strong> In accordance with the methodological framework of the Vice Ministry of Quality Assurance and DIGEMAPS, this report certifies that the establishment has completed the audit cycle for Good Manufacturing Practices, being classified under the indicated official risk level for scheduling and sanitary inspection purposes.
                 </p>
               </section>
 
@@ -437,10 +437,10 @@ export default function InspectionReportModal({
               <section className="irm-section">
                 <div className="irm-section-title">
                   <span className="material-symbols-outlined" style={{ fontSize: '1.05rem' }}>feed</span>
-                  4. Resumen Ejecutivo de la Evaluación
+                  4. Executive Summary of the Evaluation
                 </div>
                 <div className="irm-text-block irm-executive-block">
-                  {executiveSummary || 'Evaluación técnica completada conforme a los requerimientos de Buenas Prácticas de Manufactura aplicables al sector.'}
+                  {executiveSummary || 'Technical evaluation completed in accordance with Good Manufacturing Practices requirements applicable to the sector.'}
                 </div>
               </section>
 
@@ -448,14 +448,14 @@ export default function InspectionReportModal({
               <section className="irm-section">
                 <div className="irm-section-title">
                   <span className="material-symbols-outlined" style={{ fontSize: '1.05rem' }}>rule</span>
-                  5. Detalle de Hallazgos y No Conformidades (NC)
+                  5. Details of Findings and Non-Conformities (NC)
                 </div>
                 <div className="irm-text-block">{findings}</div>
                 {nonConformities && (
                   <div style={{ marginTop: '0.85rem' }}>
                     <div className="irm-nc-badge">
                       <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>warning</span>
-                      Puntos Críticos que Requieren Acción Correctiva Obligatoria:
+                      Critical Points Requiring Mandatory Corrective Action:
                     </div>
                     <div className="irm-text-block irm-nc-block">
                       {nonConformities}
@@ -468,7 +468,7 @@ export default function InspectionReportModal({
               <section className="irm-section">
                 <div className="irm-section-title">
                   <span className="material-symbols-outlined" style={{ fontSize: '1.05rem' }}>recommend</span>
-                  6. Recomendaciones Técnicas y Plazos de Cumplimiento
+                  6. Technical Recommendations and Compliance Deadlines
                 </div>
                 <div className="irm-text-block">{recommendations}</div>
               </section>
@@ -478,7 +478,7 @@ export default function InspectionReportModal({
                 <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'flex-start' }}>
                   <span className="material-symbols-outlined" style={{ color: '#00236f', fontSize: '1.2rem', marginTop: '0.1rem' }}>gavel</span>
                   <div style={{ fontSize: '0.78rem', color: '#475569', lineHeight: '1.45' }}>
-                    <strong>Marco Legal y Validez:</strong> Este documento se emite de conformidad con la Ley General de Salud No. 42-01, el Reglamento Técnico para Buenas Prácticas de Manufactura en Establecimientos de Alimentos y la Resolución Ministerial de Evaluación Basada en Riesgo (EBR). Las alteraciones, enmiendas o reproducciones no autorizadas carecen de validez legal y están sujetas a las sanciones previstas por el marco jurídico dominicano.
+                    <strong>Legal Framework and Validity:</strong> This document is issued in accordance with General Health Law No. 42-01, the Technical Regulation for Good Manufacturing Practices in Food Establishments and the Ministerial Resolution of Risk-Based Evaluation (RBE). Unauthorized alterations, amendments, or reproductions lack legal validity and are subject to the penalties provided by the Dominican legal framework.
                   </div>
                 </div>
               </section>
@@ -489,28 +489,28 @@ export default function InspectionReportModal({
                   <div className="irm-stamp">
                     <div className="irm-stamp-inner">
                       <span>MISPAS • DIGEMAPS</span>
-                      <strong>INSPECCIÓN OFICIAL</strong>
-                      <small>REPÚBLICA DOMINICANA</small>
+                      <strong>OFFICIAL INSPECTION</strong>
+                      <small>DOMINICAN REPUBLIC</small>
                     </div>
                   </div>
                   <div className="irm-signature-line" />
                   <span className="irm-signature-name">{technicianName}</span>
-                  <span className="irm-signature-role">Inspector Técnico Sanitario Acreditado</span>
-                  <small style={{ color: '#64748b' }}>Cédula: {technicianCedula}</small>
+                  <span className="irm-signature-role">Accredited Sanitary Technical Inspector</span>
+                  <small style={{ color: '#64748b' }}>ID Card: {technicianCedula}</small>
                 </div>
 
                 <div className="irm-signature-box">
                   <div className="irm-stamp irm-stamp-quality">
                     <div className="irm-stamp-inner">
-                      <span>ESTABLECIMIENTO</span>
-                      <strong>RECIBIDO CONFORME</strong>
-                      <small>FIRMA & SELLO</small>
+                      <span>ESTABLISHMENT</span>
+                      <strong>RECEIVED IN CONFORMITY</strong>
+                      <small>SIGNATURE & STAMP</small>
                     </div>
                   </div>
                   <div className="irm-signature-line" />
-                  <span className="irm-signature-name">Representante Legal / Calidad</span>
-                  <span className="irm-signature-role">Por el Establecimiento Inspeccionado</span>
-                  <small style={{ color: '#64748b' }}>Firma de Enterado y Conformidad</small>
+                  <span className="irm-signature-name">Legal / Quality Representative</span>
+                  <span className="irm-signature-role">On Behalf of the Inspected Establishment</span>
+                  <small style={{ color: '#64748b' }}>Signature of Acknowledgment and Conformity</small>
                 </div>
               </div>
 
@@ -521,8 +521,8 @@ export default function InspectionReportModal({
                   <span className="irm-barcode-text">RADAR-EBR-SEC-{evaluationId.toString().padStart(6, '0')}</span>
                 </div>
                 <div className="irm-security-meta">
-                  <span>Certificado Digital Oficial • Registro Único Nacional de Sanidad (MISPAS/DIGEMAPS)</span>
-                  <span>Verificación Criptográfica: SHA-256: 7e4b9f2d18c0a3e5...{evaluationId.toString().padStart(4, '0')}</span>
+                  <span>Official Digital Certificate • Single National Health Registry (MISPAS/DIGEMAPS)</span>
+                  <span>Cryptographic Verification: SHA-256: 7e4b9f2d18c0a3e5...{evaluationId.toString().padStart(4, '0')}</span>
                 </div>
               </div>
             </article>

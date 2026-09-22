@@ -55,7 +55,7 @@ export default function NotificationsDropdown({
         if (onUpdateUnreadCount) onUpdateUnreadCount(newUnread)
       }
     } catch {
-      notify('No se pudo marcar la notificación como leída.')
+      notify('Could not mark notification as read.')
     }
   }
 
@@ -65,18 +65,18 @@ export default function NotificationsDropdown({
       if (res.valid) {
         setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
         if (onUpdateUnreadCount) onUpdateUnreadCount(0)
-        notify('Todas las notificaciones han sido marcadas como leídas.')
+        notify('All notifications have been marked as read.')
       }
     } catch {
-      notify('Error al actualizar las notificaciones.')
+      notify('Error updating notifications.')
     }
   }
 
   const getBubbleType = (title: string = '', msg: string = '') => {
     const text = (title + ' ' + msg).toLowerCase()
-    if (text.includes('alerta') || text.includes('lapch') || text.includes('urgente')) return 'alert'
-    if (text.includes('bpm') || text.includes('solicitud')) return 'bpm'
-    if (text.includes('evaluaci') || text.includes('inspecci') || text.includes('dictamen')) return 'eval'
+    if (text.includes('alert') || text.includes('lapch') || text.includes('urgent')) return 'alert'
+    if (text.includes('bpm') || text.includes('request')) return 'bpm'
+    if (text.includes('eval') || text.includes('inspect') || text.includes('dictum')) return 'eval'
     return 'system'
   }
 
@@ -92,7 +92,7 @@ export default function NotificationsDropdown({
   const formatTime = (iso?: string) => {
     if (!iso) return ''
     const d = new Date(iso)
-    return new Intl.DateTimeFormat('es-DO', {
+    return new Intl.DateTimeFormat('en-US', {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
@@ -108,10 +108,10 @@ export default function NotificationsDropdown({
   return (
     <>
       <div className="notifications-dropdown-overlay" onClick={onClose} />
-      <div className="notifications-dropdown" role="dialog" aria-label="Centro de notificaciones">
+      <div className="notifications-dropdown" role="dialog" aria-label="Notifications Center">
         <div className="notif-header">
           <div className="notif-header-title">
-            <h3>Notificaciones</h3>
+            <h3>Notifications</h3>
             {unreadCount > 0 && <span className="notif-badge-count">{unreadCount}</span>}
           </div>
           {unreadCount > 0 && (
@@ -119,9 +119,9 @@ export default function NotificationsDropdown({
               type="button"
               className="notif-btn-clear"
               onClick={handleMarkAllAsRead}
-              title="Marcar todas como leídas"
+              title="Mark all as read"
             >
-              ✓ Marcar todo leído
+              ✓ Mark all as read
             </button>
           )}
         </div>
@@ -132,26 +132,26 @@ export default function NotificationsDropdown({
             className={`notif-filter-pill ${filter === 'all' ? 'active' : ''}`}
             onClick={() => setFilter('all')}
           >
-            Todas ({notifications.length})
+            All ({notifications.length})
           </button>
           <button
             type="button"
             className={`notif-filter-pill ${filter === 'unread' ? 'active' : ''}`}
             onClick={() => setFilter('unread')}
           >
-            No leídas ({unreadCount})
+            Unread ({unreadCount})
           </button>
         </div>
 
         <div className="notif-list">
           {loading && notifications.length === 0 ? (
             <div className="notif-empty">
-              <p>Cargando notificaciones...</p>
+              <p>Loading notifications...</p>
             </div>
           ) : filtered.length === 0 ? (
             <div className="notif-empty">
               <div className="notif-empty-icon">🔕</div>
-              <p>No tienes notificaciones {filter === 'unread' ? 'pendientes' : ''}.</p>
+              <p>You have no {filter === 'unread' ? 'unread ' : ''}notifications.</p>
             </div>
           ) : (
             filtered.map((item) => {
@@ -180,7 +180,7 @@ export default function NotificationsDropdown({
                           className="notif-mark-read-btn"
                           onClick={(e) => void handleMarkAsRead(item.notificationId, e)}
                         >
-                          Marcar leída
+                          Mark as read
                         </button>
                       )}
                     </div>
@@ -197,7 +197,7 @@ export default function NotificationsDropdown({
             className="notif-footer-link"
             onClick={onClose}
           >
-            Cerrar panel
+            Close panel
           </button>
         </div>
       </div>

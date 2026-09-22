@@ -34,14 +34,10 @@ export const institutionsService = {
 
   getById: async (institutionId: number) => {
     const institution = await institutionsModel.getById(institutionId);
-    if (!institution) throw ApiError.notFound('La institución no existe');
+    if (!institution) throw ApiError.notFound('Institution not found');
     return institution;
   },
 
-  /**
-   * RF-03: dueños/delegados solo ven SU empresa; roles operativos
-   * (ADMIN, COORDINADOR, TECNICO_EVALUADOR) tienen acceso general de lectura.
-   */
   assertAccess: async (personId: number, role: string | null, institutionId: number) => {
     if (role === 'ADMIN' || role === 'COORDINADOR' || role === 'TECNICO_EVALUADOR') return;
 
@@ -50,7 +46,7 @@ export const institutionsService = {
     const isRepresentative = institution.representantes.some((r) => r.personId === personId);
 
     if (!isPropietary && !isRepresentative) {
-      throw ApiError.forbidden('No tienes acceso a esta institución');
+      throw ApiError.forbidden('You do not have access to this institution');
     }
   },
 
@@ -80,7 +76,7 @@ export const institutionsService = {
     requester: { personId: number; role: string | null },
   ) => {
     const existing = await institutionsModel.getRepresentativeById(representId);
-    if (!existing) throw ApiError.notFound('El representante no existe');
+    if (!existing) throw ApiError.notFound('Representative not found');
     if (existing.institutionId) {
       await institutionsService.assertAccess(requester.personId, requester.role, existing.institutionId);
     }
@@ -89,7 +85,7 @@ export const institutionsService = {
 
   removeRepresentative: async (representId: number, requester: { personId: number; role: string | null }) => {
     const existing = await institutionsModel.getRepresentativeById(representId);
-    if (!existing) throw ApiError.notFound('El representante no existe');
+    if (!existing) throw ApiError.notFound('Representative not found');
     if (existing.institutionId) {
       await institutionsService.assertAccess(requester.personId, requester.role, existing.institutionId);
     }
