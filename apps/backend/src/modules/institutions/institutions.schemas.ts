@@ -4,7 +4,7 @@ import { PaginationQuerySchema, IdParamSchema } from '@/lib/common/schemas';
 /**
  * institutions.schemas.ts
  * ---------------------------------------------------------------------------
- * Validación runtime 1:1 con `@reto/shared/institutions.ts`. Sección 3 de
+ * Runtime validation 1:1 with `@reto/shared/institutions.ts`. Section 3 of
  * API_CONTRACTS.md (RF-03).
  * ---------------------------------------------------------------------------
  */
@@ -19,7 +19,8 @@ export const GetInstitutionsQuerySchema = PaginationQuerySchema.extend({
 export const CreateInstitutionSchema = z.object({
   name: z.string().min(1),
   streetName: z.string().min(1),
-  streetNum: z.coerce.number().int(),
+  // streetNum is a free-text field in DR — addresses can be alphanumeric (e.g. "42-B", "S/N").
+  streetNum: z.string().optional(),
   phoneNumber: z.string().min(1),
   email: z.string().email(),
   rnc: z.string().min(1),

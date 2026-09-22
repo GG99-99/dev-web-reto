@@ -101,7 +101,9 @@ const navForRole = (role: Role) =>
         role === "COORDINADOR" ||
         role === "TECNICO_EVALUADOR"
       );
-    if (item.id === "operations") return role !== "TECNICO_EVALUADOR";
+    // Company roles have their own dedicated CompanyPortal — they don't need OperationsWorkbench
+    if (item.id === "operations")
+      return role !== "TECNICO_EVALUADOR" && role !== "ADMIN_EMPRESA" && role !== "USUARIO_DELEGADO";
     if (item.id === "company")
       return (
         role === "ADMIN_EMPRESA" ||
@@ -166,6 +168,7 @@ function App() {
   );
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadNotifCount, setUnreadNotifCount] = useState(0);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [isOnline, setIsOnline] = useState(
     typeof navigator !== "undefined" ? navigator.onLine : true,
   );
@@ -216,6 +219,14 @@ function App() {
 
   // Listen to connectivity & local sync queue
   useEffect(() => {
+    const checkSync = async () => {
+      try {
+        await refreshPendingSyncCount();
+      } catch {
+        // Ignore transient offline-storage errors silently
+      }
+    };
+
     const handleOnline = () => {
       setIsOnline(true);
       void checkSync();
@@ -225,16 +236,9 @@ function App() {
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
 
-    const checkSync = async () => {
-      try {
-        await refreshPendingSyncCount();
-      } catch {
-        // ignore
-      }
-    };
-
     void checkSync();
-    const timer = setInterval(() => void checkSync(), 5000);
+    // Poll every 30 seconds instead of 5 to reduce noise
+    const timer = setInterval(() => void checkSync(), 30_000);
 
     return () => {
       window.removeEventListener("online", handleOnline);
@@ -339,7 +343,7 @@ function App() {
       } catch {
         if (!cancelled)
           setNotice(
-            "The live API could not be reached. Check that the backend is running, then refresh.",
+            "Some dashboard data could not be loaded. Check that the backend is running.",
           );
       } finally {
         if (!cancelled) setLoading(false);
@@ -429,15 +433,6 @@ function App() {
               )}
             </div>
           )}
-          <button
-            onClick={() =>
-              setNotice(
-                "Contact the sanitary operations help desk for assistance.",
-              )
-            }
-          >
-            ? Help & guidance
-          </button>
         </div>
       </aside>
       <main>
@@ -485,17 +480,73 @@ function App() {
               onUpdateUnreadCount={setUnreadNotifCount}
               notify={setNotice}
             />
-            <button
-              className="profile"
-              title="Sign out"
-              onClick={() => void signOut()}
-            >
-              <b>{session.name.slice(0, 2).toUpperCase()}</b>
-              <span>
-                <strong>{session.name}</strong>
-                <small>{title(session.role)}</small>
-              </span>
-            </button>
+            <div style={{ position: "relative" }}>
+              <button
+                className="profile"
+                title="Account menu"
+                onClick={() => setShowProfileMenu((prev) => !prev)}
+                aria-haspopup="true"
+                aria-expanded={showProfileMenu}
+              >
+                <b>{session.name.slice(0, 2).toUpperCase()}</b>
+                <span>
+                  <strong>{session.name}</strong>
+                  <small>{title(session.role)}</small>
+                </span>
+                <small style={{ marginLeft: 4, color: "#94a3b8", fontSize: 10 }}>▾</small>
+              </button>
+              {showProfileMenu && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "calc(100% + 8px)",
+                    right: 0,
+                    minWidth: 180,
+                    background: "#fff",
+                    border: "1px solid #dce5ef",
+                    borderRadius: 8,
+                    boxShadow: "0 8px 24px #0819381a",
+                    zIndex: 100,
+                    overflow: "hidden",
+                  }}
+                >
+                  <div style={{ padding: "10px 14px", borderBottom: "1px solid #edf1f5" }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "#14243b" }}>{session.name}</div>
+                    <div style={{ fontSize: 11, color: "#718096", marginTop: 2 }}>{title(session.role)}</div>
+                  </div>
+                  <button
+                    style={{
+                      width: "100%",
+                      padding: "10px 14px",
+                      border: "none",
+                      background: "transparent",
+                      color: "#d94b4b",
+                      fontSize: 13,
+                      fontWeight: 700,
+                      textAlign: "left",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                    }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#fff5f5"; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
+                    onClick={() => {
+                      setShowProfileMenu(false);
+                      void signOut();
+                    }}
+                  >
+                    ⎋ Sign out
+                  </button>
+                </div>
+              )}
+              {showProfileMenu && (
+                <div
+                  style={{ position: "fixed", inset: 0, zIndex: 99 }}
+                  onClick={() => setShowProfileMenu(false)}
+                />
+              )}
+            </div>
           </div>
         </header>
         {notice && (

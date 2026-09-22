@@ -107,14 +107,14 @@ model Represent {
 /// [NUEVO] nombreComercial, actividadEconomica, municipalityId reemplazan los
 /// campos libres de municipio/provincia del SRS por catálogo normalizado.
 model Institution {
-  institutionId Int    @id @default(autoincrement()) @map("institution_id")
+  institutionId Int     @id @default(autoincrement()) @map("institution_id")
   name          String
-  streetName    String @map("street_name")
-  streetNum     Int    @map("street_num")
-  phoneNumber   String @map("phone_number")
+  streetName    String  @map("street_name")
+  streetNum     String? @map("street_num")
+  phoneNumber   String  @map("phone_number")
   email         String
   rnc           String
-  propietaryId  Int    @map("propietary_id")
+  propietaryId  Int     @map("propietary_id")
 
   // [NUEVO] campos pedidos en RF-03
   nombreComercial    String? @map("nombre_comercial")

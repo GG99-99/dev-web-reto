@@ -110,7 +110,7 @@ model Institution {
   institutionId Int    @id @default(autoincrement()) @map("institution_id")
   name          String
   streetName    String @map("street_name")
-  streetNum     Int    @map("street_num")
+  streetNum     String? @map("street_num")
   phoneNumber   String @map("phone_number")
   email         String
   rnc           String

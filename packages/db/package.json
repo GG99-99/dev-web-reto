@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "tsc --build --force",
+    "build": "tsc --build --force && node -e \"require('fs').cpSync('src/generated', 'dist/generated', {recursive:true, force:true})\"",
     "test": "echo \"Error: no test specified\" && exit 1",
     "postinstall": "prisma skills sync || exit 0"
   },

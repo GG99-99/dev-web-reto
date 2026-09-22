@@ -4,12 +4,11 @@ import { logSeed } from './seed.utils';
 /**
  * provinces.seeder.ts
  * ---------------------------------------------------------------------------
- * Tabla: `province`. Catálogo de apoyo a RF-03
+ * Table: `province`. Catalog supporting RF-03
  * (GET /catalogs/provinces).
  *
- * Subconjunto representativo de las 32 provincias de República Dominicana +
- * el Distrito Nacional. Suficiente para probar el API; completar con el
- * listado oficial de la ONE si se necesita para producción.
+ * All 32 provinces of the Dominican Republic + the Distrito Nacional,
+ * matching the official list from the Oficina Nacional de Estadística (ONE).
  * ---------------------------------------------------------------------------
  */
 
@@ -17,15 +16,37 @@ import { logSeed } from './seed.utils';
 
 const PROVINCES = [
   'Distrito Nacional',
-  'Santo Domingo',
-  'Santiago',
-  'La Vega',
-  'San Cristóbal',
+  'Azua',
+  'Bahoruco',
+  'Barahona',
+  'Dajabón',
   'Duarte',
-  'Puerto Plata',
-  'La Altagracia',
-  'San Pedro de Macorís',
+  'Elías Piña',
+  'El Seibo',
   'Espaillat',
+  'Hato Mayor',
+  'Hermanas Mirabal',
+  'Independencia',
+  'La Altagracia',
+  'La Romana',
+  'La Vega',
+  'María Trinidad Sánchez',
+  'Monseñor Nouel',
+  'Monte Cristi',
+  'Monte Plata',
+  'Pedernales',
+  'Peravia',
+  'Puerto Plata',
+  'Samaná',
+  'San Cristóbal',
+  'San José de Ocoa',
+  'San Juan',
+  'San Pedro de Macorís',
+  'Sánchez Ramírez',
+  'Santiago',
+  'Santiago Rodríguez',
+  'Santo Domingo',
+  'Valverde',
 ];
 
 // ============================ SEEDING =============================

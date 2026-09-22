@@ -338,49 +338,32 @@
    PRINT RULES (@media print) PARA GENERACIÓN DE PDF LIMPIO
    ======================================================= */
 @media print {
-  body * {
-    visibility: hidden;
-  }
-
-  .irm-backdrop,
-  .irm-container,
-  .irm-document-scroll,
-  .irm-paper,
-  .irm-paper * {
-    visibility: visible !important;
-  }
-
+  body > *:not(.irm-backdrop) { display: none !important; }
   .irm-backdrop {
-    position: absolute !important;
-    left: 0 !important;
-    top: 0 !important;
-    width: 100% !important;
-    height: auto !important;
-    background: transparent !important;
+    position: static !important;
+    background: none !important;
     padding: 0 !important;
-    backdrop-filter: none !important;
   }
-
   .irm-container {
-    max-width: 100% !important;
-    max-height: none !important;
     box-shadow: none !important;
     border-radius: 0 !important;
+    max-width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
   }
-
-  .irm-action-bar {
-    display: none !important;
-  }
-
+  .irm-action-bar { display: none !important; }
   .irm-document-scroll {
+    overflow: visible !important;
+    height: auto !important;
     padding: 0 !important;
-    background: transparent !important;
   }
-
   .irm-paper {
     box-shadow: none !important;
+    margin: 0 !important;
+    padding: 12mm !important;
     border: none !important;
-    padding: 1.5cm !important;
-    max-width: 100% !important;
+    page-break-inside: avoid;
   }
+  .irm-section { page-break-inside: avoid; }
+  .irm-signatures { page-break-inside: avoid; }
 }

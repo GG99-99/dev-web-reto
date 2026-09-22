@@ -42,7 +42,7 @@ export default function OperationsWorkbench({ role, initial, onOpenOfficialRepor
   useEffect(() => { if (!available.some(item => item.id === tab)) setTab(available[0]?.id ?? 'reports') }, [available, tab])
 
   return <section className="content operations">
-    <div className="heading compact"><div><small className="eyebrow">Operational Command & Workflows · RF-06 / RF-20</small><h1>Operations <em>Workbench</em></h1><p>Traceable execution across Multi-Origin Intake, Evaluator Assignment, and Official Sanctions.</p></div></div>
+    <div className="heading compact"><div><small className="eyebrow">Operational Command & Workflows</small><h1>Operations <em>Workbench</em></h1><p>Traceable execution across Multi-Origin Intake, Evaluator Assignment, and Official Sanctions.</p></div></div>
     <div className="ops-tabs" role="tablist">{available.map(item => <button key={item.id} role="tab" aria-selected={tab === item.id} className={tab === item.id ? 'active' : ''} onClick={() => { setTab(item.id); setMessage('') }}>{item.name}</button>)}</div>
     {message && <div className="ops-message" role="status">ⓘ {message}</div>}
 
@@ -116,7 +116,7 @@ function CasesPanel({ notify, onOpenDossier, onOpenOfficialReport }: any) {
         motivo: String(data.get('motivo')),
       })
       if (result.valid) {
-        notify(`Caso Institucional #${result.data.caseId} creado y listo para asignación.`)
+        notify(`Institutional Case #${result.data.caseId} created and ready for assignment.`)
         form.reset()
         await refresh()
       }
@@ -136,7 +136,7 @@ function CasesPanel({ notify, onOpenDossier, onOpenOfficialReport }: any) {
         ? await assignmentsService.reassign(selected.caseId, { technicianId, notes })
         : await assignmentsService.assign(selected.caseId, { technicianId, notes })
       if (result.valid) {
-        notify(`Técnico Evaluador asignado al caso #${selected.caseId}.`)
+        notify(`Field Evaluator assigned to case #${selected.caseId}.`)
         await open(selected)
         await refresh()
       }
@@ -173,11 +173,11 @@ function CasesPanel({ notify, onOpenDossier, onOpenOfficialReport }: any) {
       {/* Origin filter pills */}
       <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', margin: '0.75rem 0' }}>
         {[
-          { id: 'ALL', name: 'Todos' },
-          { id: 'SOLICITUD_EMPRESA', name: 'Empresas' },
-          { id: 'PROGRAMACION_INSTITUCIONAL', name: 'Institucional' },
-          { id: 'ALERTA_LAPCH', name: 'Alertas LAPCH' },
-          { id: 'DENUNCIA', name: 'Denuncias' },
+          { id: 'ALL', name: 'All' },
+          { id: 'SOLICITUD_EMPRESA', name: 'Company Requests' },
+          { id: 'PROGRAMACION_INSTITUCIONAL', name: 'Institutional' },
+          { id: 'ALERTA_LAPCH', name: 'LAPCH Alerts' },
+          { id: 'DENUNCIA', name: 'Complaints' },
         ].map((f) => (
           <button
             key={f.id}
@@ -199,9 +199,9 @@ function CasesPanel({ notify, onOpenDossier, onOpenOfficialReport }: any) {
         ))}
       </div>
 
-      {loading ? <p className="ops-empty">Cargando expedientes en vivo…</p> : <div className="ops-list">
+      {loading ? <p className="ops-empty">Loading cases…</p> : <div className="ops-list">
         {filteredItems.map(item => <button className={selected?.caseId === item.caseId ? 'selected' : ''} key={item.caseId} onClick={() => void open(item)}>
-          <b>#{item.caseId} · {item.institution?.name ?? 'Establecimiento no asignado'}</b>
+          <b>#{item.caseId} · {item.institution?.name ?? 'Unassigned establishment'}</b>
           <span>
             <strong style={{ color: originColor(item.origin), fontSize: '0.72rem', textTransform: 'uppercase' }}>
               ● {label(item.origin)}
@@ -210,39 +210,39 @@ function CasesPanel({ notify, onOpenDossier, onOpenOfficialReport }: any) {
             · {label(item.status)}
           </span>
         </button>)}
-        {!filteredItems.length && <p className="ops-empty">No hay casos que coincidan con el filtro seleccionado.</p>}
+        {!filteredItems.length && <p className="ops-empty">No cases match the selected filter.</p>}
       </div>}
     </section>
 
     <aside className="ops-stack">
       {/* Create Institutional Case */}
       <section className="card ops-card">
-        <h2>Originación Institucional Directa (RF-06 Escenario 2)</h2>
+        <h2>Create Institutional Case</h2>
         <form className="ops-form" onSubmit={create}>
-          <label>Establecimiento / Empresa
+          <label>Establishment / Company
             <select name="institutionId" required>
-              <option value="">Seleccione un establecimiento</option>
+              <option value="">Select an establishment</option>
               {institutions.map(i => <option key={i.institutionId} value={i.institutionId}>{i.name} (RNC: {i.rnc})</option>)}
             </select>
           </label>
-          <label>Prioridad de Auditoría
+          <label>Audit Priority
             <select name="priority" defaultValue="MEDIA">
-              <option value="BAJA">Baja</option>
-              <option value="MEDIA">Media</option>
-              <option value="ALTA">Alta (Urgente)</option>
+              <option value="BAJA">Low</option>
+              <option value="MEDIA">Medium</option>
+              <option value="ALTA">High (Urgent)</option>
             </select>
           </label>
-          <label>Motivo de la Programación
-            <textarea name="motivo" required placeholder="Justificación técnica de la inspección programada..." />
+          <label>Scheduling Reason
+            <textarea name="motivo" required placeholder="Technical justification for the scheduled inspection..." />
           </label>
-          <button className="primary">Crear Caso Institucional</button>
+          <button className="primary">Create Institutional Case</button>
         </form>
       </section>
 
       {/* Selected Case Assignment & Actions */}
       {selected && <section className="card ops-card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.8rem' }}>
-          <h2 style={{ margin: 0 }}>Asignación · Caso #{selected.caseId}</h2>
+          <h2 style={{ margin: 0 }}>Assignment · Case #{selected.caseId}</h2>
           {onOpenDossier && (
             <button
               type="button"
@@ -250,30 +250,30 @@ function CasesPanel({ notify, onOpenDossier, onOpenOfficialReport }: any) {
               style={{ fontWeight: 700, color: '#00236f' }}
               onClick={() => onOpenDossier('CASE', selected.caseId)}
             >
-              📁 Ver Expediente 360° →
+              📁 View 360° Dossier →
             </button>
           )}
         </div>
 
         <form className="ops-form" onSubmit={assign}>
-          <label>Técnico Evaluador Acreditado
+          <label>Accredited Field Evaluator
             <select name="technicianId" required defaultValue={assignments[0]?.technicianId || ''}>
-              <option value="">Seleccione evaluador para la comisión...</option>
-              {technicians.map(t => <option key={t.userId} value={t.userId}>{t.person?.name ?? `Técnico #${t.userId}`} ({t.email})</option>)}
+              <option value="">Select evaluator for this assignment...</option>
+              {technicians.map(t => <option key={t.userId} value={t.userId}>{t.person?.name ?? `Technician #${t.userId}`} ({t.email})</option>)}
             </select>
           </label>
-          <label>Instrucciones de Comisión / Nota de Asignación
-            <input name="notes" placeholder="Notas sobre el alcance de la inspección" />
+          <label>Assignment Instructions / Notes
+            <input name="notes" placeholder="Notes about inspection scope" />
           </label>
-          <button className="primary">{assignments.length ? 'Reasignar Evaluador' : 'Asignar Evaluador'}</button>
+          <button className="primary">{assignments.length ? 'Reassign Evaluator' : 'Assign Evaluator'}</button>
         </form>
 
         {assignments.length > 0 && (
           <div style={{ marginTop: '1rem', borderTop: '1px solid #e2e8f0', paddingTop: '0.75rem' }}>
-            <strong style={{ fontSize: '0.76rem', color: '#64748b', textTransform: 'uppercase' }}>Historial de Asignaciones (RF-10)</strong>
+            <strong style={{ fontSize: '0.76rem', color: '#64748b', textTransform: 'uppercase' }}>Assignment History</strong>
             <ol className="ops-timeline" style={{ marginTop: '0.4rem' }}>
               {assignments.map(a => <li key={a.assignmentId}>
-                <strong>{a.technician?.person?.name ?? `Usuario #${a.technicianId}`}</strong> · {a.isReassignment ? 'Reasignado' : 'Asignado'}
+                <strong>{a.technician?.person?.name ?? `User #${a.technicianId}`}</strong> · {a.isReassignment ? 'Reassigned' : 'Assigned'}
                 {a.notes && <span> — "{a.notes}"</span>}
               </li>)}
             </ol>
@@ -304,7 +304,7 @@ function CaseLifecycle({ caseItem, technicians, notify, refreshed }: any) {
         observations: String(data.get('observations') || '') || undefined,
       })
       if (result.valid) {
-        notify(`Evaluación de campo #${result.data.evaluationId} programada en calendario.`)
+        notify(`Field evaluation #${result.data.evaluationId} scheduled on calendar.`)
         form.reset()
         await refreshed()
       }
@@ -325,7 +325,7 @@ function CaseLifecycle({ caseItem, technicians, notify, refreshed }: any) {
         emitirInforme: data.get('emitirInforme') === 'on',
       })
       if (result.valid) {
-        notify(result.data.informeOficialUrl ? 'Expediente cerrado y certificado oficial emitido.' : 'Expediente cerrado con éxito.')
+        notify(result.data.informeOficialUrl ? 'Case closed and official certificate issued.' : 'Case closed successfully.')
         await refreshed()
       }
     } catch (e) {
@@ -336,44 +336,44 @@ function CaseLifecycle({ caseItem, technicians, notify, refreshed }: any) {
   }
 
   return <section className="card ops-card">
-    <h2>Programar Evaluación o Cerrar Expediente (RF-07 / RF-19)</h2>
+    <h2>Schedule Evaluation or Close Case</h2>
     <form className="ops-form" onSubmit={schedule}>
-      <label>Técnico Evaluador
+      <label>Field Evaluator
         <select name="technicianId" required>
-          <option value="">Seleccione evaluador</option>
-          {technicians.map(t => <option key={t.userId} value={t.userId}>{t.person?.name ?? `Evaluador #${t.userId}`}</option>)}
+          <option value="">Select evaluator</option>
+          {technicians.map(t => <option key={t.userId} value={t.userId}>{t.person?.name ?? `Evaluator #${t.userId}`}</option>)}
         </select>
       </label>
-      <label>Fecha y Hora Programada
+      <label>Scheduled Date & Time
         <input type="datetime-local" name="scheduledDate" required />
       </label>
-      <label>Prioridad Sanitaria
+      <label>Health Priority
         <select name="priority" defaultValue={caseItem.priority ?? 'MEDIA'}>
-          <option value="BAJA">Baja</option>
-          <option value="MEDIA">Media</option>
-          <option value="ALTA">Alta</option>
+          <option value="BAJA">Low</option>
+          <option value="MEDIA">Medium</option>
+          <option value="ALTA">High</option>
         </select>
       </label>
-      <label>Motivo Técnico
-        <input name="reason" placeholder="Inspección BPM reglamentaria" />
+      <label>Technical Reason
+        <input name="reason" placeholder="Regulatory BPM inspection" />
       </label>
-      <label>Notas para el Inspector
-        <textarea name="observations" placeholder="Instrucciones previas para la visita in situ..." />
+      <label>Inspector Notes
+        <textarea name="observations" placeholder="Pre-visit instructions for the field inspection..." />
       </label>
-      <button className="primary" disabled={busy}>Programar en Calendario</button>
+      <button className="primary" disabled={busy}>Schedule on Calendar</button>
     </form>
 
     <hr className="ops-rule" />
 
     <form className="ops-form" onSubmit={close}>
-      <label>Dictamen de Cierre Final (RF-19)
-        <textarea name="resultadoFinal" required placeholder="Documente la conclusión legal y sanitaria del expediente..." />
+      <label>Final Case Closure Decision
+        <textarea name="resultadoFinal" required placeholder="Document the legal and health conclusion of this case..." />
       </label>
       <label className="ops-check">
         <input type="checkbox" name="emitirInforme" defaultChecked />
-        Generar y publicar Certificado Oficial Sanitario (PDF)
+        Generate and publish Official Health Certificate (PDF)
       </label>
-      <button className="secondary ops-wide" disabled={busy}>Cerrar Expediente</button>
+      <button className="secondary ops-wide" disabled={busy}>Close Case</button>
     </form>
   </section>
 }
@@ -417,7 +417,7 @@ function ReportsPanel({ role, notify, onOpenOfficialReport }: any) {
         comments: String(data.get('comments')),
       })
       if (result.valid) {
-        notify('Decisión de revisión registrada en la bitácora oficial.')
+        notify('Review decision recorded in the official log.')
         await select(String(report.evaluationId))
       }
     } catch (e) {
@@ -435,7 +435,7 @@ function ReportsPanel({ role, notify, onOpenOfficialReport }: any) {
         ? await reportsService.submit(report.reportId)
         : await reportsService.resend(report.reportId)
       if (result.valid) {
-        notify(action === 'submit' ? 'Informe enviado a revisión de coordinación.' : 'Informe corregido reenviado.')
+        notify(action === 'submit' ? 'Report submitted for coordinator review.' : 'Corrected report resubmitted.')
         await select(String(report.evaluationId))
       }
     } catch (e) {
@@ -458,7 +458,7 @@ function ReportsPanel({ role, notify, onOpenOfficialReport }: any) {
         recomendaciones: String(data.get('recomendaciones') || '') || undefined,
       })
       if (result.valid) {
-        notify('Corrección guardada. Puede reenviarla cuando esté lista.')
+        notify('Correction saved. You can resubmit it when ready.')
         await select(String(report.evaluationId))
       }
     } catch (e) {
@@ -470,12 +470,12 @@ function ReportsPanel({ role, notify, onOpenOfficialReport }: any) {
 
   return <div className="ops-grid reports-live">
     <section className="card ops-card">
-      <label className="ops-picker">Evaluación
+      <label className="ops-picker">Evaluation
         <select onChange={e => void select(e.target.value)} defaultValue="">
-          <option value="">Seleccione una evaluación registrada...</option>
+          <option value="">Select a registered evaluation...</option>
           {evaluations.map(item => (
             <option key={item.evaluationId} value={item.evaluationId}>
-              #{item.evaluationId} · {item.institution?.name ?? 'Establecimiento'} · {label(item.status)}
+              #{item.evaluationId} · {item.institution?.name ?? 'Establishment'} · {label(item.status)}
             </option>
           ))}
         </select>
@@ -484,12 +484,12 @@ function ReportsPanel({ role, notify, onOpenOfficialReport }: any) {
       {report ? (
         <div className="report-live">
           <mark>{label(report.status)}</mark>
-          <h2>{report.institution?.name ?? report.evaluation?.institution?.name ?? 'Informe de Inspección Sanitaria'}</h2>
-          <p>Versión {report.version} · {report.locked ? '🔒 Bloqueado para revisión' : '✏️ Borrador editable'}</p>
-          <h3>Hallazgos y No Conformidades</h3>
-          <p>{report.noConformidades || 'No se han registrado no conformidades.'}</p>
-          <h3>Recomendaciones Técnicas</h3>
-          <p>{report.recomendaciones || 'Sin recomendaciones técnicas registradas.'}</p>
+          <h2>{report.institution?.name ?? report.evaluation?.institution?.name ?? 'Health Inspection Report'}</h2>
+          <p>Version {report.version} · {report.locked ? '🔒 Locked for review' : '✏️ Editable draft'}</p>
+          <h3>Findings & Non-Conformities</h3>
+          <p>{report.noConformidades || 'No non-conformities recorded.'}</p>
+          <h3>Technical Recommendations</h3>
+          <p>{report.recomendaciones || 'No technical recommendations recorded.'}</p>
           {onOpenOfficialReport && (
             <button
               type="button"
@@ -497,72 +497,72 @@ function ReportsPanel({ role, notify, onOpenOfficialReport }: any) {
               style={{ marginTop: '1.25rem', background: '#00236f', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
               onClick={() => onOpenOfficialReport(report.evaluationId)}
             >
-              📄 Ver Dictamen Oficial & Generar PDF
+              📄 View Official Decision & Generate PDF
             </button>
           )}
         </div>
       ) : (
-        <p className="ops-empty">Seleccione una evaluación para cargar su informe técnico y bitácora de revisión.</p>
+        <p className="ops-empty">Select an evaluation to load its technical report and review log.</p>
       )}
     </section>
 
     <aside className="ops-stack">
       {report && ['ADMIN', 'COORDINADOR'].includes(role) && (
         <section className="card ops-card">
-          <h2>Revisión del Coordinador (RF-17)</h2>
+          <h2>Coordinator Review</h2>
           <form className="ops-form" onSubmit={decision}>
-            <label>Decisión Sanitaria
+            <label>Review Decision
               <select name="action" defaultValue="APROBAR">
-                <option value="APROBAR">Aprobar Informe y Emitir Dictamen</option>
-                <option value="SOLICITAR_CORRECCION">Solicitar Correcciones al Evaluador</option>
-                <option value="DEVOLVER">Devolver Informe</option>
+                <option value="APROBAR">Approve Report & Issue Decision</option>
+                <option value="SOLICITAR_CORRECCION">Request Corrections from Evaluator</option>
+                <option value="DEVOLVER">Return Report</option>
               </select>
             </label>
-            <label>Observaciones de Revisión
-              <textarea name="comments" required placeholder="Fundamente la decisión o detalle las correcciones necesarias..." />
+            <label>Review Observations
+              <textarea name="comments" required placeholder="Justify the decision or detail the required corrections..." />
             </label>
-            <button className="primary" disabled={busy}>Registrar Decisión</button>
+            <button className="primary" disabled={busy}>Record Decision</button>
           </form>
         </section>
       )}
 
       {report && role === 'TECNICO_EVALUADOR' && (
         <section className="card ops-card">
-          <h2>Gestión de Correcciones (RF-18)</h2>
-          <p className="ops-help">Los informes enviados quedan bloqueados hasta que el coordinador solicite una corrección.</p>
+          <h2>Correction Management</h2>
+          <p className="ops-help">Submitted reports are locked until the coordinator requests a correction.</p>
           {!report.locked && (
             <form className="ops-form" onSubmit={correct}>
-              <label>Resumen Ejecutivo
+              <label>Executive Summary
                 <textarea name="resumenEjecutivo" defaultValue={report.resumenEjecutivo ?? ''} />
               </label>
-              <label>Hallazgos
+              <label>Findings
                 <textarea name="hallazgos" defaultValue={report.hallazgos ?? ''} />
               </label>
-              <label>No Conformidades
+              <label>Non-Conformities
                 <textarea name="noConformidades" defaultValue={report.noConformidades ?? ''} />
               </label>
-              <label>Recomendaciones
+              <label>Recommendations
                 <textarea name="recomendaciones" defaultValue={report.recomendaciones ?? ''} />
               </label>
-              <button className="secondary ops-wide" disabled={busy}>Guardar Cambios</button>
+              <button className="secondary ops-wide" disabled={busy}>Save Changes</button>
             </form>
           )}
           <button className="primary" disabled={busy || report.locked} onClick={() => void technicianAction('submit')}>
-            Enviar a Revisión
+            Submit for Review
           </button>
           <button className="secondary ops-wide" disabled={busy || !report.locked} onClick={() => void technicianAction('resend')}>
-            Reenviar Corrección
+            Resend Correction
           </button>
         </section>
       )}
 
       {reviews.length > 0 && (
         <section className="card ops-card">
-          <h2>Bitácora de Revisiones</h2>
+          <h2>Review Log</h2>
           <ol className="ops-timeline">
             {reviews.map(item => (
               <li key={item.reviewId}>
-                <strong>{label(item.action)}</strong> · {item.comments || 'Sin comentarios adicionales'}
+                <strong>{label(item.action)}</strong> · {item.comments || 'No additional comments'}
               </li>
             ))}
           </ol>
@@ -617,7 +617,7 @@ function InstitutionsPanel({ role, notify }: any) {
         municipalityId: Number(data.get('municipalityId')),
       })
       if (result.valid) {
-        notify(`Establecimiento "${result.data.name}" registrado correctamente.`)
+        notify(`Establishment "${result.data.name}" registered successfully.`)
         form.reset()
         await load()
       }
@@ -630,48 +630,48 @@ function InstitutionsPanel({ role, notify }: any) {
     <section className="card ops-card">
       <div className="card-head">
         <div>
-          <small className="eyebrow">Padrón Sanitario (RF-03)</small>
-          <h2>{['ADMIN', 'COORDINADOR'].includes(role) ? 'Establecimientos Regulados' : 'Mis Establecimientos'}</h2>
+          <small className="eyebrow">Health Registry</small>
+          <h2>{['ADMIN', 'COORDINADOR'].includes(role) ? 'Regulated Establishments' : 'My Establishments'}</h2>
         </div>
-        <button className="text" onClick={() => void load()}>Buscar</button>
+        <button className="text" onClick={() => void load()}>Search</button>
       </div>
-      <input className="ops-search" value={query} onChange={e => setQuery(e.target.value)} placeholder="Buscar por Razón Social, Nombre Comercial o RNC..." />
+      <input className="ops-search" value={query} onChange={e => setQuery(e.target.value)} placeholder="Search by company name, trade name, or RNC..." />
       <div className="ops-list">
         {items.map(item => (
           <div key={item.institutionId}>
             <b>{item.name}</b>
-            <span>{item.nombreComercial || 'Sin nombre comercial'} · RNC {item.rnc} · {item.actividadEconomica || 'Alimentos'}</span>
+            <span>{item.nombreComercial || 'No trade name'} · RNC {item.rnc} · {item.actividadEconomica || 'Food'}</span>
           </div>
         ))}
-        {!items.length && <p className="ops-empty">No se encontraron establecimientos con ese criterio. Puede registrar uno nuevo en el Portal de la Empresa.</p>}
+        {!items.length && <p className="ops-empty">No establishments found. You can register a new one in the Company Portal.</p>}
       </div>
     </section>
 
     {role === 'ADMIN_EMPRESA' && (
       <section className="card ops-card">
-        <h2>Registrar Nuevo Establecimiento</h2>
+        <h2>Register New Establishment</h2>
         <form className="ops-form two-col" onSubmit={create}>
-          <label>Razón Social<input name="name" required /></label>
-          <label>Nombre Comercial<input name="nombreComercial" required /></label>
-          <label>RNC<input name="rnc" required /></label>
-          <label>Actividad Económica<input name="actividadEconomica" required /></label>
-          <label>Calle<input name="streetName" required /></label>
-          <label>Número<input name="streetNum" required /></label>
-          <label>Teléfono<input name="phoneNumber" required /></label>
-          <label>Correo<input type="email" name="email" required /></label>
-          <label>Provincia
+          <label>Legal Name<input name="name" required /></label>
+          <label>Trade Name<input name="nombreComercial" required /></label>
+          <label>RNC<input name="rnc" required onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && e.key.length === 1 && !e.ctrlKey && !e.metaKey) e.preventDefault() }} /></label>
+          <label>Economic Activity<input name="actividadEconomica" required /></label>
+          <label>Street<input name="streetName" required /></label>
+          <label>Number<input name="streetNum" required /></label>
+          <label>Phone<input name="phoneNumber" required /></label>
+          <label>Email<input type="email" name="email" required /></label>
+          <label>Province
             <select required onChange={e => void provinceChange(e.target.value)}>
-              <option value="">Seleccione</option>
+              <option value="">Select</option>
               {provinces.map(p => <option value={p.provinceId} key={p.provinceId}>{p.name}</option>)}
             </select>
           </label>
-          <label>Municipio
+          <label>Municipality
             <select name="municipalityId" required>
-              <option value="">Seleccione</option>
+              <option value="">Select</option>
               {municipalities.map(m => <option value={m.municipalityId} key={m.municipalityId}>{m.name}</option>)}
             </select>
           </label>
-          <button className="primary">Registrar</button>
+          <button className="primary">Register</button>
         </form>
       </section>
     )}
@@ -718,7 +718,7 @@ function BpmPanel({ notify }: any) {
         if (attachment instanceof File && attachment.size) {
           await bpmRequestsService.addAttachment(result.data.bpmRequestId, attachment)
         }
-        notify(`Solicitud BPM #${result.data.bpmRequestId} guardada como borrador.`)
+        notify(`BPM Request #${result.data.bpmRequestId} saved as draft.`)
         form.reset()
         await load()
       }
@@ -731,7 +731,7 @@ function BpmPanel({ notify }: any) {
     try {
       const result = await bpmRequestsService.submit(id)
       if (result.valid) {
-        notify(`Solicitud enviada; se originó el caso #${result.data.case.caseId}.`)
+        notify(`Request submitted; Case #${result.data.case.caseId} was created.`)
         await load()
       }
     } catch (e) {
@@ -743,51 +743,51 @@ function BpmPanel({ notify }: any) {
     <section className="card ops-card">
       <div className="card-head">
         <div>
-          <small className="eyebrow">Trámites BPM (RF-05)</small>
-          <h2>Solicitudes de Inspección</h2>
+          <small className="eyebrow">BPM Requests</small>
+          <h2>Inspection Requests</h2>
         </div>
-        <button className="text" onClick={() => void load()}>Actualizar</button>
+        <button className="text" onClick={() => void load()}>Refresh</button>
       </div>
       <div className="ops-list">
         {items.map(item => (
           <div key={item.bpmRequestId}>
-            <b>#{item.bpmRequestId} · {item.institution?.name ?? 'Establecimiento'}</b>
+            <b>#{item.bpmRequestId} · {item.institution?.name ?? 'Establishment'}</b>
             <span>
               {item.tipoEstablecimiento} · <mark>{label(item.status)}</mark>
               {item.status === 'BORRADOR' && (
                 <button className="text" onClick={() => void submit(item.bpmRequestId)}>
-                  🚀 Enviar a Evaluación
+                  🚀 Submit for Evaluation
                 </button>
               )}
             </span>
           </div>
         ))}
-        {!items.length && <p className="ops-empty">No hay solicitudes BPM registradas en su ámbito de acceso.</p>}
+        {!items.length && <p className="ops-empty">No BPM requests found in your scope.</p>}
       </div>
     </section>
 
     <section className="card ops-card">
-      <h2>Crear Solicitud BPM</h2>
+      <h2>Create BPM Request</h2>
       <form className="ops-form" onSubmit={create}>
-        <label>Establecimiento
+        <label>Establishment
           <select name="institutionId" required>
-            <option value="">Seleccione establecimiento</option>
+            <option value="">Select establishment</option>
             {institutions.map(i => <option key={i.institutionId} value={i.institutionId}>{i.name}</option>)}
           </select>
         </label>
-        <label>Tipo de Establecimiento
-          <input name="tipoEstablecimiento" required placeholder="Ej: Planta de derivados lácteos" />
+        <label>Establishment Type
+          <input name="tipoEstablecimiento" required placeholder="e.g. Dairy processing plant" />
         </label>
-        <label>Objetivo / Motivo
-          <textarea name="motivo" required placeholder="Motivo de la solicitud..." />
+        <label>Objective / Reason
+          <textarea name="motivo" required placeholder="Reason for the request..." />
         </label>
-        <label>Observaciones
-          <textarea name="observaciones" placeholder="Detalles operativos..." />
+        <label>Observations
+          <textarea name="observaciones" placeholder="Operational details..." />
         </label>
-        <label>Documento Obligatorio
+        <label>Required Document
           <input type="file" name="attachment" accept=".pdf,.doc,.docx,image/*" />
         </label>
-        <button className="primary">Guardar Borrador</button>
+        <button className="primary">Save Draft</button>
       </form>
     </section>
   </div>
@@ -834,7 +834,7 @@ function IntakePanel({ notify }: any) {
             descripcion: String(data.get('description')),
           })
       if (result.valid) {
-        notify(`${mode === 'complaints' ? 'Denuncia ciudadana' : 'Alerta sanitaria LAPCH'} registrada exitosamente.`)
+        notify(`${mode === 'complaints' ? 'Public complaint' : 'LAPCH health alert'} registered successfully.`)
         form.reset()
         await load()
       }
@@ -849,7 +849,7 @@ function IntakePanel({ notify }: any) {
         ? await complaintsService.setResult(item.complaintId, { resultado: result as any })
         : await lapchAlertsService.setResult(item.alertId, { resultado: result as any })
       if (response.valid) {
-        notify(`Resultado de triaje guardado: ${result}.`)
+        notify(`Triage result saved: ${result}.`)
         await load()
       }
     } catch (e) {
@@ -863,7 +863,7 @@ function IntakePanel({ notify }: any) {
         ? await complaintsService.generateCase(item.complaintId)
         : await lapchAlertsService.generateCase(item.alertId)
       if (response.valid) {
-        notify(`¡Caso #${response.data.case.caseId} generado con éxito con prioridad ALTA!`)
+        notify(`Case #${response.data.case.caseId} generated successfully with HIGH priority!`)
         await load()
       }
     } catch (e) {
@@ -875,10 +875,10 @@ function IntakePanel({ notify }: any) {
     <section className="card ops-card">
       <div className="ops-subtabs">
         <button className={mode === 'lapch' ? 'active' : ''} onClick={() => setMode('lapch')}>
-          🔬 Alertas Sanitarias LAPCH (RF-08)
+          🔬 LAPCH Sanitary Alerts
         </button>
         <button className={mode === 'complaints' ? 'active' : ''} onClick={() => setMode('complaints')}>
-          📢 Denuncias Ciudadanas (RF-09)
+          📢 Public Complaints
         </button>
       </div>
 
@@ -888,24 +888,24 @@ function IntakePanel({ notify }: any) {
           const result = item.resultado
           return (
             <div key={id} style={{ padding: '0.85rem 0' }}>
-              <b>#{id} · {mode === 'complaints' ? item.tipoDenuncia : `Alerta: ${item.numeroAlerta} (${item.producto})`}</b>
+              <b>#{id} · {mode === 'complaints' ? item.tipoDenuncia : `Alert: ${item.numeroAlerta} (${item.producto})`}</b>
               <p style={{ margin: '0.25rem 0', fontSize: '0.82rem', color: '#475569' }}>
                 {item.descripcion}
               </p>
               <span>
-                <strong>Triaje: </strong>
-                <mark className={result === 'PROCEDE' ? 'high' : ''}>{label(result || 'PENDIENTE TRIAJE')}</mark>
+                <strong>Triage: </strong>
+                <mark className={result === 'PROCEDE' ? 'high' : ''}>{label(result || 'PENDING TRIAGE')}</mark>
                 {!result && (
                   <>
                     <button className="text" style={{ color: '#047857', fontWeight: 700 }} onClick={() => void decide(item, 'PROCEDE')}>
-                      ✓ Procede
+                      ✓ Proceeds
                     </button>
                     <button className="text" style={{ color: '#ba1a1a', fontWeight: 700 }} onClick={() => void decide(item, 'NO_PROCEDE')}>
-                      ✕ No Procede
+                      ✕ Does Not Proceed
                     </button>
                     {mode === 'complaints' && (
                       <button className="text" style={{ color: '#b45309' }} onClick={() => void decide(item, 'REMISION_OTRO_PROCESO')}>
-                        ↗ Remitir
+                        ↗ Refer
                       </button>
                     )}
                   </>
@@ -916,46 +916,46 @@ function IntakePanel({ notify }: any) {
                     style={{ padding: '0.3rem 0.75rem', fontSize: '0.78rem', marginLeft: '0.5rem' }}
                     onClick={() => void generate(item)}
                   >
-                    ⚡ Generar Caso Prioritario
+                    ⚡ Generate Priority Case
                   </button>
                 )}
               </span>
             </div>
           )
         })}
-        {!items.length && <p className="ops-empty">No hay {mode === 'complaints' ? 'denuncias' : 'alertas LAPCH'} registradas.</p>}
+        {!items.length && <p className="ops-empty">No {mode === 'complaints' ? 'complaints' : 'LAPCH alerts'} registered.</p>}
       </div>
     </section>
 
     <section className="card ops-card">
-      <h2>Registrar {mode === 'complaints' ? 'Denuncia Sanitaria' : 'Alerta Epidemiológica LAPCH'}</h2>
+      <h2>Register {mode === 'complaints' ? 'Health Complaint' : 'LAPCH Epidemiological Alert'}</h2>
       <form className="ops-form" onSubmit={create}>
-        <label>Establecimiento Involucrado
+        <label>Involved Establishment
           <select name="institutionId" required={mode === 'lapch'}>
-            <option value="">{mode === 'complaints' ? 'No vinculado / Desconocido' : 'Seleccione establecimiento'}</option>
+            <option value="">{mode === 'complaints' ? 'Not linked / Unknown' : 'Select establishment'}</option>
             {institutions.map(i => <option key={i.institutionId} value={i.institutionId}>{i.name}</option>)}
           </select>
         </label>
 
         {mode === 'complaints' ? (
           <>
-            <label>Tipo de Denuncia<input name="type" required placeholder="Ej: Venta de alimentos vencidos" /></label>
-            <label>Denunciante / Fuente<input name="reporter" required placeholder="Nombre o 'Anónimo'" /></label>
+            <label>Complaint Type<input name="type" required placeholder="e.g. Sale of expired food products" /></label>
+            <label>Complainant / Source<input name="reporter" required placeholder="Name or 'Anonymous'" /></label>
           </>
         ) : (
           <>
-            <label>No. Alerta Sanitaria LAPCH<input name="alertNumber" required placeholder="Ej: LAPCH-2026-AL-04" /></label>
-            <label>Producto o Lote Afectado<input name="product" required placeholder="Ej: Leche Entera Pasteurizada Lote 904" /></label>
+            <label>LAPCH Alert Number<input name="alertNumber" required placeholder="Ej: LAPCH-2026-AL-04" /></label>
+            <label>Affected Product or Batch<input name="product" required placeholder="Ej: Leche Entera Pasteurizada Lote 904" /></label>
           </>
         )}
 
-        <label>Fecha del Suceso / Recepción
+        <label>Event / Reception Date
           <input type="date" name="date" required defaultValue={new Date().toISOString().split('T')[0]} />
         </label>
-        <label>Descripción de los Hallazgos Toxi-Infecciosos o Infracciones
-          <textarea name="description" required placeholder="Detalles de laboratorio o de la queja ciudadana..." />
+        <label>Description of Findings / Infractions
+          <textarea name="description" required placeholder="Laboratory details or citizen complaint details..." />
         </label>
-        <button className="primary">Registrar en Ingesta</button>
+        <button className="primary">Register Intake</button>
       </form>
     </section>
   </div>
@@ -987,43 +987,43 @@ function HistoryPanel({ notify, onOpenDossier }: any) {
     <section className="card ops-card">
       <div className="card-head">
         <div>
-          <small className="eyebrow">Auditoría y Trazabilidad (RF-20)</small>
-          <h2>Buscador Histórico Transversal</h2>
+          <small className="eyebrow">Audit & Traceability</small>
+          <h2>Cross-Entity History Search</h2>
         </div>
       </div>
       <form className="ops-form two-col" onSubmit={search}>
-        <label>Tipo de Registro
+        <label>Record Type
           <select name="entityType">
-            <option value="">Todos los registros soportados</option>
-            <option value="CASE">Expedientes / Casos</option>
-            <option value="EVALUATION">Evaluaciones de Campo</option>
-            <option value="BPM_REQUEST">Solicitudes BPM</option>
+            <option value="">All supported records</option>
+            <option value="CASE">Cases</option>
+            <option value="EVALUATION">Field Evaluations</option>
+            <option value="BPM_REQUEST">BPM Requests</option>
           </select>
         </label>
-        <label>Estatus del Trámite
-          <input name="status" placeholder="Ej: CERRADO, COMPLETADA..." />
+        <label>Process Status
+          <input name="status" placeholder="e.g. CLOSED, COMPLETED..." />
         </label>
-        <label>ID Establecimiento
+        <label>Establishment ID
           <input type="number" name="institutionId" min="1" placeholder="Ej: 1" />
         </label>
-        <label>Desde
+        <label>From
           <input type="date" name="from" />
         </label>
-        <label>Hasta
+        <label>To
           <input type="date" name="to" />
         </label>
-        <button className="primary">Buscar Expedientes</button>
+        <button className="primary">Search Records</button>
       </form>
     </section>
 
     <section className="card ops-card">
-      <h2>Resultados ({items.length})</h2>
+      <h2>Results ({items.length})</h2>
       <div className="ops-list">
         {items.map(item => (
           <div key={`${item.entityType}-${item.id}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 0' }}>
             <div>
               <b>{label(item.entityType)} #{item.id} · {item.institution?.name}</b>
-              <span>{label(item.status)} · {new Date(item.createdAt).toLocaleDateString('es-DO')}</span>
+              <span>{label(item.status)} · {new Date(item.createdAt).toLocaleDateString('en-US')}</span>
             </div>
             {onOpenDossier && (
               <button
@@ -1037,7 +1037,7 @@ function HistoryPanel({ notify, onOpenDossier }: any) {
             )}
           </div>
         ))}
-        {!items.length && <p className="ops-empty">Utilice los filtros para explorar el registro histórico sanitario.</p>}
+        {!items.length && <p className="ops-empty">Use the filters above to explore the health audit history.</p>}
       </div>
     </section>
   </div>

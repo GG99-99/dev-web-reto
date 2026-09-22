@@ -10506,14 +10506,12 @@ export namespace Prisma {
 
   export type InstitutionAvgAggregateOutputType = {
     institutionId: number | null
-    streetNum: number | null
     propietaryId: number | null
     municipalityId: number | null
   }
 
   export type InstitutionSumAggregateOutputType = {
     institutionId: number | null
-    streetNum: number | null
     propietaryId: number | null
     municipalityId: number | null
   }
@@ -10522,7 +10520,7 @@ export namespace Prisma {
     institutionId: number | null
     name: string | null
     streetName: string | null
-    streetNum: number | null
+    streetNum: string | null
     phoneNumber: string | null
     email: string | null
     rnc: string | null
@@ -10536,7 +10534,7 @@ export namespace Prisma {
     institutionId: number | null
     name: string | null
     streetName: string | null
-    streetNum: number | null
+    streetNum: string | null
     phoneNumber: string | null
     email: string | null
     rnc: string | null
@@ -10564,14 +10562,12 @@ export namespace Prisma {
 
   export type InstitutionAvgAggregateInputType = {
     institutionId?: true
-    streetNum?: true
     propietaryId?: true
     municipalityId?: true
   }
 
   export type InstitutionSumAggregateInputType = {
     institutionId?: true
-    streetNum?: true
     propietaryId?: true
     municipalityId?: true
   }
@@ -10709,7 +10705,7 @@ export namespace Prisma {
     institutionId: number
     name: string
     streetName: string
-    streetNum: number
+    streetNum: string | null
     phoneNumber: string
     email: string
     rnc: string
@@ -10853,7 +10849,7 @@ export namespace Prisma {
       institutionId: number
       name: string
       streetName: string
-      streetNum: number
+      streetNum: string | null
       phoneNumber: string
       email: string
       rnc: string
@@ -11298,7 +11294,7 @@ export namespace Prisma {
     readonly institutionId: FieldRef<"Institution", 'Int'>
     readonly name: FieldRef<"Institution", 'String'>
     readonly streetName: FieldRef<"Institution", 'String'>
-    readonly streetNum: FieldRef<"Institution", 'Int'>
+    readonly streetNum: FieldRef<"Institution", 'String'>
     readonly phoneNumber: FieldRef<"Institution", 'String'>
     readonly email: FieldRef<"Institution", 'String'>
     readonly rnc: FieldRef<"Institution", 'String'>
@@ -54090,7 +54086,7 @@ export namespace Prisma {
     institutionId?: IntFilter<"Institution"> | number
     name?: StringFilter<"Institution"> | string
     streetName?: StringFilter<"Institution"> | string
-    streetNum?: IntFilter<"Institution"> | number
+    streetNum?: StringNullableFilter<"Institution"> | string | null
     phoneNumber?: StringFilter<"Institution"> | string
     email?: StringFilter<"Institution"> | string
     rnc?: StringFilter<"Institution"> | string
@@ -54115,7 +54111,7 @@ export namespace Prisma {
     institutionId?: SortOrder
     name?: SortOrder
     streetName?: SortOrder
-    streetNum?: SortOrder
+    streetNum?: SortOrderInput | SortOrder
     phoneNumber?: SortOrder
     email?: SortOrder
     rnc?: SortOrder
@@ -54143,7 +54139,7 @@ export namespace Prisma {
     NOT?: InstitutionWhereInput | InstitutionWhereInput[]
     name?: StringFilter<"Institution"> | string
     streetName?: StringFilter<"Institution"> | string
-    streetNum?: IntFilter<"Institution"> | number
+    streetNum?: StringNullableFilter<"Institution"> | string | null
     phoneNumber?: StringFilter<"Institution"> | string
     email?: StringFilter<"Institution"> | string
     rnc?: StringFilter<"Institution"> | string
@@ -54168,7 +54164,7 @@ export namespace Prisma {
     institutionId?: SortOrder
     name?: SortOrder
     streetName?: SortOrder
-    streetNum?: SortOrder
+    streetNum?: SortOrderInput | SortOrder
     phoneNumber?: SortOrder
     email?: SortOrder
     rnc?: SortOrder
@@ -54190,7 +54186,7 @@ export namespace Prisma {
     institutionId?: IntWithAggregatesFilter<"Institution"> | number
     name?: StringWithAggregatesFilter<"Institution"> | string
     streetName?: StringWithAggregatesFilter<"Institution"> | string
-    streetNum?: IntWithAggregatesFilter<"Institution"> | number
+    streetNum?: StringNullableWithAggregatesFilter<"Institution"> | string | null
     phoneNumber?: StringWithAggregatesFilter<"Institution"> | string
     email?: StringWithAggregatesFilter<"Institution"> | string
     rnc?: StringWithAggregatesFilter<"Institution"> | string
@@ -56760,7 +56756,7 @@ export namespace Prisma {
   export type InstitutionCreateInput = {
     name: string
     streetName: string
-    streetNum: number
+    streetNum?: string | null
     phoneNumber: string
     email: string
     rnc: string
@@ -56783,7 +56779,7 @@ export namespace Prisma {
     institutionId?: number
     name: string
     streetName: string
-    streetNum: number
+    streetNum?: string | null
     phoneNumber: string
     email: string
     rnc: string
@@ -56805,7 +56801,7 @@ export namespace Prisma {
   export type InstitutionUpdateInput = {
     name?: StringFieldUpdateOperationsInput | string
     streetName?: StringFieldUpdateOperationsInput | string
-    streetNum?: IntFieldUpdateOperationsInput | number
+    streetNum?: NullableStringFieldUpdateOperationsInput | string | null
     phoneNumber?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     rnc?: StringFieldUpdateOperationsInput | string
@@ -56828,7 +56824,7 @@ export namespace Prisma {
     institutionId?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     streetName?: StringFieldUpdateOperationsInput | string
-    streetNum?: IntFieldUpdateOperationsInput | number
+    streetNum?: NullableStringFieldUpdateOperationsInput | string | null
     phoneNumber?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     rnc?: StringFieldUpdateOperationsInput | string
@@ -56851,7 +56847,7 @@ export namespace Prisma {
     institutionId?: number
     name: string
     streetName: string
-    streetNum: number
+    streetNum?: string | null
     phoneNumber: string
     email: string
     rnc: string
@@ -56864,7 +56860,7 @@ export namespace Prisma {
   export type InstitutionUpdateManyMutationInput = {
     name?: StringFieldUpdateOperationsInput | string
     streetName?: StringFieldUpdateOperationsInput | string
-    streetNum?: IntFieldUpdateOperationsInput | number
+    streetNum?: NullableStringFieldUpdateOperationsInput | string | null
     phoneNumber?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     rnc?: StringFieldUpdateOperationsInput | string
@@ -56876,7 +56872,7 @@ export namespace Prisma {
     institutionId?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     streetName?: StringFieldUpdateOperationsInput | string
-    streetNum?: IntFieldUpdateOperationsInput | number
+    streetNum?: NullableStringFieldUpdateOperationsInput | string | null
     phoneNumber?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     rnc?: StringFieldUpdateOperationsInput | string
@@ -59553,7 +59549,6 @@ export namespace Prisma {
 
   export type InstitutionAvgOrderByAggregateInput = {
     institutionId?: SortOrder
-    streetNum?: SortOrder
     propietaryId?: SortOrder
     municipalityId?: SortOrder
   }
@@ -59588,7 +59583,6 @@ export namespace Prisma {
 
   export type InstitutionSumOrderByAggregateInput = {
     institutionId?: SortOrder
-    streetNum?: SortOrder
     propietaryId?: SortOrder
     municipalityId?: SortOrder
   }
@@ -66200,7 +66194,7 @@ export namespace Prisma {
   export type InstitutionCreateWithoutPropietaryInput = {
     name: string
     streetName: string
-    streetNum: number
+    streetNum?: string | null
     phoneNumber: string
     email: string
     rnc: string
@@ -66222,7 +66216,7 @@ export namespace Prisma {
     institutionId?: number
     name: string
     streetName: string
-    streetNum: number
+    streetNum?: string | null
     phoneNumber: string
     email: string
     rnc: string
@@ -66303,7 +66297,7 @@ export namespace Prisma {
     institutionId?: IntFilter<"Institution"> | number
     name?: StringFilter<"Institution"> | string
     streetName?: StringFilter<"Institution"> | string
-    streetNum?: IntFilter<"Institution"> | number
+    streetNum?: StringNullableFilter<"Institution"> | string | null
     phoneNumber?: StringFilter<"Institution"> | string
     email?: StringFilter<"Institution"> | string
     rnc?: StringFilter<"Institution"> | string
@@ -66340,7 +66334,7 @@ export namespace Prisma {
   export type InstitutionCreateWithoutRepresentantesInput = {
     name: string
     streetName: string
-    streetNum: number
+    streetNum?: string | null
     phoneNumber: string
     email: string
     rnc: string
@@ -66362,7 +66356,7 @@ export namespace Prisma {
     institutionId?: number
     name: string
     streetName: string
-    streetNum: number
+    streetNum?: string | null
     phoneNumber: string
     email: string
     rnc: string
@@ -66466,7 +66460,7 @@ export namespace Prisma {
   export type InstitutionUpdateWithoutRepresentantesInput = {
     name?: StringFieldUpdateOperationsInput | string
     streetName?: StringFieldUpdateOperationsInput | string
-    streetNum?: IntFieldUpdateOperationsInput | number
+    streetNum?: NullableStringFieldUpdateOperationsInput | string | null
     phoneNumber?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     rnc?: StringFieldUpdateOperationsInput | string
@@ -66488,7 +66482,7 @@ export namespace Prisma {
     institutionId?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     streetName?: StringFieldUpdateOperationsInput | string
-    streetNum?: IntFieldUpdateOperationsInput | number
+    streetNum?: NullableStringFieldUpdateOperationsInput | string | null
     phoneNumber?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     rnc?: StringFieldUpdateOperationsInput | string
@@ -67097,7 +67091,7 @@ export namespace Prisma {
   export type InstitutionCreateWithoutStatusInput = {
     name: string
     streetName: string
-    streetNum: number
+    streetNum?: string | null
     phoneNumber: string
     email: string
     rnc: string
@@ -67119,7 +67113,7 @@ export namespace Prisma {
     institutionId?: number
     name: string
     streetName: string
-    streetNum: number
+    streetNum?: string | null
     phoneNumber: string
     email: string
     rnc: string
@@ -67179,7 +67173,7 @@ export namespace Prisma {
   export type InstitutionUpdateWithoutStatusInput = {
     name?: StringFieldUpdateOperationsInput | string
     streetName?: StringFieldUpdateOperationsInput | string
-    streetNum?: IntFieldUpdateOperationsInput | number
+    streetNum?: NullableStringFieldUpdateOperationsInput | string | null
     phoneNumber?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     rnc?: StringFieldUpdateOperationsInput | string
@@ -67201,7 +67195,7 @@ export namespace Prisma {
     institutionId?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     streetName?: StringFieldUpdateOperationsInput | string
-    streetNum?: IntFieldUpdateOperationsInput | number
+    streetNum?: NullableStringFieldUpdateOperationsInput | string | null
     phoneNumber?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     rnc?: StringFieldUpdateOperationsInput | string
@@ -67319,7 +67313,7 @@ export namespace Prisma {
   export type InstitutionCreateWithoutSaPermitsInput = {
     name: string
     streetName: string
-    streetNum: number
+    streetNum?: string | null
     phoneNumber: string
     email: string
     rnc: string
@@ -67341,7 +67335,7 @@ export namespace Prisma {
     institutionId?: number
     name: string
     streetName: string
-    streetNum: number
+    streetNum?: string | null
     phoneNumber: string
     email: string
     rnc: string
@@ -67416,7 +67410,7 @@ export namespace Prisma {
   export type InstitutionUpdateWithoutSaPermitsInput = {
     name?: StringFieldUpdateOperationsInput | string
     streetName?: StringFieldUpdateOperationsInput | string
-    streetNum?: IntFieldUpdateOperationsInput | number
+    streetNum?: NullableStringFieldUpdateOperationsInput | string | null
     phoneNumber?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     rnc?: StringFieldUpdateOperationsInput | string
@@ -67438,7 +67432,7 @@ export namespace Prisma {
     institutionId?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     streetName?: StringFieldUpdateOperationsInput | string
-    streetNum?: IntFieldUpdateOperationsInput | number
+    streetNum?: NullableStringFieldUpdateOperationsInput | string | null
     phoneNumber?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     rnc?: StringFieldUpdateOperationsInput | string
@@ -67805,7 +67799,7 @@ export namespace Prisma {
   export type InstitutionCreateWithoutFormResponsesInput = {
     name: string
     streetName: string
-    streetNum: number
+    streetNum?: string | null
     phoneNumber: string
     email: string
     rnc: string
@@ -67827,7 +67821,7 @@ export namespace Prisma {
     institutionId?: number
     name: string
     streetName: string
-    streetNum: number
+    streetNum?: string | null
     phoneNumber: string
     email: string
     rnc: string
@@ -68019,7 +68013,7 @@ export namespace Prisma {
   export type InstitutionUpdateWithoutFormResponsesInput = {
     name?: StringFieldUpdateOperationsInput | string
     streetName?: StringFieldUpdateOperationsInput | string
-    streetNum?: IntFieldUpdateOperationsInput | number
+    streetNum?: NullableStringFieldUpdateOperationsInput | string | null
     phoneNumber?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     rnc?: StringFieldUpdateOperationsInput | string
@@ -68041,7 +68035,7 @@ export namespace Prisma {
     institutionId?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     streetName?: StringFieldUpdateOperationsInput | string
-    streetNum?: IntFieldUpdateOperationsInput | number
+    streetNum?: NullableStringFieldUpdateOperationsInput | string | null
     phoneNumber?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     rnc?: StringFieldUpdateOperationsInput | string
@@ -69208,7 +69202,7 @@ export namespace Prisma {
   export type InstitutionCreateWithoutMunicipalityInput = {
     name: string
     streetName: string
-    streetNum: number
+    streetNum?: string | null
     phoneNumber: string
     email: string
     rnc: string
@@ -69230,7 +69224,7 @@ export namespace Prisma {
     institutionId?: number
     name: string
     streetName: string
-    streetNum: number
+    streetNum?: string | null
     phoneNumber: string
     email: string
     rnc: string
@@ -69617,7 +69611,7 @@ export namespace Prisma {
   export type InstitutionCreateWithoutBpmRequestsInput = {
     name: string
     streetName: string
-    streetNum: number
+    streetNum?: string | null
     phoneNumber: string
     email: string
     rnc: string
@@ -69639,7 +69633,7 @@ export namespace Prisma {
     institutionId?: number
     name: string
     streetName: string
-    streetNum: number
+    streetNum?: string | null
     phoneNumber: string
     email: string
     rnc: string
@@ -69827,7 +69821,7 @@ export namespace Prisma {
   export type InstitutionUpdateWithoutBpmRequestsInput = {
     name?: StringFieldUpdateOperationsInput | string
     streetName?: StringFieldUpdateOperationsInput | string
-    streetNum?: IntFieldUpdateOperationsInput | number
+    streetNum?: NullableStringFieldUpdateOperationsInput | string | null
     phoneNumber?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     rnc?: StringFieldUpdateOperationsInput | string
@@ -69849,7 +69843,7 @@ export namespace Prisma {
     institutionId?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     streetName?: StringFieldUpdateOperationsInput | string
-    streetNum?: IntFieldUpdateOperationsInput | number
+    streetNum?: NullableStringFieldUpdateOperationsInput | string | null
     phoneNumber?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     rnc?: StringFieldUpdateOperationsInput | string
@@ -70020,7 +70014,7 @@ export namespace Prisma {
   export type InstitutionCreateWithoutCasesInput = {
     name: string
     streetName: string
-    streetNum: number
+    streetNum?: string | null
     phoneNumber: string
     email: string
     rnc: string
@@ -70042,7 +70036,7 @@ export namespace Prisma {
     institutionId?: number
     name: string
     streetName: string
-    streetNum: number
+    streetNum?: string | null
     phoneNumber: string
     email: string
     rnc: string
@@ -70358,7 +70352,7 @@ export namespace Prisma {
   export type InstitutionUpdateWithoutCasesInput = {
     name?: StringFieldUpdateOperationsInput | string
     streetName?: StringFieldUpdateOperationsInput | string
-    streetNum?: IntFieldUpdateOperationsInput | number
+    streetNum?: NullableStringFieldUpdateOperationsInput | string | null
     phoneNumber?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     rnc?: StringFieldUpdateOperationsInput | string
@@ -70380,7 +70374,7 @@ export namespace Prisma {
     institutionId?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     streetName?: StringFieldUpdateOperationsInput | string
-    streetNum?: IntFieldUpdateOperationsInput | number
+    streetNum?: NullableStringFieldUpdateOperationsInput | string | null
     phoneNumber?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     rnc?: StringFieldUpdateOperationsInput | string
@@ -70651,7 +70645,7 @@ export namespace Prisma {
   export type InstitutionCreateWithoutLapchAlertsInput = {
     name: string
     streetName: string
-    streetNum: number
+    streetNum?: string | null
     phoneNumber: string
     email: string
     rnc: string
@@ -70673,7 +70667,7 @@ export namespace Prisma {
     institutionId?: number
     name: string
     streetName: string
-    streetNum: number
+    streetNum?: string | null
     phoneNumber: string
     email: string
     rnc: string
@@ -70750,7 +70744,7 @@ export namespace Prisma {
   export type InstitutionUpdateWithoutLapchAlertsInput = {
     name?: StringFieldUpdateOperationsInput | string
     streetName?: StringFieldUpdateOperationsInput | string
-    streetNum?: IntFieldUpdateOperationsInput | number
+    streetNum?: NullableStringFieldUpdateOperationsInput | string | null
     phoneNumber?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     rnc?: StringFieldUpdateOperationsInput | string
@@ -70772,7 +70766,7 @@ export namespace Prisma {
     institutionId?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     streetName?: StringFieldUpdateOperationsInput | string
-    streetNum?: IntFieldUpdateOperationsInput | number
+    streetNum?: NullableStringFieldUpdateOperationsInput | string | null
     phoneNumber?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     rnc?: StringFieldUpdateOperationsInput | string
@@ -70839,7 +70833,7 @@ export namespace Prisma {
   export type InstitutionCreateWithoutComplaintsInput = {
     name: string
     streetName: string
-    streetNum: number
+    streetNum?: string | null
     phoneNumber: string
     email: string
     rnc: string
@@ -70861,7 +70855,7 @@ export namespace Prisma {
     institutionId?: number
     name: string
     streetName: string
-    streetNum: number
+    streetNum?: string | null
     phoneNumber: string
     email: string
     rnc: string
@@ -70938,7 +70932,7 @@ export namespace Prisma {
   export type InstitutionUpdateWithoutComplaintsInput = {
     name?: StringFieldUpdateOperationsInput | string
     streetName?: StringFieldUpdateOperationsInput | string
-    streetNum?: IntFieldUpdateOperationsInput | number
+    streetNum?: NullableStringFieldUpdateOperationsInput | string | null
     phoneNumber?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     rnc?: StringFieldUpdateOperationsInput | string
@@ -70960,7 +70954,7 @@ export namespace Prisma {
     institutionId?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     streetName?: StringFieldUpdateOperationsInput | string
-    streetNum?: IntFieldUpdateOperationsInput | number
+    streetNum?: NullableStringFieldUpdateOperationsInput | string | null
     phoneNumber?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     rnc?: StringFieldUpdateOperationsInput | string
@@ -71341,7 +71335,7 @@ export namespace Prisma {
   export type InstitutionCreateWithoutEvaluationsInput = {
     name: string
     streetName: string
-    streetNum: number
+    streetNum?: string | null
     phoneNumber: string
     email: string
     rnc: string
@@ -71363,7 +71357,7 @@ export namespace Prisma {
     institutionId?: number
     name: string
     streetName: string
-    streetNum: number
+    streetNum?: string | null
     phoneNumber: string
     email: string
     rnc: string
@@ -71612,7 +71606,7 @@ export namespace Prisma {
   export type InstitutionUpdateWithoutEvaluationsInput = {
     name?: StringFieldUpdateOperationsInput | string
     streetName?: StringFieldUpdateOperationsInput | string
-    streetNum?: IntFieldUpdateOperationsInput | number
+    streetNum?: NullableStringFieldUpdateOperationsInput | string | null
     phoneNumber?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     rnc?: StringFieldUpdateOperationsInput | string
@@ -71634,7 +71628,7 @@ export namespace Prisma {
     institutionId?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     streetName?: StringFieldUpdateOperationsInput | string
-    streetNum?: IntFieldUpdateOperationsInput | number
+    streetNum?: NullableStringFieldUpdateOperationsInput | string | null
     phoneNumber?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     rnc?: StringFieldUpdateOperationsInput | string
@@ -72936,7 +72930,7 @@ export namespace Prisma {
     institutionId?: number
     name: string
     streetName: string
-    streetNum: number
+    streetNum?: string | null
     phoneNumber: string
     email: string
     rnc: string
@@ -72948,7 +72942,7 @@ export namespace Prisma {
   export type InstitutionUpdateWithoutPropietaryInput = {
     name?: StringFieldUpdateOperationsInput | string
     streetName?: StringFieldUpdateOperationsInput | string
-    streetNum?: IntFieldUpdateOperationsInput | number
+    streetNum?: NullableStringFieldUpdateOperationsInput | string | null
     phoneNumber?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     rnc?: StringFieldUpdateOperationsInput | string
@@ -72970,7 +72964,7 @@ export namespace Prisma {
     institutionId?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     streetName?: StringFieldUpdateOperationsInput | string
-    streetNum?: IntFieldUpdateOperationsInput | number
+    streetNum?: NullableStringFieldUpdateOperationsInput | string | null
     phoneNumber?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     rnc?: StringFieldUpdateOperationsInput | string
@@ -72992,7 +72986,7 @@ export namespace Prisma {
     institutionId?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     streetName?: StringFieldUpdateOperationsInput | string
-    streetNum?: IntFieldUpdateOperationsInput | number
+    streetNum?: NullableStringFieldUpdateOperationsInput | string | null
     phoneNumber?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     rnc?: StringFieldUpdateOperationsInput | string
@@ -73899,7 +73893,7 @@ export namespace Prisma {
     institutionId?: number
     name: string
     streetName: string
-    streetNum: number
+    streetNum?: string | null
     phoneNumber: string
     email: string
     rnc: string
@@ -73911,7 +73905,7 @@ export namespace Prisma {
   export type InstitutionUpdateWithoutMunicipalityInput = {
     name?: StringFieldUpdateOperationsInput | string
     streetName?: StringFieldUpdateOperationsInput | string
-    streetNum?: IntFieldUpdateOperationsInput | number
+    streetNum?: NullableStringFieldUpdateOperationsInput | string | null
     phoneNumber?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     rnc?: StringFieldUpdateOperationsInput | string
@@ -73933,7 +73927,7 @@ export namespace Prisma {
     institutionId?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     streetName?: StringFieldUpdateOperationsInput | string
-    streetNum?: IntFieldUpdateOperationsInput | number
+    streetNum?: NullableStringFieldUpdateOperationsInput | string | null
     phoneNumber?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     rnc?: StringFieldUpdateOperationsInput | string
@@ -73955,7 +73949,7 @@ export namespace Prisma {
     institutionId?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     streetName?: StringFieldUpdateOperationsInput | string
-    streetNum?: IntFieldUpdateOperationsInput | number
+    streetNum?: NullableStringFieldUpdateOperationsInput | string | null
     phoneNumber?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     rnc?: StringFieldUpdateOperationsInput | string

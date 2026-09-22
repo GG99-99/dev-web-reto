@@ -33,6 +33,12 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
   const [showAddRepresentModal, setShowAddRepresentModal] = useState(false)
   const [selectedInstForRep, setSelectedInstForRep] = useState<number | null>(null)
 
+  const [instFormError, setInstFormError] = useState('')
+  const [repFormError, setRepFormError] = useState('')
+  const [showEditInstitutionModal, setShowEditInstitutionModal] = useState(false)
+  const [editingInstitution, setEditingInstitution] = useState<any>(null)
+  const [editFormError, setEditFormError] = useState('')
+
   // Geographic selectors for institution creation
   const [provinces, setProvinces] = useState<any[]>([])
   const [municipalities, setMunicipalities] = useState<any[]>([])
@@ -165,16 +171,16 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
 
   // Submit draft request to evaluation
   const handleSubmitRequest = async (id: number) => {
-    if (!confirm('¿Desea enviar formalmente esta solicitud de evaluación BPM a la autoridad sanitaria?')) return
+    if (!confirm('Submit this BPM evaluation request to the health authority?')) return
     setSubmitting(true)
     try {
       const res = await bpmRequestsService.submit(id)
       if (res.valid) {
-        notify(`¡Solicitud #${id} enviada con éxito! Se ha originado el Caso #${res.data?.case?.caseId ?? ''} para evaluación.`)
+        notify(`Request #${id} submitted successfully! Case #${res.data?.case?.caseId ?? ''} has been created for evaluation.`)
         await loadData()
       }
     } catch (err: any) {
-      notify(err?.response?.data?.message || 'No se pudo enviar la solicitud.')
+      notify(err?.response?.data?.message || 'Could not submit the request.')
     } finally {
       setSubmitting(false)
     }
@@ -188,14 +194,14 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
     try {
       const res = await bpmRequestsService.addAttachment(selectedRequestId, uploadFile)
       if (res.valid) {
-        notify('Documento adjunto registrado correctamente.')
+        notify('Document attached successfully.')
         setUploadFile(null)
         // Refresh request detail
         const detailRes = await bpmRequestsService.getById(selectedRequestId)
         if (detailRes.valid) setSelectedReqDetail(detailRes.data)
       }
     } catch (err: any) {
-      notify(err?.response?.data?.message || 'Error al adjuntar documento.')
+      notify(err?.response?.data?.message || 'Error attaching document.')
     } finally {
       setSubmitting(false)
     }
@@ -213,7 +219,7 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
     const submitDirectly = form.get('submitDirectly') === 'true'
 
     if (!instId || !tipoEstablecimiento || !motivo) {
-      notify('Por favor complete los campos obligatorios.')
+      notify('Please complete all required fields.')
       return
     }
 
@@ -232,19 +238,19 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
           try {
             await bpmRequestsService.addAttachment(newId, file)
           } catch {
-            notify('Solicitud creada, pero hubo un error al cargar el archivo adjunto.')
+            notify('Request created, but there was an error uploading the attachment.')
           }
         }
 
         if (submitDirectly) {
           try {
             await bpmRequestsService.submit(newId)
-            notify(`Solicitud BPM #${newId} creada y enviada a revisión técnica.`)
+            notify(`BPM Request #${newId} created and submitted for technical review.`)
           } catch {
-            notify(`Solicitud BPM #${newId} guardada como borrador (no se pudo enviar automáticamente).`)
+            notify(`BPM Request #${newId} saved as draft (could not submit automatically).`)
           }
         } else {
-          notify(`Solicitud BPM #${newId} guardada como borrador.`)
+          notify(`BPM Request #${newId} saved as draft.`)
         }
 
         setShowNewRequestModal(false)
@@ -252,7 +258,7 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
         setSelectedRequestId(newId)
       }
     } catch (err: any) {
-      notify(err?.response?.data?.message || 'Error al crear la solicitud BPM.')
+      notify(err?.response?.data?.message || 'Error creating BPM request.')
     } finally {
       setSubmitting(false)
     }
@@ -261,6 +267,7 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
   // Handle Register Institution
   const handleCreateInstitution = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    setInstFormError('')
     const form = new FormData(e.currentTarget)
     const body = {
       name: String(form.get('name') || ''),
@@ -278,12 +285,48 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
     try {
       const res = await institutionsService.create(body)
       if (res.valid) {
-        notify(`Establecimiento "${res.data.name}" registrado correctamente.`)
+        notify(`Establishment "${res.data.name}" registered successfully.`)
         setShowNewInstitutionModal(false)
         await loadData()
       }
     } catch (err: any) {
-      notify(err?.response?.data?.message || 'Error al registrar establecimiento.')
+      const msg = err?.response?.data?.message || 'Error registering establishment.'
+      setInstFormError(msg)
+      notify(msg)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  // Handle Edit Institution
+  const handleEditInstitution = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    if (!editingInstitution) return
+    setEditFormError('')
+    const form = new FormData(e.currentTarget)
+    const body = {
+      name: String(form.get('name') || ''),
+      nombreComercial: String(form.get('nombreComercial') || '') || undefined,
+      rnc: String(form.get('rnc') || ''),
+      actividadEconomica: String(form.get('actividadEconomica') || '') || undefined,
+      streetName: String(form.get('streetName') || ''),
+      streetNum: String(form.get('streetNum') || '') || undefined,
+      phoneNumber: String(form.get('phoneNumber') || ''),
+      email: String(form.get('email') || ''),
+    }
+    setSubmitting(true)
+    try {
+      const res = await institutionsService.update(editingInstitution.institutionId, body)
+      if (res.valid) {
+        notify(`Establishment "${res.data.name}" updated successfully.`)
+        setShowEditInstitutionModal(false)
+        setEditingInstitution(null)
+        await loadData()
+      }
+    } catch (err: any) {
+      const msg = err?.response?.data?.error?.message || err?.response?.data?.message || 'Could not update establishment. Please try again.'
+      setEditFormError(msg)
+      notify(msg)
     } finally {
       setSubmitting(false)
     }
@@ -297,6 +340,7 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
   // the backend today, so it is intentionally dropped rather than sent.
   const handleAddRepresentative = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    setRepFormError('')
     if (!selectedInstForRep) return
     const form = new FormData(e.currentTarget)
     const rawTipo = String(form.get('tipo') || 'CALIDAD')
@@ -315,12 +359,15 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
     try {
       const res = await institutionsService.addRepresentative(selectedInstForRep, body)
       if (res.valid) {
-        notify('Representante institucional asignado con éxito.')
+        notify('Representative assigned successfully.')
         setShowAddRepresentModal(false)
         await loadData()
+        setActiveTab('institutions')
       }
     } catch (err: any) {
-      notify(err?.response?.data?.message || 'Error al agregar representante.')
+      const msg = err?.response?.data?.message || 'Error adding representative.'
+      setRepFormError(msg)
+      notify(msg)
     } finally {
       setSubmitting(false)
     }
@@ -365,7 +412,16 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
 
   const formatStatus = (st?: string) => {
     if (!st) return '—'
-    return st.replaceAll('_', ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())
+    const statusMap: Record<string, string> = {
+      'BORRADOR': 'Draft',
+      'PENDIENTE_ASIGNACION': 'Pending Assignment',
+      'ASIGNADA': 'Assigned',
+      'EN_PROCESO': 'In Progress',
+      'COMPLETADA': 'Completed',
+      'APROBADO': 'Approved',
+      'RECHAZADA': 'Rejected'
+    }
+    return statusMap[st] || st.replaceAll('_', ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())
   }
 
   return (
@@ -373,8 +429,8 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
       {/* 1. Header Hero Banner */}
       <div className="cp-hero">
         <div className="cp-hero-info">
-          <small>Portal del Establecimiento Regulado · BPM</small>
-          <h1>{mainInstitution?.name || 'Portal de Autogestión de la Empresa'}</h1>
+          <small>Regulated Establishment Portal · BPM</small>
+          <h1>{mainInstitution?.name || 'Company Self-Service Portal'}</h1>
           <p>
             <span>🏢 RNC: <strong>{mainInstitution?.rnc || '130-99887-1'}</strong></span>
             <span>📍 {mainInstitution?.streetName ? `${mainInstitution.streetName} #${mainInstitution.streetNum || ''}` : 'Santiago de los Caballeros, RD'}</span>
@@ -388,7 +444,7 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
             className="cp-btn-white"
             onClick={() => setShowNewRequestModal(true)}
           >
-            ➕ Nueva Solicitud BPM
+            ➕ New BPM Request
           </button>
           <button
             type="button"
@@ -396,7 +452,7 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
             style={{ background: 'rgba(255, 255, 255, 0.2)', color: '#ffffff' }}
             onClick={() => setShowNewInstitutionModal(true)}
           >
-            🏭 Registrar Planta / Local
+            🏭 Register Establishment
           </button>
         </div>
       </div>
@@ -406,28 +462,28 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
         <div className="cp-metric-card">
           <div className="cp-metric-icon cp-icon-blue">📋</div>
           <div className="cp-metric-text">
-            <span className="cp-metric-label">Total Solicitudes</span>
+            <span className="cp-metric-label">Total Requests</span>
             <span className="cp-metric-val">{metrics.totalRequests}</span>
           </div>
         </div>
         <div className="cp-metric-card">
           <div className="cp-metric-icon cp-icon-amber">⏳</div>
           <div className="cp-metric-text">
-            <span className="cp-metric-label">En Evaluación / Asignadas</span>
+            <span className="cp-metric-label">In Evaluation / Assigned</span>
             <span className="cp-metric-val">{metrics.inProgress}</span>
           </div>
         </div>
         <div className="cp-metric-card">
           <div className="cp-metric-icon cp-icon-purple">📝</div>
           <div className="cp-metric-text">
-            <span className="cp-metric-label">Borradores Pendientes</span>
+            <span className="cp-metric-label">Pending Drafts</span>
             <span className="cp-metric-val">{metrics.drafts}</span>
           </div>
         </div>
         <div className="cp-metric-card">
           <div className="cp-metric-icon cp-icon-green">🛡</div>
           <div className="cp-metric-text">
-            <span className="cp-metric-label">Dictámenes Completados</span>
+            <span className="cp-metric-label">Completed Decisions</span>
             <span className="cp-metric-val">{metrics.completed}</span>
           </div>
         </div>
@@ -440,21 +496,21 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
           className={`cp-tab-btn ${activeTab === 'requests' ? 'active' : ''}`}
           onClick={() => setActiveTab('requests')}
         >
-          📄 Mis Solicitudes BPM
+          📄 My BPM Requests
         </button>
         <button
           type="button"
           className={`cp-tab-btn ${activeTab === 'institutions' ? 'active' : ''}`}
           onClick={() => setActiveTab('institutions')}
         >
-          🏢 Establecimientos & Representantes (RF-03)
+          🏢 Establishments & Representatives
         </button>
         <button
           type="button"
           className={`cp-tab-btn ${activeTab === 'evaluations' ? 'active' : ''}`}
           onClick={() => setActiveTab('evaluations')}
         >
-          🎖 Certificados Sanitarios & Evaluaciones
+          🎖 Official Certificates & Evaluations
         </button>
       </div>
 
@@ -464,29 +520,29 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
           {/* Left: Requests List */}
           <div className="cp-card">
             <div className="cp-card-header">
-              <h2><span>🗂</span> Trámites Registrados ({requests.length})</h2>
+              <h2><span>🗂</span> Registered Requests ({requests.length})</h2>
               <button
                 type="button"
                 className="cp-btn-secondary"
                 onClick={() => void loadData()}
               >
-                🔄 Actualizar
+                🔄 Refresh
               </button>
             </div>
 
             {loading ? (
-              <div className="cp-empty"><span>⏳</span><p>Cargando solicitudes BPM de la empresa…</p></div>
+              <div className="cp-empty"><span>⏳</span><p>Loading company BPM requests…</p></div>
             ) : requests.length === 0 ? (
               <div className="cp-empty">
                 <span>📂</span>
-                <h3>Sin solicitudes registradas</h3>
-                <p>Inicie un trámite de evaluación basada en riesgo para sus instalaciones alimentarias.</p>
+                <h3>No requests registered</h3>
+                <p>Start a BPM risk evaluation request for your food facilities.</p>
                 <button
                   type="button"
                   className="cp-btn-primary"
                   onClick={() => setShowNewRequestModal(true)}
                 >
-                  ➕ Crear primera solicitud BPM
+                  ➕ Create first BPM request
                 </button>
               </div>
             ) : (
@@ -500,7 +556,7 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
                     <div className="cp-req-main">
                       <div className="cp-req-title">
                         <span>#{req.bpmRequestId}</span>
-                        <strong>{req.institution?.name || 'Establecimiento'}</strong>
+                        <strong>{req.institution?.name || 'Establishment'}</strong>
                       </div>
                       <div className="cp-req-sub">
                         <span>🏷 {req.tipoEstablecimiento || 'General'}</span>
@@ -523,7 +579,7 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
             {selectedReqDetail ? (
               <div>
                 <div className="cp-card-header">
-                  <h2><span>📋</span> Detalle de Solicitud #{selectedReqDetail.bpmRequestId}</h2>
+                  <h2><span>📋</span> Request Detail #{selectedReqDetail.bpmRequestId}</h2>
                   <span className={`cp-badge ${getBadgeClass(selectedReqDetail.status)}`}>
                     {formatStatus(selectedReqDetail.status)}
                   </span>
@@ -533,45 +589,45 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
                 <div className="cp-timeline">
                   <div className={`cp-step ${currentStage >= 1 ? 'done' : ''} ${currentStage === 1 ? 'active' : ''}`}>
                     <div className="cp-step-circle">1</div>
-                    <span className="cp-step-label">Borrador</span>
+                    <span className="cp-step-label">Draft</span>
                   </div>
                   <div className={`cp-step ${currentStage >= 2 ? 'done' : ''} ${currentStage === 2 ? 'active' : ''}`}>
                     <div className="cp-step-circle">2</div>
-                    <span className="cp-step-label">Enviado</span>
+                    <span className="cp-step-label">Submitted</span>
                   </div>
                   <div className={`cp-step ${currentStage >= 3 ? 'done' : ''} ${currentStage === 3 ? 'active' : ''}`}>
                     <div className="cp-step-circle">3</div>
-                    <span className="cp-step-label">Asignado</span>
+                    <span className="cp-step-label">Assigned</span>
                   </div>
                   <div className={`cp-step ${currentStage >= 4 ? 'done' : ''} ${currentStage === 4 ? 'active' : ''}`}>
                     <div className="cp-step-circle">4</div>
-                    <span className="cp-step-label">En Campo</span>
+                    <span className="cp-step-label">In Field</span>
                   </div>
                   <div className={`cp-step ${currentStage >= 5 ? 'done' : ''} ${currentStage === 5 ? 'active' : ''}`}>
                     <div className="cp-step-circle">5</div>
-                    <span className="cp-step-label">Dictamen</span>
+                    <span className="cp-step-label">Decision</span>
                   </div>
                 </div>
 
                 {/* Information block */}
                 <div style={{ margin: '1rem 0', display: 'flex', flexDirection: 'column', gap: '0.6rem', fontSize: '0.88rem' }}>
                   <div>
-                    <strong style={{ color: '#00236f' }}>Establecimiento: </strong>
-                    <span>{selectedReqDetail.institution?.name || 'No especificado'}</span>
+                    <strong style={{ color: '#00236f' }}>Establishment: </strong>
+                    <span>{selectedReqDetail.institution?.name || 'Not specified'}</span>
                   </div>
                   <div>
-                    <strong style={{ color: '#00236f' }}>Tipo: </strong>
+                    <strong style={{ color: '#00236f' }}>Type: </strong>
                     <span>{selectedReqDetail.tipoEstablecimiento}</span>
                   </div>
                   <div>
-                    <strong style={{ color: '#00236f' }}>Motivo de inspección: </strong>
+                    <strong style={{ color: '#00236f' }}>Inspection reason: </strong>
                     <p style={{ margin: '0.2rem 0', color: '#334155', background: '#f8fafc', padding: '0.5rem', borderRadius: '6px' }}>
                       {selectedReqDetail.motivo}
                     </p>
                   </div>
                   {selectedReqDetail.observaciones && (
                     <div>
-                      <strong style={{ color: '#00236f' }}>Observaciones adicionales: </strong>
+                      <strong style={{ color: '#00236f' }}>Additional observations: </strong>
                       <p style={{ margin: '0.2rem 0', color: '#64748b' }}>
                         {selectedReqDetail.observaciones}
                       </p>
@@ -582,28 +638,28 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
                 {/* Document Attachments */}
                 <div style={{ marginTop: '1.25rem', borderTop: '1px solid #e2e8f0', paddingTop: '1rem' }}>
                   <h3 style={{ fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.5rem 0', color: '#00236f' }}>
-                    📎 Documentación Sanitaria Obligatoria
+                    📎 Required Health Documentation
                   </h3>
                   {selectedReqDetail.attachments && selectedReqDetail.attachments.length > 0 ? (
                     <div className="cp-attachments-list">
                       {selectedReqDetail.attachments.map((att: any) => (
                         <div key={att.attachmentId} className="cp-attachment-item">
-                          <span>📄 {att.originalName || att.filename || `Adjunto #${att.attachmentId}`}</span>
+                          <span>📄 {att.originalName || att.filename || `Attachment #${att.attachmentId}`}</span>
                           <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                            {att.size ? `${Math.round(att.size / 1024)} KB` : 'Cargado'}
+                            {att.size ? `${Math.round(att.size / 1024)} KB` : 'Uploaded'}
                           </span>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <p style={{ fontSize: '0.82rem', color: '#64748b' }}>No se han adjuntado documentos aún.</p>
+                    <p style={{ fontSize: '0.82rem', color: '#64748b' }}>No documents attached yet.</p>
                   )}
 
                   {/* Add document form (when draft or in progress) */}
                   {selectedReqDetail.status === 'BORRADOR' && (
                     <form onSubmit={handleAddAttachment} style={{ marginTop: '0.85rem' }}>
                       <label style={{ fontSize: '0.82rem', fontWeight: 600, display: 'block', marginBottom: '0.35rem' }}>
-                        Adjuntar documento complementario:
+                        Attach supporting document:
                       </label>
                       <input
                         type="file"
@@ -617,7 +673,7 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
                           className="cp-btn-secondary"
                           style={{ marginTop: '0.5rem', width: '100%', justifyContent: 'center' }}
                         >
-                          {submitting ? 'Subiendo…' : '📤 Subir Archivo'}
+                          {submitting ? 'Uploading…' : '📤 Upload File'}
                         </button>
                       )}
                     </form>
@@ -633,7 +689,7 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
                       className="cp-btn-primary"
                       onClick={() => void handleSubmitRequest(selectedReqDetail.bpmRequestId)}
                     >
-                      🚀 Enviar a Evaluación Sanitaria
+                      🚀 Submit for Health Evaluation
                     </button>
                   )}
 
@@ -645,10 +701,10 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
                       onClick={() => {
                         const evalId = selectedReqDetail.evaluationId || evaluations[0]?.evaluationId || 1
                         if (onOpenOfficialReport) onOpenOfficialReport(evalId)
-                        else notify(`Dictamen para evaluación #${evalId}`)
+                        else notify(`Certificate for evaluation #${evalId}`)
                       }}
                     >
-                      🎖 Ver Dictamen Oficial & Certificado BPM (PDF)
+                      🎖 View Official Decision & BPM Certificate (PDF)
                     </button>
                   )}
                 </div>
@@ -656,7 +712,7 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
             ) : (
               <div className="cp-empty">
                 <span>👈</span>
-                <p>Seleccione una solicitud de la lista para ver su estado y documentación.</p>
+                <p>Select a request from the list to view its status and documentation.</p>
               </div>
             )}
           </aside>
@@ -667,34 +723,34 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
       {activeTab === 'institutions' && (
         <div className="cp-card">
           <div className="cp-card-header">
-            <h2><span>🏭</span> Establecimientos Registrados ({institutions.length})</h2>
+            <h2><span>🏭</span> Registered Establishments ({institutions.length})</h2>
             <button
               type="button"
               className="cp-btn-primary"
               onClick={() => setShowNewInstitutionModal(true)}
             >
-              ➕ Registrar Nuevo Establecimiento
+              ➕ Register New Establishment
             </button>
           </div>
 
           <div className="cp-help-box">
             <span>ℹ️</span>
             <div>
-              <strong>Requisito RF-03 (Gestión de Empresas):</strong> Cada establecimiento debe contar con su dirección geográfica, actividad económica y representantes acreditados (Legal, Calidad o Contacto Principal).
+              Each establishment must have its geographic address, economic activity, and accredited representatives (Legal, Quality or Main Contact).
             </div>
           </div>
 
           {institutions.length === 0 ? (
             <div className="cp-empty">
               <span>🏢</span>
-              <h3>No tiene establecimientos registrados</h3>
-              <p>Registre su planta de procesamiento, centro de distribución o local gastronómico.</p>
+              <h3>No establishments registered</h3>
+              <p>Register your processing plant, distribution center, or food service location.</p>
               <button
                 type="button"
                 className="cp-btn-primary"
                 onClick={() => setShowNewInstitutionModal(true)}
               >
-                Registrar Establecimiento
+                Register Establishment
               </button>
             </div>
           ) : (
@@ -704,23 +760,36 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
                     <div>
                       <h3 style={{ margin: '0 0 0.2rem 0', fontSize: '1.05rem', color: '#00236f' }}>{inst.name}</h3>
-                      <small style={{ color: '#64748b' }}>{inst.nombreComercial || 'Nombre comercial no asignado'}</small>
+                      <small style={{ color: '#64748b' }}>{inst.nombreComercial || 'Trade name not assigned'}</small>
                     </div>
-                    <span className="cp-badge cp-badge-assigned">RNC {inst.rnc}</span>
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                      <span className="cp-badge cp-badge-assigned">RNC {inst.rnc}</span>
+                      <button
+                        type="button"
+                        className="cp-btn-secondary"
+                        style={{ fontSize: '0.75rem', padding: '0.2rem 0.6rem' }}
+                        onClick={() => {
+                          setEditingInstitution(inst)
+                          setShowEditInstitutionModal(true)
+                        }}
+                      >
+                        ✏️ Edit
+                      </button>
+                    </div>
                   </div>
 
                   <div style={{ fontSize: '0.85rem', color: '#334155', display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '1rem' }}>
-                    <div><strong>📍 Ubicación:</strong> {inst.streetName ? `${inst.streetName} #${inst.streetNum || ''}` : 'Dirección registrada'}</div>
-                    <div><strong>🏭 Actividad:</strong> {inst.actividadEconomica || 'Fabricación / Alimentos'}</div>
-                    <div><strong>📞 Teléfono:</strong> {inst.phoneNumber || '—'}</div>
-                    <div><strong>✉ Correo:</strong> {inst.email || '—'}</div>
+                    <div><strong>📍 Location:</strong> {inst.streetName ? `${inst.streetName} #${inst.streetNum || ''}` : 'Registered address'}</div>
+                    <div><strong>🏭 Activity:</strong> {inst.actividadEconomica || 'Manufacturing / Food'}</div>
+                    <div><strong>📞 Phone:</strong> {inst.phoneNumber || '—'}</div>
+                    <div><strong>✉ Email:</strong> {inst.email || '—'}</div>
                   </div>
 
                   {/* Representatives Section */}
                   <div style={{ borderTop: '1px dashed #cbd5e1', paddingTop: '0.85rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                       <strong style={{ fontSize: '0.82rem', color: '#00236f', textTransform: 'uppercase' }}>
-                        👥 Representantes Acreditados
+                        👥 Accredited Representatives
                       </strong>
                       <button
                         type="button"
@@ -731,7 +800,7 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
                           setShowAddRepresentModal(true)
                         }}
                       >
-                        ➕ Añadir
+                        ➕ Add
                       </button>
                     </div>
 
@@ -739,14 +808,14 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                         {inst.represents.map((rep: any) => (
                           <div key={rep.representId} style={{ background: '#f8fafc', padding: '0.45rem 0.65rem', borderRadius: '6px', fontSize: '0.82rem', display: 'flex', justifyContent: 'space-between' }}>
-                            <span><strong>{rep.person?.name || 'Representante'}</strong> ({rep.cargo || rep.tipo})</span>
-                            <span style={{ color: '#00236f', fontWeight: 600 }}>{rep.tipo}</span>
+                            <span><strong>{rep.person?.name || 'Representative'}</strong> ({rep.type || rep.tipo})</span>
+                            <span style={{ color: '#00236f', fontWeight: 600 }}>{rep.type || rep.tipo}</span>
                           </div>
                         ))}
                       </div>
                     ) : (
                       <p style={{ fontSize: '0.8rem', color: '#94a3b8', margin: 0 }}>
-                        Sin representantes registrados. Añada el contacto de Calidad o Legal.
+                        No representatives registered. Add a Quality or Legal contact.
                       </p>
                     )}
                   </div>
@@ -757,54 +826,54 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
         </div>
       )}
 
-      {/* 6. Tab 3: Certificados Sanitarios & Evaluaciones (RF-19 / RF-20) */}
+      {/* 6. Tab 3: Official Decisions & Health Certificates */}
       {activeTab === 'evaluations' && (
         <div className="cp-card">
           <div className="cp-card-header">
-            <h2><span>🎖</span> Dictámenes Oficiales & Certificados Sanitarios</h2>
+            <h2><span>🎖</span> Official Decisions & Health Certificates</h2>
             <button
               type="button"
               className="cp-btn-secondary"
               onClick={() => void loadData()}
             >
-              🔄 Actualizar
+              🔄 Refresh
             </button>
           </div>
 
           <div className="cp-help-box">
             <span>🛡️</span>
             <div>
-              <strong>Validez Legal de Informes:</strong> Los certificados emitidos corresponden a evaluaciones cerradas con dictamen aprobatorio del Coordinador Sanitario. Puede consultarlos o descargarlos en formato oficial PDF en cualquier momento.
+              <strong>Legal Validity of Reports:</strong> Certificates issued correspond to closed evaluations with a passing decision from the Health Coordinator. You can view or download them in official PDF format at any time.
             </div>
           </div>
 
           {evaluations.length === 0 ? (
             <div className="cp-empty">
               <span>📑</span>
-              <h3>No hay evaluaciones concluidas para mostrar</h3>
-              <p>Una vez que el técnico complete la inspección en campo y el coordinador la apruebe, sus actas aparecerán aquí.</p>
+              <h3>No completed evaluations to display</h3>
+              <p>Once the field technician completes the inspection and the coordinator approves it, your certificates will appear here.</p>
             </div>
           ) : (
             <table className="cp-table-simple">
               <thead>
                 <tr>
-                  <th>No. Evaluación</th>
-                  <th>Establecimiento</th>
-                  <th>Fecha</th>
-                  <th>Nivel de Riesgo (EBR)</th>
-                  <th>Estado</th>
-                  <th style={{ textAlign: 'right' }}>Acción</th>
+                  <th>Evaluation #</th>
+                  <th>Establishment</th>
+                  <th>Date</th>
+                  <th>Risk Level (EBR)</th>
+                  <th>Status</th>
+                  <th style={{ textAlign: 'right' }}>Action</th>
                 </tr>
               </thead>
               <tbody>
                 {evaluations.map((ev) => (
                   <tr key={ev.evaluationId}>
                     <td><strong>#{ev.evaluationId}</strong></td>
-                    <td>{ev.institution?.name || 'Establecimiento'}</td>
+                    <td>{ev.institution?.name || 'Establishment'}</td>
                     <td>{new Date(ev.scheduledDate).toLocaleDateString('es-DO')}</td>
                     <td>
                       <span className={`cp-badge ${ev.priority === 'ALTA' ? 'cp-badge-rejected' : 'cp-badge-done'}`}>
-                        {ev.priority || 'BAJO RIESGO'}
+                        {ev.priority || 'LOW RISK'}
                       </span>
                     </td>
                     <td>
@@ -819,10 +888,10 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
                         style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', color: '#00236f', fontWeight: 700 }}
                         onClick={() => {
                           if (onOpenOfficialReport) onOpenOfficialReport(ev.evaluationId)
-                          else notify(`Abriendo dictamen #${ev.evaluationId}`)
+                          else notify(`Opening certificate #${ev.evaluationId}`)
                         }}
                       >
-                        📄 Ver Certificado Oficial (PDF)
+                        📄 View Official Certificate (PDF)
                       </button>
                     </td>
                   </tr>
@@ -838,7 +907,7 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
         <div className="cp-modal-backdrop" onClick={() => setShowNewRequestModal(false)}>
           <div className="cp-modal-container" onClick={(e) => e.stopPropagation()}>
             <div className="cp-modal-header">
-              <h2><span>➕</span> Nueva Solicitud de Evaluación BPM (RF-05)</h2>
+              <h2><span>➕</span> New BPM Evaluation Request</h2>
               <button
                 type="button"
                 className="cp-modal-close"
@@ -851,13 +920,13 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
               <div className="cp-modal-body cp-form">
                 <div className="cp-help-box" style={{ margin: 0 }}>
                   <span>ℹ️</span>
-                  <span>Las solicitudes iniciadas por la empresa originan un expediente con estatus inicial <em>Borrador</em> o <em>Pendiente de Asignación</em> para revisión técnica.</span>
+                  <span>Requests initiated by the company create a case with initial status Draft or Pending Assignment for technical review.</span>
                 </div>
 
                 <label>
-                  Establecimiento solicitante *
+                  Requesting establishment *
                   <select name="institutionId" required defaultValue={institutions[0]?.institutionId || ''}>
-                    <option value="">Seleccione su planta o local...</option>
+                    <option value="">Select your plant or location...</option>
                     {institutions.map((i) => (
                       <option key={i.institutionId} value={i.institutionId}>
                         {i.name} — RNC: {i.rnc}
@@ -868,41 +937,41 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
 
                 <div className="cp-form-row">
                   <label>
-                    Tipo de establecimiento *
+                    Establishment type *
                     <input
                       name="tipoEstablecimiento"
                       required
-                      placeholder="Ej: Planta procesadora de lácteos, Panadería industrial"
+                      placeholder="e.g. Dairy processing plant, Industrial bakery"
                     />
                   </label>
                   <label>
-                    Envío del trámite
+                    Submission mode
                     <select name="submitDirectly" defaultValue="true">
-                      <option value="true">Enviar directamente a evaluación</option>
-                      <option value="false">Guardar solo como borrador</option>
+                      <option value="true">Submit directly for evaluation</option>
+                      <option value="false">Save as draft only</option>
                     </select>
                   </label>
                 </div>
 
                 <label>
-                  Motivo de la solicitud *
+                  Request reason *
                   <textarea
                     name="motivo"
                     required
-                    placeholder="Especifique el objetivo: Renovación de permiso sanitario, Certificación BPM anual, ampliación de línea de producción..."
+                    placeholder="Specify the objective: Permit renewal, Annual BPM certification, production line expansion..."
                   />
                 </label>
 
                 <label>
-                  Observaciones técnicas (opcional)
+                  Technical observations (optional)
                   <textarea
                     name="observaciones"
-                    placeholder="Turnos de operación, disponibilidad horaria o consideraciones especiales para la visita del técnico evaluador..."
+                    placeholder="Operating shifts, availability, or special considerations for the evaluator..."
                   />
                 </label>
 
                 <label>
-                  Documento sanitario obligatorio (Carta solicitud / Registro mercantil)
+                  Required health document (Authorization letter / Commercial registry)
                   <input
                     type="file"
                     name="attachment"
@@ -917,14 +986,14 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
                   className="cp-btn-secondary"
                   onClick={() => setShowNewRequestModal(false)}
                 >
-                  Cancelar
+                  Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
                   className="cp-btn-primary"
                 >
-                  {submitting ? 'Procesando…' : 'Crear Solicitud'}
+                  {submitting ? 'Processing…' : 'Create Request'}
                 </button>
               </div>
             </form>
@@ -937,7 +1006,7 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
         <div className="cp-modal-backdrop" onClick={() => setShowNewInstitutionModal(false)}>
           <div className="cp-modal-container" onClick={(e) => e.stopPropagation()}>
             <div className="cp-modal-header">
-              <h2><span>🏭</span> Registrar Establecimiento (RF-03)</h2>
+              <h2><span>🏭</span> Register Establishment</h2>
               <button
                 type="button"
                 className="cp-modal-close"
@@ -948,46 +1017,51 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
             </div>
             <form onSubmit={handleCreateInstitution}>
               <div className="cp-modal-body cp-form">
+                {instFormError && <div style={{padding:'0.6rem 0.85rem',background:'#fff0f0',border:'1px solid #fca5a5',borderRadius:'6px',color:'#b91c1c',fontSize:'0.82rem',marginBottom:'0.75rem'}}>{instFormError}</div>}
                 <div className="cp-form-row">
                   <label>
-                    Razón Social *
-                    <input name="name" required placeholder="Nombre legal de la entidad" />
+                    Legal Company Name *
+                    <input name="name" required placeholder="Legal entity name" />
                   </label>
                   <label>
-                    Nombre Comercial
-                    <input name="nombreComercial" placeholder="Nombre comercial visible" />
+                    Trade Name
+                    <input name="nombreComercial" placeholder="Visible trade name" />
                   </label>
                 </div>
 
                 <div className="cp-form-row">
                   <label>
                     RNC *
-                    <input name="rnc" required placeholder="Ej: 130123456" />
+                    <input name="rnc" required placeholder="e.g. 1301234567" onKeyDown={(e) => {
+                      if (!/[0-9\-]/.test(e.key) && !['Backspace','Delete','Tab','ArrowLeft','ArrowRight','Enter'].includes(e.key)) {
+                        e.preventDefault()
+                      }
+                    }} inputMode="numeric" />
                   </label>
                   <label>
-                    Actividad Económica *
-                    <input name="actividadEconomica" required placeholder="Ej: Procesamiento cárnico" />
+                    Economic Activity *
+                    <input name="actividadEconomica" required placeholder="e.g. Meat processing" />
                   </label>
                 </div>
 
                 <div className="cp-form-row">
                   <label>
-                    Provincia *
+                    Province *
                     <select
                       required
                       value={selectedProvinceId}
                       onChange={(e) => void handleProvinceChange(e.target.value)}
                     >
-                      <option value="">Seleccione provincia...</option>
+                      <option value="">Select province...</option>
                       {provinces.map((p) => (
                         <option key={p.provinceId} value={p.provinceId}>{p.name}</option>
                       ))}
                     </select>
                   </label>
                   <label>
-                    Municipio *
+                    Municipality *
                     <select name="municipalityId" required disabled={!selectedProvinceId}>
-                      <option value="">Seleccione municipio...</option>
+                      <option value="">Select municipality...</option>
                       {municipalities.map((m) => (
                         <option key={m.municipalityId} value={m.municipalityId}>{m.name}</option>
                       ))}
@@ -997,23 +1071,23 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
 
                 <div className="cp-form-row">
                   <label>
-                    Calle / Avenida *
-                    <input name="streetName" required placeholder="Ej: Av. 27 de Febrero" />
+                    Street / Avenue *
+                    <input name="streetName" required placeholder="e.g. Av. 27 de Febrero" />
                   </label>
                   <label>
-                    Número
-                    <input name="streetNum" placeholder="Ej: 42-B" />
+                    Street Number
+                    <input name="streetNum" placeholder="e.g. 42-B" />
                   </label>
                 </div>
 
                 <div className="cp-form-row">
                   <label>
-                    Teléfono *
-                    <input name="phoneNumber" required placeholder="Ej: 809-555-1234" />
+                    Phone *
+                    <input name="phoneNumber" required placeholder="e.g. 809-555-1234" />
                   </label>
                   <label>
-                    Correo Electrónico *
-                    <input type="email" name="email" required placeholder="calidad@empresa.com.do" />
+                    Email *
+                    <input type="email" name="email" required placeholder="quality@company.com" />
                   </label>
                 </div>
               </div>
@@ -1024,14 +1098,14 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
                   className="cp-btn-secondary"
                   onClick={() => setShowNewInstitutionModal(false)}
                 >
-                  Cancelar
+                  Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
                   className="cp-btn-primary"
                 >
-                  {submitting ? 'Registrando…' : 'Registrar Establecimiento'}
+                  {submitting ? 'Registering…' : 'Register Establishment'}
                 </button>
               </div>
             </form>
@@ -1044,7 +1118,7 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
         <div className="cp-modal-backdrop" onClick={() => setShowAddRepresentModal(false)}>
           <div className="cp-modal-container" onClick={(e) => e.stopPropagation()}>
             <div className="cp-modal-header">
-              <h2><span>👥</span> Añadir Representante Acreditado</h2>
+              <h2><span>👥</span> Add Accredited Representative</h2>
               <button
                 type="button"
                 className="cp-modal-close"
@@ -1055,40 +1129,41 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
             </div>
             <form onSubmit={handleAddRepresentative}>
               <div className="cp-modal-body cp-form">
+                {repFormError && <div style={{padding:'0.6rem 0.85rem',background:'#fff0f0',border:'1px solid #fca5a5',borderRadius:'6px',color:'#b91c1c',fontSize:'0.82rem',marginBottom:'0.75rem'}}>{repFormError}</div>}
                 <label>
-                  Tipo de Representación *
+                  Representative Type *
                   <select name="tipo" defaultValue="CALIDAD">
-                    <option value="CALIDAD">Responsable de Calidad / Inocuidad</option>
-                    <option value="LEGAL">Representante Legal</option>
-                    <option value="CONTACTO_PRINCIPAL">Contacto Operativo Principal</option>
+                    <option value="CALIDAD">Quality / Food Safety Manager</option>
+                    <option value="LEGAL">Legal Representative</option>
+                    <option value="CONTACTO_PRINCIPAL">Main Operational Contact</option>
                   </select>
                 </label>
 
                 <div className="cp-form-row">
                   <label>
-                    Nombre Completo *
-                    <input name="name" required placeholder="Ej: Dra. Carmen Santos" />
+                    Full Name *
+                    <input name="name" required placeholder="e.g. Dr. Carmen Santos" />
                   </label>
                   <label>
-                    Cédula / Documento *
-                    <input name="cedula" required placeholder="Ej: 001-1234567-8" />
+                    National ID / Document *
+                    <input name="cedula" required placeholder="e.g. 001-1234567-8" />
                   </label>
                 </div>
 
                 <div className="cp-form-row">
                   <label>
-                    Correo Electrónico *
+                    Email *
                     <input type="email" name="email" required placeholder="csantos@empresa.com" />
                   </label>
                   <label>
-                    Teléfono *
-                    <input name="phone" required placeholder="Ej: 809-555-8899" />
+                    Phone *
+                    <input name="phone" required placeholder="e.g. 809-555-8899" />
                   </label>
                 </div>
 
                 <label>
-                  Cargo en la Empresa *
-                  <input name="cargo" required placeholder="Ej: Gerente de Aseguramiento de Calidad" />
+                  Position in Company
+                  <input name="cargo" placeholder="e.g. Quality Assurance Manager" />
                 </label>
               </div>
 
@@ -1098,15 +1173,52 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
                   className="cp-btn-secondary"
                   onClick={() => setShowAddRepresentModal(false)}
                 >
-                  Cancelar
+                  Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
                   className="cp-btn-primary"
                 >
-                  {submitting ? 'Guardando…' : 'Asignar Representante'}
+                  {submitting ? 'Saving…' : 'Assign Representative'}
                 </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal 4: Edit Institution */}
+      {showEditInstitutionModal && editingInstitution && (
+        <div className="cp-modal-backdrop" onClick={() => setShowEditInstitutionModal(false)}>
+          <div className="cp-modal-container" onClick={(e) => e.stopPropagation()}>
+            <div className="cp-modal-header">
+              <h2><span>✏️</span> Edit Establishment</h2>
+              <button type="button" className="cp-modal-close" onClick={() => setShowEditInstitutionModal(false)}>×</button>
+            </div>
+            <form onSubmit={handleEditInstitution}>
+              <div className="cp-modal-body cp-form">
+                {editFormError && <div style={{padding:'0.6rem 0.85rem',background:'#fff0f0',border:'1px solid #fca5a5',borderRadius:'6px',color:'#b91c1c',fontSize:'0.82rem',marginBottom:'0.75rem'}}>{editFormError}</div>}
+                <div className="cp-form-row">
+                  <label>Legal Company Name *<input name="name" required defaultValue={editingInstitution.name} /></label>
+                  <label>Trade Name<input name="nombreComercial" defaultValue={editingInstitution.nombreComercial || ''} /></label>
+                </div>
+                <div className="cp-form-row">
+                  <label>RNC *<input name="rnc" required defaultValue={editingInstitution.rnc} onKeyDown={(e) => { if (!/[0-9\-]/.test(e.key) && !['Backspace','Delete','Tab','ArrowLeft','ArrowRight','Enter'].includes(e.key)) e.preventDefault() }} inputMode="numeric" /></label>
+                  <label>Economic Activity<input name="actividadEconomica" defaultValue={editingInstitution.actividadEconomica || ''} /></label>
+                </div>
+                <div className="cp-form-row">
+                  <label>Street / Avenue *<input name="streetName" required defaultValue={editingInstitution.streetName || ''} /></label>
+                  <label>Street Number<input name="streetNum" defaultValue={editingInstitution.streetNum || ''} /></label>
+                </div>
+                <div className="cp-form-row">
+                  <label>Phone *<input name="phoneNumber" required defaultValue={editingInstitution.phoneNumber || ''} /></label>
+                  <label>Email *<input type="email" name="email" required defaultValue={editingInstitution.email || ''} /></label>
+                </div>
+              </div>
+              <div className="cp-modal-footer">
+                <button type="button" className="cp-btn-secondary" onClick={() => setShowEditInstitutionModal(false)}>Cancel</button>
+                <button type="submit" disabled={submitting} className="cp-btn-primary">{submitting ? 'Saving…' : 'Save Changes'}</button>
               </div>
             </form>
           </div>

@@ -47,7 +47,7 @@ export default function HistoricalDossierModal({
         }
       } catch (err: any) {
         if (!cancelled && notify) {
-          notify(err?.response?.data?.message || 'No se pudo cargar el expediente histórico.')
+          notify(err?.response?.data?.message || 'Could not load the historical dossier.')
         }
       } finally {
         if (!cancelled) setLoading(false)
@@ -82,18 +82,24 @@ export default function HistoricalDossierModal({
     data?.case?.priority ||
     'NOT_SET'
 
+  const priorityLabel = (p?: string | null) => {
+    if (!p) return '—';
+    const map: Record<string, string> = { 'ALTA': 'High', 'MEDIA': 'Medium', 'BAJA': 'Low', 'NOT_SET': 'Not Set' };
+    return map[p] ?? p.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+  };
+
   const evaluationId =
     entityType === 'EVALUATION'
       ? entityId
       : data?.evaluationId || data?.evaluations?.[0]?.evaluationId || data?.case?.evaluations?.[0]?.evaluationId || null
 
   const formatOrigin = (o?: string) => {
-    if (!o) return 'Trámite Institucional'
+    if (!o) return 'Institutional Procedure'
     switch (o) {
-      case 'SOLICITUD_EMPRESA': return 'Solicitud de la Empresa (BPM)'
-      case 'PROGRAMACION_INSTITUCIONAL': return 'Programación Institucional Directa'
-      case 'ALERTA_LAPCH': return 'Alerta Sanitaria LAPCH'
-      case 'DENUNCIA': return 'Denuncia / Reporte Ciudadano'
+      case 'SOLICITUD_EMPRESA': return 'Company Request (BPM)'
+      case 'PROGRAMACION_INSTITUCIONAL': return 'Direct Institutional Programming'
+      case 'ALERTA_LAPCH': return 'LAPCH Health Alert'
+      case 'DENUNCIA': return 'Citizen Complaint / Report'
       default: return o.replaceAll('_', ' ')
     }
   }
@@ -108,13 +114,13 @@ export default function HistoricalDossierModal({
         {/* Header */}
         <div className="hdm-header">
           <div className="hdm-header-title">
-            <small>Expediente Histórico Sanitario 360° · RF-20</small>
+            <small>360° Sanitary Historical Dossier · RF-20</small>
             <h2>
               <span>📁</span>
               {entityType} #{entityId} — {institutionName}
             </h2>
           </div>
-          <button type="button" className="hdm-close-btn" onClick={onClose} title="Cerrar">
+          <button type="button" className="hdm-close-btn" onClick={onClose} title="Close">
             ×
           </button>
         </div>
@@ -124,32 +130,32 @@ export default function HistoricalDossierModal({
           {loading ? (
             <div style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>
               <span style={{ fontSize: '2rem', display: 'block', marginBottom: '0.5rem' }}>⏳</span>
-              <p>Reconstruyendo trazabilidad completa del expediente…</p>
+              <p>Reconstructing complete traceability of the dossier…</p>
             </div>
           ) : (
             <>
               {/* Summary Cards */}
               <div className="hdm-summary-grid">
                 <div className="hdm-summary-card">
-                  <span className="hdm-summary-label">No. Expediente</span>
+                  <span className="hdm-summary-label">Dossier No.</span>
                   <span className="hdm-summary-val" style={{ color: '#00236f' }}>
                     RADAR-{entityType.slice(0, 3)}-{entityId}
                   </span>
                 </div>
                 <div className="hdm-summary-card">
-                  <span className="hdm-summary-label">RNC Establecimiento</span>
+                  <span className="hdm-summary-label">Establishment RNC</span>
                   <span className="hdm-summary-val">{rnc}</span>
                 </div>
                 <div className="hdm-summary-card">
-                  <span className="hdm-summary-label">Estado Actual</span>
+                  <span className="hdm-summary-label">Current Status</span>
                   <span className="hdm-summary-val" style={{ color: status === 'CERRADO' || status === 'COMPLETADA' ? '#10b981' : '#0284c7' }}>
-                    {status.replaceAll('_', ' ')}
+                    {status.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c: string) => c.toUpperCase())}
                   </span>
                 </div>
                 <div className="hdm-summary-card">
-                  <span className="hdm-summary-label">Nivel de Prioridad</span>
+                  <span className="hdm-summary-label">Priority Level</span>
                   <span className="hdm-summary-val" style={{ color: priority === 'ALTA' ? '#ba1a1a' : '#00236f' }}>
-                    {priority}
+                    {priorityLabel(priority)}
                   </span>
                 </div>
               </div>
@@ -157,41 +163,41 @@ export default function HistoricalDossierModal({
               {/* Chronological Lifecycle Timeline */}
               <div>
                 <h3 className="hdm-section-title">
-                  <span>⏱️</span> Línea de Tiempo y Trazabilidad de Auditoría
+                  <span>⏱️</span> Timeline and Audit Traceability
                 </h3>
 
                 <div className="hdm-timeline">
                   {/* Event 1: Origin */}
                   <div className="hdm-event done">
                     <div className="hdm-event-header">
-                      <span>1. Recepción y Registro de Trámite</span>
+                      <span>1. Receipt and Registration of Procedure</span>
                       <span className="hdm-event-date">
-                        {data?.createdAt ? new Date(data.createdAt).toLocaleDateString('es-DO', { hour: '2-digit', minute: '2-digit' }) : 'Registrado'}
+                        {data?.createdAt ? new Date(data.createdAt).toLocaleDateString('en-US', { hour: '2-digit', minute: '2-digit' }) : 'Registered'}
                       </span>
                     </div>
                     <div className="hdm-event-body">
-                      <strong>Canal de origen:</strong> {formatOrigin(data?.origin || data?.case?.origin)}.
-                      {data?.motivo && <div><em>Motivo declarado:</em> {data.motivo}</div>}
-                      {data?.description && <div><em>Descripción:</em> {data.description}</div>}
+                      <strong>Origin channel:</strong> {formatOrigin(data?.origin || data?.case?.origin)}.
+                      {data?.motivo && <div><em>Declared reason:</em> {data.motivo}</div>}
+                      {data?.description && <div><em>Description:</em> {data.description}</div>}
                     </div>
                   </div>
 
                   {/* Event 2: Triage & Assignment */}
                   <div className={`hdm-event ${data?.assignments?.length || data?.technicianId ? 'done' : ''}`}>
                     <div className="hdm-event-header">
-                      <span>2. Triaje y Asignación de Evaluador</span>
+                      <span>2. Triage and Evaluator Assignment</span>
                       <span className="hdm-event-date">
-                        {data?.assignments?.[0]?.createdAt ? new Date(data.assignments[0].createdAt).toLocaleDateString('es-DO') : 'Completado'}
+                        {data?.assignments?.[0]?.createdAt ? new Date(data.assignments[0].createdAt).toLocaleDateString('en-US') : 'Completed'}
                       </span>
                     </div>
                     <div className="hdm-event-body">
                       {data?.technician?.person?.name || data?.assignments?.[0]?.technician?.person?.name ? (
                         <>
-                          Evaluador técnico asignado: <strong>{data?.technician?.person?.name || data?.assignments?.[0]?.technician?.person?.name}</strong>.
-                          Prioridad técnica clasificada como <strong>{priority}</strong>.
+                          Assigned technical evaluator: <strong>{data?.technician?.person?.name || data?.assignments?.[0]?.technician?.person?.name}</strong>.
+                          Technical priority classified as <strong>{priorityLabel(priority)}</strong>.
                         </>
                       ) : (
-                        <span>Asignación técnica en espera de coordinación zonal.</span>
+                        <span>Technical assignment pending zonal coordination.</span>
                       )}
                     </div>
                   </div>
@@ -199,32 +205,32 @@ export default function HistoricalDossierModal({
                   {/* Event 3: Field Inspection */}
                   <div className={`hdm-event ${data?.scheduledDate || data?.evaluations?.length ? 'done' : ''}`}>
                     <div className="hdm-event-header">
-                      <span>3. Inspección Basada en Riesgo (Campo / BPM)</span>
+                      <span>3. Risk-Based Inspection (Field / BPM)</span>
                       <span className="hdm-event-date">
-                        {data?.scheduledDate ? new Date(data.scheduledDate).toLocaleDateString('es-DO') : 'Programada'}
+                        {data?.scheduledDate ? new Date(data.scheduledDate).toLocaleDateString('en-US') : 'Scheduled'}
                       </span>
                     </div>
                     <div className="hdm-event-body">
-                      Auditoría in situ de infraestructura, higiene, personal y procesos normativos.
-                      {data?.observations && <div><em>Notas de campo:</em> {data.observations}</div>}
+                      On-site audit of infrastructure, hygiene, personnel, and regulatory processes.
+                      {data?.observations && <div><em>Field notes:</em> {data.observations}</div>}
                     </div>
                   </div>
 
                   {/* Event 4: Review & Official Outcome */}
                   <div className={`hdm-event ${data?.resultadoFinal || status === 'CERRADO' ? 'done' : ''}`}>
                     <div className="hdm-event-header">
-                      <span>4. Revisión Técnica y Cierre de Expediente</span>
+                      <span>4. Technical Review and Dossier Closure</span>
                       <span className="hdm-event-date">
-                        {data?.closedAt ? new Date(data.closedAt).toLocaleDateString('es-DO') : 'Dictamen Oficial'}
+                        {data?.closedAt ? new Date(data.closedAt).toLocaleDateString('en-US') : 'Official Report'}
                       </span>
                     </div>
                     <div className="hdm-event-body">
                       {data?.resultadoFinal ? (
                         <div>
-                          <strong>Dictamen final:</strong> {data.resultadoFinal}
+                          <strong>Final report:</strong> {data.resultadoFinal}
                         </div>
                       ) : (
-                        <span>Expediente en curso hacia dictamen y certificación sanitaria oficial.</span>
+                        <span>Dossier in progress towards official sanitary certification and report.</span>
                       )}
                     </div>
                   </div>
@@ -233,7 +239,7 @@ export default function HistoricalDossierModal({
 
               {/* Regulatory Notice */}
               <div style={{ background: '#f1f5f9', padding: '0.85rem 1.15rem', borderRadius: '8px', fontSize: '0.82rem', color: '#475569', borderLeft: '4px solid #00236f' }}>
-                <strong>Constancia Oficial de Trazabilidad:</strong> Este registro histórico cumple con los requisitos del estándar de Evaluación Basada en Riesgo (EBR/BPM) y la Ley General de Salud. Los registros son inmutables tras su firma oficial.
+                <strong>Official Traceability Record:</strong> This historical record complies with the requirements of the Risk-Based Evaluation standard (EBR/BPM) and the General Health Law. Records are immutable after their official signature.
               </div>
             </>
           )}
@@ -242,7 +248,7 @@ export default function HistoricalDossierModal({
         {/* Footer */}
         <div className="hdm-footer">
           <button type="button" className="hdm-btn-print" onClick={handlePrint}>
-            🖨 Imprimir Ficha de Expediente
+            🖨 Print Dossier File
           </button>
 
           <div style={{ display: 'flex', gap: '0.75rem' }}>
@@ -255,7 +261,7 @@ export default function HistoricalDossierModal({
                   onOpenOfficialReport(Number(evaluationId))
                 }}
               >
-                📄 Ver Dictamen Oficial (PDF)
+                📄 View Official Report (PDF)
               </button>
             )}
             <button
@@ -264,7 +270,7 @@ export default function HistoricalDossierModal({
               style={{ background: '#00236f', color: '#ffffff', border: 'none' }}
               onClick={onClose}
             >
-              Cerrar
+              Close
             </button>
           </div>
         </div>
