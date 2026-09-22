@@ -27,4 +27,15 @@ export const notificationsModel = {
   markAllRead: async (userId: number) => {
     return prisma.notification.updateMany({ where: { userId, read: false }, data: { read: true } });
   },
+
+  /** Crea una notificación in-app. Soporte a RF-04. */
+  create: async (userId: number, title: string, message: string) => {
+    return prisma.notification.create({ data: { userId, title, message } });
+  },
+
+  /** Email del usuario (vía Person), usado para enviar el correo asociado a la notificación. */
+  getUserEmail: async (userId: number): Promise<string | null> => {
+    const user = await prisma.user.findUnique({ where: { userId }, include: { person: true } });
+    return user?.person.email ?? null;
+  },
 };
