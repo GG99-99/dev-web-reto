@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { reportsService, evaluationsService } from './services';
-import type { EvaluationReportDetail, EvaluationListItem } from '@reto/shared';
+import { reportsService, evaluationsService, riskEngineService } from './services';
+import type { EvaluationReportDetail, EvaluationListItem, EvaluationScore } from '@reto/shared';
 import './InspectionReportModal.css';
 
 interface InspectionReportModalProps {
@@ -18,16 +18,18 @@ export default function InspectionReportModal({
 }: InspectionReportModalProps) {
   const [report, setReport] = useState<EvaluationReportDetail | null>(null);
   const [evaluation, setEvaluation] = useState<EvaluationListItem | null>(null);
+  const [score, setScore] = useState<EvaluationScore | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
 
-  // Carga de datos del reporte y la evaluación
+  // Carga de datos del reporte, la evaluación y el puntaje real del motor de riesgo (RF-14)
   const loadReportData = async () => {
     setLoading(true);
     try {
-      const [repRes, evalRes] = await Promise.all([
+      const [repRes, evalRes, scoreRes] = await Promise.all([
         reportsService.getByEvaluation(evaluationId).catch(() => null),
         evaluationsService.getById(evaluationId).catch(() => null),
+        riskEngineService.getScore(evaluationId).catch(() => null),
       ]);
 
       if (repRes?.valid && repRes.data) {
@@ -35,6 +37,9 @@ export default function InspectionReportModal({
       }
       if (evalRes?.valid && evalRes.data) {
         setEvaluation(evalRes.data);
+      }
+      if (scoreRes?.valid && scoreRes.data) {
+        setScore(scoreRes.data);
       }
     } catch (err: unknown) {
       console.error('Error al cargar reporte de inspección:', err);
@@ -125,6 +130,18 @@ export default function InspectionReportModal({
 
   const reportStatus = report?.status ?? 'BORRADOR';
   const reportVersion = report?.version ?? 1;
+
+  // Datos reales del motor de riesgo (RF-14). Si aún no se ha calculado
+  // (evaluación no finalizada), se muestra un estado pendiente en vez de
+  // inventar un porcentaje o nivel de riesgo.
+  const hasScore = score !== null;
+  const compliancePct = hasScore ? `${score!.porcentajeCumplimiento.toFixed(1)}%` : 'Pendiente';
+  const riskIndex = hasScore ? `${score!.puntajeObtenido.toFixed(1)} / 10.0` : 'Pendiente';
+  const riskLevel = score?.nivelRiesgo ?? null;
+  const riskLevelLabel = riskLevel === 'ALTO' ? 'RIESGO ALTO' : riskLevel === 'MEDIO' ? 'RIESGO MEDIO' : riskLevel === 'BAJO' ? 'RIESGO BAJO' : 'PENDIENTE';
+  const frequencyLabel = score?.frecuenciaInspeccion
+    ? score.frecuenciaInspeccion === 'ANUAL' ? 'Inspección Anual' : score.frecuenciaInspeccion === 'SEMESTRAL' ? 'Inspección Semestral' : 'Inspección Trimestral'
+    : 'Por determinar';
 
   return (
     <div className="irm-backdrop" onClick={onClose}>
@@ -255,23 +272,28 @@ export default function InspectionReportModal({
                 <div className="irm-risk-box">
                   <div className="irm-risk-stat">
                     <span className="irm-label">Cumplimiento BPM</span>
-                    <span className="irm-risk-stat-num">95%</span>
+                    <span className="irm-risk-stat-num">{compliancePct}</span>
                   </div>
                   <div className="irm-risk-stat">
                     <span className="irm-label">Índice de Riesgo EBR</span>
-                    <span className="irm-risk-stat-num">1.2 / 10.0</span>
+                    <span className="irm-risk-stat-num">{riskIndex}</span>
                   </div>
                   <div className="irm-risk-stat">
                     <span className="irm-label">Nivel de Riesgo</span>
-                    <span className="irm-risk-stat-badge BAJO">RIESGO BAJO</span>
+                    <span className={`irm-risk-stat-badge ${riskLevel ?? ''}`}>{riskLevelLabel}</span>
                   </div>
                   <div className="irm-risk-stat">
                     <span className="irm-label">Vigilancia Sugerida</span>
                     <span className="irm-val" style={{ fontWeight: 800, marginTop: '0.4rem' }}>
-                      Inspección Anual
+                      {frequencyLabel}
                     </span>
                   </div>
                 </div>
+                {!hasScore && (
+                  <p style={{ marginTop: '0.6rem', fontSize: '0.78rem', color: '#94a3b8' }}>
+                    El puntaje de riesgo se calcula automáticamente al finalizar la evaluación en campo (RF-14).
+                  </p>
+                )}
               </section>
 
               {/* 4. Resumen Ejecutivo */}

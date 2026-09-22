@@ -290,19 +290,25 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
   }
 
   // Handle Add Representative
+  // NOTE: backend CreateRepresentSchema (institutions.schemas.ts) only accepts
+  // { person: {name,cedula,phone,email}, type: 'LEGAL'|'CALIDAD'|'CONTACTO' } —
+  // there is no "cargo" field and no "CONTACTO_PRINCIPAL" enum value (it's
+  // just "CONTACTO"). The "cargo" the user enters has nowhere to persist on
+  // the backend today, so it is intentionally dropped rather than sent.
   const handleAddRepresentative = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!selectedInstForRep) return
     const form = new FormData(e.currentTarget)
+    const rawTipo = String(form.get('tipo') || 'CALIDAD')
+    const type = (rawTipo === 'CONTACTO_PRINCIPAL' ? 'CONTACTO' : rawTipo) as 'LEGAL' | 'CALIDAD' | 'CONTACTO'
     const body = {
-      tipo: String(form.get('tipo') || 'CALIDAD') as 'LEGAL' | 'CALIDAD' | 'CONTACTO_PRINCIPAL',
       person: {
         name: String(form.get('name') || ''),
         email: String(form.get('email') || ''),
         phone: String(form.get('phone') || ''),
         cedula: String(form.get('cedula') || ''),
       },
-      cargo: String(form.get('cargo') || ''),
+      type,
     }
 
     setSubmitting(true)

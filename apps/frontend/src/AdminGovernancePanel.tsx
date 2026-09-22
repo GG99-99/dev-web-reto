@@ -100,27 +100,30 @@ export default function AdminGovernancePanel({ notify }: AdminGovernancePanelPro
   }, [selectedCatId, activeTab])
 
   // Save edited risk frequency rule
+  // NOTE: RiskFrequencyRule per schema.prisma / @reto/shared/riskEngine.ts has
+  // fields ruleId, minScore, maxScore (nullable), riskLevel (BAJO|MEDIO|ALTO),
+  // frequency (ANUAL|SEMESTRAL|TRIMESTRAL). There is no "prioridad" or
+  // "frecuenciaMeses" field on the backend model.
   const handleSaveRule = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!editingRule) return
     const form = new FormData(e.currentTarget)
-    const ruleId = editingRule.ruleId ?? editingRule.riskFrequencyRuleId
+    const ruleId = editingRule.ruleId
+    const maxScoreRaw = String(form.get('maxScore') || '').trim()
     const body = {
-      frecuenciaMeses: Number(form.get('frecuenciaMeses')),
-      puntajeMin: Number(form.get('puntajeMin')),
-      puntajeMax: Number(form.get('puntajeMax')),
-      prioridad: String(form.get('prioridad') || editingRule.prioridad),
+      minScore: Number(form.get('minScore')),
+      maxScore: maxScoreRaw === '' ? null : Number(maxScoreRaw),
+      riskLevel: String(form.get('riskLevel') || editingRule.riskLevel) as 'BAJO' | 'MEDIO' | 'ALTO',
+      frequency: String(form.get('frequency') || editingRule.frequency) as 'ANUAL' | 'SEMESTRAL' | 'TRIMESTRAL',
     }
 
     setSavingRule(true)
     try {
       const res = await riskEngineService.updateFrequencyRule(ruleId, body)
       if (res.valid) {
-        notify(`Regla "${editingRule.nivelRiesgo}" actualizada correctamente.`)
+        notify(`Regla "${editingRule.riskLevel}" actualizada correctamente.`)
         setRules((prev) =>
-          prev.map((r) =>
-            (r.ruleId ?? r.riskFrequencyRuleId) === ruleId ? { ...r, ...body } : r
-          )
+          prev.map((r) => (r.ruleId === ruleId ? { ...r, ...body } : r))
         )
         setEditingRule(null)
       }
@@ -146,13 +149,13 @@ export default function AdminGovernancePanel({ notify }: AdminGovernancePanelPro
     }
   }
 
-  // Delete user
+  // Delete user (soft delete via isActive=false — see users.service.ts:deactivate)
   const handleDeleteUser = async (userId: number, name: string) => {
     if (!confirm(`¿Está seguro de eliminar o desactivar la cuenta de "${name}"?`)) return
     try {
-      const res = await usersService.remove(userId)
+      const res = await usersService.deactivate(userId)
       if (res.valid) {
-        notify(`Usuario "${name}" eliminado del sistema.`)
+        notify(`Usuario "${name}" desactivado del sistema.`)
         setUsers((prev) => prev.filter((u) => u.userId !== userId))
       }
     } catch {
@@ -274,19 +277,19 @@ export default function AdminGovernancePanel({ notify }: AdminGovernancePanelPro
                   </tr>
                 ) : (
                   rules.map((rule) => {
-                    const ruleId = rule.ruleId ?? rule.riskFrequencyRuleId
+                    const ruleId = rule.ruleId
                     return (
                       <tr key={ruleId}>
                         <td>
-                          <span className={`gov-badge ${getRiskBadgeClass(rule.nivelRiesgo)}`}>
-                            {rule.nivelRiesgo}
+                          <span className={`gov-badge ${getRiskBadgeClass(rule.riskLevel)}`}>
+                            {rule.riskLevel}
                           </span>
                         </td>
-                        <td><strong>{rule.puntajeMin} pts</strong></td>
-                        <td><strong>{rule.puntajeMax} pts</strong></td>
-                        <td>Cada <strong>{rule.frecuenciaMeses} meses</strong></td>
+                        <td><strong>{rule.minScore} pts</strong></td>
+                        <td><strong>{rule.maxScore ?? '∞'} pts</strong></td>
+                        <td>{rule.frequency}</td>
                         <td>
-                          <span className="gov-badge gov-badge-role">{rule.prioridad || 'ESTÁNDAR'}</span>
+                          <span className="gov-badge gov-badge-role">{rule.riskLevel}</span>
                         </td>
                         <td style={{ textAlign: 'right' }}>
                           <button
@@ -546,7 +549,7 @@ export default function AdminGovernancePanel({ notify }: AdminGovernancePanelPro
         <div className="gov-modal-overlay">
           <div className="gov-modal" role="dialog" aria-label="Editar regla de riesgo">
             <div className="gov-modal-header">
-              <h3>Editar Regla: {editingRule.nivelRiesgo}</h3>
+              <h3>Editar Regla: {editingRule.riskLevel}</h3>
               <button
                 type="button"
                 className="gov-btn gov-btn-secondary"
@@ -558,62 +561,57 @@ export default function AdminGovernancePanel({ notify }: AdminGovernancePanelPro
             </div>
             <form onSubmit={handleSaveRule}>
               <div className="gov-modal-body">
-                <div className="gov-form-group">
-                  <label htmlFor="frecuenciaMeses">Frecuencia de Inspección (meses):</label>
-                  <input
-                    id="frecuenciaMeses"
-                    name="frecuenciaMeses"
-                    type="number"
-                    min="1"
-                    max="60"
-                    defaultValue={editingRule.frecuenciaMeses}
-                    className="gov-input"
-                    required
-                  />
-                  <small style={{ color: '#64748b' }}>
-                    Intervalo reglamentario en meses entre evaluaciones sanitarias consecutivas.
-                  </small>
-                </div>
-
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div className="gov-form-group">
-                    <label htmlFor="puntajeMin">Puntaje Mínimo:</label>
+                    <label htmlFor="minScore">Puntaje Mínimo:</label>
                     <input
-                      id="puntajeMin"
-                      name="puntajeMin"
+                      id="minScore"
+                      name="minScore"
                       type="number"
                       step="0.1"
-                      defaultValue={editingRule.puntajeMin}
+                      defaultValue={editingRule.minScore}
                       className="gov-input"
                       required
                     />
                   </div>
                   <div className="gov-form-group">
-                    <label htmlFor="puntajeMax">Puntaje Máximo:</label>
+                    <label htmlFor="maxScore">Puntaje Máximo (vacío = sin límite):</label>
                     <input
-                      id="puntajeMax"
-                      name="puntajeMax"
+                      id="maxScore"
+                      name="maxScore"
                       type="number"
                       step="0.1"
-                      defaultValue={editingRule.puntajeMax}
+                      defaultValue={editingRule.maxScore ?? ''}
                       className="gov-input"
-                      required
                     />
                   </div>
                 </div>
 
                 <div className="gov-form-group">
-                  <label htmlFor="prioridad">Prioridad Regulatoria:</label>
+                  <label htmlFor="riskLevel">Nivel de Riesgo:</label>
                   <select
-                    id="prioridad"
-                    name="prioridad"
-                    defaultValue={editingRule.prioridad || 'MEDIA'}
+                    id="riskLevel"
+                    name="riskLevel"
+                    defaultValue={editingRule.riskLevel || 'BAJO'}
                     className="gov-select"
                   >
-                    <option value="BAJA">BAJA</option>
-                    <option value="MEDIA">MEDIA</option>
-                    <option value="ALTA">ALTA</option>
-                    <option value="CRITICA">CRÍTICA</option>
+                    <option value="BAJO">BAJO</option>
+                    <option value="MEDIO">MEDIO</option>
+                    <option value="ALTO">ALTO</option>
+                  </select>
+                </div>
+
+                <div className="gov-form-group">
+                  <label htmlFor="frequency">Frecuencia Reglamentaria de Inspección:</label>
+                  <select
+                    id="frequency"
+                    name="frequency"
+                    defaultValue={editingRule.frequency || 'ANUAL'}
+                    className="gov-select"
+                  >
+                    <option value="ANUAL">ANUAL</option>
+                    <option value="SEMESTRAL">SEMESTRAL</option>
+                    <option value="TRIMESTRAL">TRIMESTRAL</option>
                   </select>
                 </div>
               </div>

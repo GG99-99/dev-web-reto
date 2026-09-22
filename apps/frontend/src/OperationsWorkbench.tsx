@@ -13,7 +13,17 @@ import './OperationsWorkbench.css'
 type Role = 'ADMIN' | 'ADMIN_EMPRESA' | 'USUARIO_DELEGADO' | 'COORDINADOR' | 'TECNICO_EVALUADOR'
 type Tab = 'cases' | 'reports' | 'institutions' | 'bpm' | 'intake' | 'history'
 const label = (value?: string) => (value ?? '—').replaceAll('_', ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase())
-const apiError = (error: any) => error?.response?.data?.message ?? error?.response?.data?.error ?? 'The action could not be completed. Please try again.'
+// The backend always replies with { valid:false, error: { code, message } } on
+// failure (see ApiErrorResponse in API_CONTRACTS.md §0.1), so the message
+// lives at error.response.data.error.message, not .error itself (that's an
+// object and would crash React if rendered directly as a child).
+const apiError = (error: any): string => {
+  const apiErr = error?.response?.data?.error
+  if (typeof apiErr === 'string') return apiErr
+  if (apiErr?.message) return String(apiErr.message)
+  if (error?.response?.data?.message) return String(error.response.data.message)
+  return 'The action could not be completed. Please try again.'
+}
 
 export default function OperationsWorkbench({ role, initial, onOpenOfficialReport }: { role: Role; initial: Tab; onOpenOfficialReport?: (evaluationId: number) => void }) {
   const [tab, setTab] = useState<Tab>(initial)
@@ -97,7 +107,8 @@ function CasesPanel({ notify, onOpenDossier, onOpenOfficialReport }: any) {
 
   const create = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    const data = new FormData(event.currentTarget)
+    const form = event.currentTarget
+    const data = new FormData(form)
     try {
       const result = await casesService.createInstitutional({
         institutionId: Number(data.get('institutionId')),
@@ -106,7 +117,7 @@ function CasesPanel({ notify, onOpenDossier, onOpenOfficialReport }: any) {
       })
       if (result.valid) {
         notify(`Caso Institucional #${result.data.caseId} creado y listo para asignación.`)
-        event.currentTarget.reset()
+        form.reset()
         await refresh()
       }
     } catch (e) {
@@ -280,7 +291,8 @@ function CaseLifecycle({ caseItem, technicians, notify, refreshed }: any) {
 
   const schedule = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    const data = new FormData(event.currentTarget)
+    const form = event.currentTarget
+    const data = new FormData(form)
     setBusy(true)
     try {
       const result = await evaluationsService.create({
@@ -293,7 +305,7 @@ function CaseLifecycle({ caseItem, technicians, notify, refreshed }: any) {
       })
       if (result.valid) {
         notify(`Evaluación de campo #${result.data.evaluationId} programada en calendario.`)
-        event.currentTarget.reset()
+        form.reset()
         await refreshed()
       }
     } catch (e) {
@@ -566,14 +578,16 @@ function InstitutionsPanel({ role, notify }: any) {
   const [municipalities, setMunicipalities] = useState<any[]>([])
   const [query, setQuery] = useState('')
 
+  // GET /institutions is allowed for ADMIN, COORDINADOR, ADMIN_EMPRESA and
+  // USUARIO_DELEGADO (see institutions.router.ts) — for the latter two the
+  // backend auto-scopes results to institutions they own or represent, so
+  // this call is safe (and necessary) for every role this panel is shown to.
   const load = async () => {
     try {
       const provincesResult = await institutionsService.listProvinces()
       if (provincesResult.valid) setProvinces(provincesResult.data)
-      if (['ADMIN', 'COORDINADOR'].includes(role)) {
-        const r = await institutionsService.list({ q: query || undefined, page: 1, pageSize: 50 })
-        if (r.valid) setItems(r.data.items)
-      }
+      const r = await institutionsService.list({ q: query || undefined, page: 1, pageSize: 50 })
+      if (r.valid) setItems(r.data.items)
     } catch (e) {
       notify(apiError(e))
     }
@@ -588,7 +602,8 @@ function InstitutionsPanel({ role, notify }: any) {
 
   const create = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    const data = new FormData(event.currentTarget)
+    const form = event.currentTarget
+    const data = new FormData(form)
     try {
       const result = await institutionsService.create({
         name: String(data.get('name')),
@@ -603,7 +618,7 @@ function InstitutionsPanel({ role, notify }: any) {
       })
       if (result.valid) {
         notify(`Establecimiento "${result.data.name}" registrado correctamente.`)
-        event.currentTarget.reset()
+        form.reset()
         await load()
       }
     } catch (e) {
@@ -613,32 +628,23 @@ function InstitutionsPanel({ role, notify }: any) {
 
   return <div className="ops-grid">
     <section className="card ops-card">
-      {['ADMIN', 'COORDINADOR'].includes(role) ? (
-        <>
-          <div className="card-head">
-            <div>
-              <small className="eyebrow">Padrón Sanitario (RF-03)</small>
-              <h2>Establecimientos Regulados</h2>
-            </div>
-            <button className="text" onClick={() => void load()}>Buscar</button>
+      <div className="card-head">
+        <div>
+          <small className="eyebrow">Padrón Sanitario (RF-03)</small>
+          <h2>{['ADMIN', 'COORDINADOR'].includes(role) ? 'Establecimientos Regulados' : 'Mis Establecimientos'}</h2>
+        </div>
+        <button className="text" onClick={() => void load()}>Buscar</button>
+      </div>
+      <input className="ops-search" value={query} onChange={e => setQuery(e.target.value)} placeholder="Buscar por Razón Social, Nombre Comercial o RNC..." />
+      <div className="ops-list">
+        {items.map(item => (
+          <div key={item.institutionId}>
+            <b>{item.name}</b>
+            <span>{item.nombreComercial || 'Sin nombre comercial'} · RNC {item.rnc} · {item.actividadEconomica || 'Alimentos'}</span>
           </div>
-          <input className="ops-search" value={query} onChange={e => setQuery(e.target.value)} placeholder="Buscar por Razón Social, Nombre Comercial o RNC..." />
-          <div className="ops-list">
-            {items.map(item => (
-              <div key={item.institutionId}>
-                <b>{item.name}</b>
-                <span>{item.nombreComercial || 'Sin nombre comercial'} · RNC {item.rnc} · {item.actividadEconomica || 'Alimentos'}</span>
-              </div>
-            ))}
-            {!items.length && <p className="ops-empty">No se encontraron establecimientos con ese criterio.</p>}
-          </div>
-        </>
-      ) : (
-        <>
-          <h2>Establecimiento Registrado</h2>
-          <p className="ops-help">Consulte y administre la información oficial de su planta en el Portal de la Empresa.</p>
-        </>
-      )}
+        ))}
+        {!items.length && <p className="ops-empty">No se encontraron establecimientos con ese criterio. Puede registrar uno nuevo en el Portal de la Empresa.</p>}
+      </div>
     </section>
 
     {role === 'ADMIN_EMPRESA' && (
@@ -698,7 +704,8 @@ function BpmPanel({ notify }: any) {
 
   const create = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    const data = new FormData(event.currentTarget)
+    const form = event.currentTarget
+    const data = new FormData(form)
     try {
       const result = await bpmRequestsService.create({
         institutionId: Number(data.get('institutionId')),
@@ -712,7 +719,7 @@ function BpmPanel({ notify }: any) {
           await bpmRequestsService.addAttachment(result.data.bpmRequestId, attachment)
         }
         notify(`Solicitud BPM #${result.data.bpmRequestId} guardada como borrador.`)
-        event.currentTarget.reset()
+        form.reset()
         await load()
       }
     } catch (e) {
@@ -808,7 +815,8 @@ function IntakePanel({ notify }: any) {
 
   const create = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    const data = new FormData(event.currentTarget)
+    const form = event.currentTarget
+    const data = new FormData(form)
     try {
       const result = mode === 'complaints'
         ? await complaintsService.create({
@@ -827,7 +835,7 @@ function IntakePanel({ notify }: any) {
           })
       if (result.valid) {
         notify(`${mode === 'complaints' ? 'Denuncia ciudadana' : 'Alerta sanitaria LAPCH'} registrada exitosamente.`)
-        event.currentTarget.reset()
+        form.reset()
         await load()
       }
     } catch (e) {
@@ -896,7 +904,7 @@ function IntakePanel({ notify }: any) {
                       ✕ No Procede
                     </button>
                     {mode === 'complaints' && (
-                      <button className="text" style={{ color: '#b45309' }} onClick={() => void decide(item, 'REMISIÓN')}>
+                      <button className="text" style={{ color: '#b45309' }} onClick={() => void decide(item, 'REMISION_OTRO_PROCESO')}>
                         ↗ Remitir
                       </button>
                     )}
