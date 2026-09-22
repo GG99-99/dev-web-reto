@@ -56,9 +56,9 @@ const REPORTS: {
       'Termómetro de la cámara de frío sin certificado de calibración vigente. Registros de temperatura incompletos en los últimos 30 días.',
     recomendaciones:
       'Calibrar los equipos de medición de temperatura y conservar el certificado. Implementar registro de temperatura dos veces por turno con responsable asignado.',
-    status: 'EN_CORRECCION',
+    status: 'ENVIADO',
     version: 1,
-    locked: false,
+    locked: true,
     generatedDays: -1,
   },
 ];

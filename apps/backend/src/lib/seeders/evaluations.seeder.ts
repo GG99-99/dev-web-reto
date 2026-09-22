@@ -59,9 +59,10 @@ const EVALUATIONS: {
     technicianCedula: '001-0000004-4',
     scheduledDays: -1,
     priority: 'BAJA',
-    status: 'EN_PROCESO',
-    observations: 'Inspección en curso, pendiente de finalizar en campo.',
+    status: 'FINALIZADA',
+    observations: 'Inspección concluida satisfactoriamente, enviada para revisión del coordinador.',
     startedDays: -1,
+    finishedDays: -1,
   },
   {
     reason: EVAL_REASONS.LACTEOS_INICIAL,

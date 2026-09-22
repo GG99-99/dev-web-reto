@@ -21,25 +21,41 @@ export default function InspectionReportModal({
   const [score, setScore] = useState<EvaluationScore | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [reportUnavailable, setReportUnavailable] = useState(false);
 
   // Loading report data, evaluation and real risk engine score (RF-14)
   const loadReportData = async () => {
     setLoading(true);
+    setReportUnavailable(false);
+    setReport(null);
+    setEvaluation(null);
+    setScore(null);
     try {
-      const [repRes, evalRes, scoreRes] = await Promise.all([
+      const evalRes = await evaluationsService.getById(evaluationId).catch(() => null);
+      const evaluationStatus = evalRes?.valid ? evalRes.data.status : null;
+
+      if (evalRes?.valid && evalRes.data) {
+        setEvaluation(evalRes.data);
+      }
+
+      if (evaluationStatus !== 'FINALIZADA') {
+        setReportUnavailable(true);
+        return;
+      }
+
+      const [repRes, scoreRes] = await Promise.all([
         reportsService.getByEvaluation(evaluationId).catch(() => null),
-        evaluationsService.getById(evaluationId).catch(() => null),
         riskEngineService.getScore(evaluationId).catch(() => null),
       ]);
 
       if (repRes?.valid && repRes.data) {
         setReport(repRes.data);
       }
-      if (evalRes?.valid && evalRes.data) {
-        setEvaluation(evalRes.data);
-      }
       if (scoreRes?.valid && scoreRes.data) {
         setScore(scoreRes.data);
+      }
+      if (!repRes?.valid || !repRes.data) {
+        setReportUnavailable(true);
       }
     } catch (err: unknown) {
       console.error('Error loading inspection report:', err);
@@ -95,12 +111,6 @@ export default function InspectionReportModal({
     } finally {
       setBusy(false);
     }
-  };
-
-  const priorityLabel = (p?: string | null) => {
-    if (!p) return '—';
-    const map: Record<string, string> = { 'ALTA': 'High', 'MEDIA': 'Medium', 'BAJA': 'Low', 'NOT_SET': 'Not Set' };
-    return map[p] ?? p.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
   };
 
   const establishmentName = evaluation?.institution?.name ?? 'Not available';
@@ -189,10 +199,28 @@ export default function InspectionReportModal({
               </span>
               <p>Loading official inspection record...</p>
             </div>
+          ) : evaluation?.status === 'CANCELADA' ? (
+            <div className="empty" role="status" style={{ margin: '2rem', textAlign: 'center', maxWidth: 540, marginLeft: 'auto', marginRight: 'auto' }}>
+              <div style={{ display: 'inline-block', padding: '0.4rem 1rem', background: '#fee2e2', color: '#991b1b', borderRadius: '999px', fontWeight: 800, fontSize: '0.82rem', marginBottom: '1rem', textTransform: 'uppercase' }}>
+                ● Evaluación Cancelada
+              </div>
+              <h3 style={{ fontSize: '1.2rem', color: '#1e293b', marginBottom: '0.5rem' }}>
+                {establishmentName}
+              </h3>
+              <p style={{ color: '#64748b', fontSize: '0.9rem', lineHeight: '1.5' }}>
+                Esta evaluación sanitaria (No. #{evaluationId}) fue cancelada antes de su finalización. Por normativa legal y sanitaria, las inspecciones canceladas no emiten Informe Técnico ni Dictamen Oficial.
+              </p>
+              {evaluation?.observations && (
+                <div style={{ marginTop: '1.25rem', padding: '0.85rem', background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0', textAlign: 'left', fontSize: '0.85rem' }}>
+                  <strong style={{ color: '#475569' }}>Motivo / Observaciones:</strong>
+                  <div style={{ color: '#334155', marginTop: 4 }}>{evaluation.observations}</div>
+                </div>
+              )}
+            </div>
           ) : !report ? (
             <div className="empty" role="status" style={{ margin: '2rem' }}>
-              <p>No official inspection report has been generated for this assessment yet.</p>
-              <small>Complete the field assessment and submit the generated report for review before publishing an official record.</small>
+              <p>{reportUnavailable ? 'This evaluation is not ready for an official report yet.' : 'No official inspection report has been generated for this assessment yet.'}</p>
+              <small>Complete and finalize the field assessment before opening the official report.</small>
             </div>
           ) : (
             <article className="irm-paper">
@@ -230,11 +258,11 @@ export default function InspectionReportModal({
                   </div>
                   <div className="irm-field">
                     <span className="irm-label">Municipality / Province</span>
-                    <span className="irm-val">{evaluation?.institution?.municipality?.name ?? evaluation?.institution?.streetName ?? 'Not available'}</span>
+                    <span className="irm-val">{(evaluation?.institution as any)?.municipality?.name ?? evaluation?.institution?.streetName ?? 'Not available'}</span>
                   </div>
                   <div className="irm-field">
                     <span className="irm-label">Activity Type</span>
-                    <span className="irm-val">{evaluation?.institution?.actividadEconomica ?? 'Not specified'}</span>
+                    <span className="irm-val">{(evaluation?.institution as any)?.actividadEconomica ?? 'Not specified'}</span>
                   </div>
                 </div>
               </section>

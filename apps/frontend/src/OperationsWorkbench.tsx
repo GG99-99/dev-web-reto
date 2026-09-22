@@ -380,20 +380,38 @@ function CaseLifecycle({ caseItem, technicians, notify, refreshed }: any) {
 
 function ReportsPanel({ role, notify, onOpenOfficialReport }: any) {
   const [evaluations, setEvaluations] = useState<any[]>([])
+  const [selectedEval, setSelectedEval] = useState<any>()
   const [report, setReport] = useState<any>()
   const [reviews, setReviews] = useState<any[]>([])
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
     evaluationsService.list({ page: 1, pageSize: 100 })
-      .then(r => r.valid && setEvaluations(r.data.items))
+      .then(r => {
+        if (r.valid && r.data?.items) {
+          setEvaluations(r.data.items)
+        }
+      })
       .catch(e => notify(apiError(e)))
   }, [])
 
   const select = async (id: string) => {
     setReport(undefined)
     setReviews([])
-    if (!id) return
+    if (!id) {
+      setSelectedEval(undefined)
+      return
+    }
+
+    const found = evaluations.find(item => String(item.evaluationId) === String(id))
+    setSelectedEval(found)
+
+    // Si la evaluación fue cancelada o aún no ha sido finalizada, no intentamos
+    // cargar informe (el backend respondería 404 porque no genera informe técnico).
+    if (found?.status === 'CANCELADA' || found?.status === 'PROGRAMADA' || found?.status === 'REPROGRAMADA') {
+      return
+    }
+
     try {
       const result = await reportsService.getByEvaluation(Number(id))
       if (result.valid) {
@@ -401,8 +419,12 @@ function ReportsPanel({ role, notify, onOpenOfficialReport }: any) {
         const history = await reportsService.listReviews(result.data.reportId)
         if (history.valid) setReviews(history.data)
       }
-    } catch (e) {
-      notify(apiError(e))
+    } catch (e: any) {
+      if (e?.response?.status === 404) {
+        setReport(null)
+      } else {
+        notify(apiError(e))
+      }
     }
   }
 
@@ -417,7 +439,7 @@ function ReportsPanel({ role, notify, onOpenOfficialReport }: any) {
         comments: String(data.get('comments')),
       })
       if (result.valid) {
-        notify('Review decision recorded in the official log.')
+        notify('Decisión de revisión registrada exitosamente en la bitácora.')
         await select(String(report.evaluationId))
       }
     } catch (e) {
@@ -470,26 +492,71 @@ function ReportsPanel({ role, notify, onOpenOfficialReport }: any) {
 
   return <div className="ops-grid reports-live">
     <section className="card ops-card">
-      <label className="ops-picker">Evaluation
+      <label className="ops-picker">Evaluación
         <select onChange={e => void select(e.target.value)} defaultValue="">
-          <option value="">Select a registered evaluation...</option>
+          <option value="">Seleccione una evaluación registrada...</option>
           {evaluations.map(item => (
             <option key={item.evaluationId} value={item.evaluationId}>
-              #{item.evaluationId} · {item.institution?.name ?? 'Establishment'} · {label(item.status)}
+              #{item.evaluationId} · {item.institution?.name ?? 'Establecimiento'} · [{label(item.status)}]
             </option>
           ))}
         </select>
       </label>
 
-      {report ? (
+      {/* Caso A: Evaluación Cancelada */}
+      {selectedEval?.status === 'CANCELADA' ? (
+        <div className="report-live">
+          <mark style={{ background: '#fee2e2', color: '#991b1b', borderColor: '#fca5a5' }}>
+            ● Cancelada
+          </mark>
+          <h2>{selectedEval.institution?.name ?? 'Establecimiento'}</h2>
+          <p>Evaluación #{selectedEval.evaluationId} · Programada originalmente para el {new Date(selectedEval.scheduledDate).toLocaleDateString()}</p>
+          <div style={{ background: '#fff5f5', border: '1px solid #fed7d7', borderRadius: '8px', padding: '1.25rem', marginTop: '1rem' }}>
+            <h3 style={{ color: '#c53030', margin: '0 0 0.5rem 0', fontSize: '1rem' }}>
+              ⚠️ Proceso de Evaluación Cancelado
+            </h3>
+            <p style={{ margin: 0, color: '#742a2a', fontSize: '0.9rem', lineHeight: '1.5' }}>
+              Esta evaluación sanitaria fue cancelada antes de su conclusión. Por normativa sanitaria, las evaluaciones canceladas no generan Informe Técnico ni Dictamen Oficial.
+            </p>
+            {selectedEval.observations && (
+              <div style={{ marginTop: '0.85rem', paddingTop: '0.85rem', borderTop: '1px solid #feb2b2' }}>
+                <strong style={{ fontSize: '0.8rem', color: '#9b2c2c', textTransform: 'uppercase' }}>
+                  Motivo de cancelación / Observaciones:
+                </strong>
+                <p style={{ margin: '0.25rem 0 0 0', color: '#63171b', fontSize: '0.88rem' }}>
+                  {selectedEval.observations}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : selectedEval && selectedEval.status !== 'FINALIZADA' && !report ? (
+        /* Caso B: Evaluación en proceso o programada (sin informe) */
+        <div className="report-live">
+          <mark style={{ background: '#e0f2fe', color: '#0369a1', borderColor: '#7dd3fc' }}>
+            ● {label(selectedEval.status)}
+          </mark>
+          <h2>{selectedEval.institution?.name ?? 'Establecimiento'}</h2>
+          <p>Evaluación #{selectedEval.evaluationId} · Fecha: {new Date(selectedEval.scheduledDate).toLocaleDateString()}</p>
+          <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '8px', padding: '1.25rem', marginTop: '1rem' }}>
+            <h3 style={{ color: '#0369a1', margin: '0 0 0.5rem 0', fontSize: '1rem' }}>
+              ℹ️ Informe en Espera de Conclusión de Campo
+            </h3>
+            <p style={{ margin: 0, color: '#0c4a6e', fontSize: '0.9rem', lineHeight: '1.5' }}>
+              El informe de inspección sanitaria se genera automáticamente una vez que el evaluador finaliza la ficha de evaluación en campo.
+            </p>
+          </div>
+        </div>
+      ) : report ? (
+        /* Caso C: Informe existente */
         <div className="report-live">
           <mark>{label(report.status)}</mark>
-          <h2>{report.institution?.name ?? report.evaluation?.institution?.name ?? 'Health Inspection Report'}</h2>
-          <p>Version {report.version} · {report.locked ? '🔒 Locked for review' : '✏️ Editable draft'}</p>
-          <h3>Findings & Non-Conformities</h3>
-          <p>{report.noConformidades || 'No non-conformities recorded.'}</p>
-          <h3>Technical Recommendations</h3>
-          <p>{report.recomendaciones || 'No technical recommendations recorded.'}</p>
+          <h2>{report.institution?.name ?? report.evaluation?.institution?.name ?? selectedEval?.institution?.name ?? 'Informe de Inspección Sanitaria'}</h2>
+          <p>Versión {report.version} · {report.locked ? '🔒 Bloqueado para revisión' : '✏️ Borrador editable'}</p>
+          <h3>Hallazgos y No Conformidades</h3>
+          <p>{report.noConformidades || 'No se registraron no conformidades.'}</p>
+          <h3>Recomendaciones Técnicas</h3>
+          <p>{report.recomendaciones || 'No se registraron recomendaciones técnicas.'}</p>
           {onOpenOfficialReport && (
             <button
               type="button"
@@ -497,72 +564,126 @@ function ReportsPanel({ role, notify, onOpenOfficialReport }: any) {
               style={{ marginTop: '1.25rem', background: '#00236f', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
               onClick={() => onOpenOfficialReport(report.evaluationId)}
             >
-              📄 View Official Decision & Generate PDF
+              📄 Ver Dictamen Oficial & Generar PDF
             </button>
           )}
         </div>
       ) : (
-        <p className="ops-empty">Select an evaluation to load its technical report and review log.</p>
+        <p className="ops-empty">Seleccione una evaluación para cargar su informe técnico y bitácora de revisión.</p>
       )}
     </section>
 
     <aside className="ops-stack">
-      {report && ['ADMIN', 'COORDINADOR'].includes(role) && (
+      {/* Caso Cancelada: Aviso en el panel derecho */}
+      {selectedEval?.status === 'CANCELADA' && (
         <section className="card ops-card">
-          <h2>Coordinator Review</h2>
+          <h2>Revisión del Coordinador (RF-17)</h2>
+          <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', color: '#64748b', fontSize: '0.85rem' }}>
+            <p style={{ margin: 0 }}>
+              No aplicable. Los expedientes cancelados no admiten emisión de dictamen sanitario ni revisión técnica.
+            </p>
+          </div>
+        </section>
+      )}
+
+      {/* Formulario de Decisión: SOLO si el informe está en ENVIADO */}
+      {report && ['ADMIN', 'COORDINADOR'].includes(role) && report.status === 'ENVIADO' && (
+        <section className="card ops-card">
+          <h2>Revisión del Coordinador (RF-17)</h2>
           <form className="ops-form" onSubmit={decision}>
-            <label>Review Decision
+            <label>Decisión Sanitaria
               <select name="action" defaultValue="APROBAR">
-                <option value="APROBAR">Approve Report & Issue Decision</option>
-                <option value="SOLICITAR_CORRECCION">Request Corrections from Evaluator</option>
-                <option value="DEVOLVER">Return Report</option>
+                <option value="APROBAR">Aprobar Informe y Emitir Dictamen</option>
+                <option value="SOLICITAR_CORRECCION">Solicitar Correcciones al Evaluador</option>
+                <option value="DEVOLVER">Devolver Informe</option>
               </select>
             </label>
-            <label>Review Observations
-              <textarea name="comments" required placeholder="Justify the decision or detail the required corrections..." />
+            <label>Observaciones de Revisión
+              <textarea name="comments" required placeholder="Fundamente la decisión o detalle las correcciones necesarias..." />
             </label>
-            <button className="primary" disabled={busy}>Record Decision</button>
+            <button className="primary" disabled={busy}>Registrar Decisión</button>
           </form>
         </section>
       )}
 
+      {/* Informe ya APROBADO: Mostrar estado oficial sin formulario fallido */}
+      {report && ['ADMIN', 'COORDINADOR'].includes(role) && report.status === 'APROBADO' && (
+        <section className="card ops-card">
+          <h2>Revisión del Coordinador (RF-17)</h2>
+          <div style={{ padding: '1rem', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0', color: '#166534', fontSize: '0.85rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700, marginBottom: '0.4rem', fontSize: '0.95rem' }}>
+              <span>✅</span> Dictamen Oficial Aprobado
+            </div>
+            <p style={{ margin: '0 0 0.75rem 0', color: '#15803d', lineHeight: '1.4' }}>
+              Este informe cuenta con aprobación formal y dictamen sanitario emitido. Las decisiones registradas son definitivas e inmutables conforme a la normativa vigente.
+            </p>
+            {onOpenOfficialReport && (
+              <button
+                type="button"
+                className="primary ops-wide"
+                style={{ background: '#00236f', fontSize: '0.82rem' }}
+                onClick={() => onOpenOfficialReport(report.evaluationId)}
+              >
+                📄 Ver Dictamen Oficial & Generar PDF
+              </button>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* Informe en CORRECCIÓN o DEVUELTO */}
+      {report && ['ADMIN', 'COORDINADOR'].includes(role) && (report.status === 'EN_CORRECCION' || report.status === 'DEVUELTO') && (
+        <section className="card ops-card">
+          <h2>Revisión del Coordinador (RF-17)</h2>
+          <div style={{ padding: '1rem', background: '#fffbeb', borderRadius: '8px', border: '1px solid #fde68a', color: '#92400e', fontSize: '0.85rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700, marginBottom: '0.4rem' }}>
+              <span>✏️</span> {report.status === 'DEVUELTO' ? 'Informe Devuelto' : 'En Corrección por el Evaluador'}
+            </div>
+            <p style={{ margin: 0, color: '#b45309', lineHeight: '1.4' }}>
+              El informe se encuentra en manos del técnico evaluador para subsanar observaciones. La revisión estará disponible nuevamente en cuanto el técnico reenvíe la corrección.
+            </p>
+          </div>
+        </section>
+      )}
+
+      {/* Técnico Evaluador: Acciones de corrección */}
       {report && role === 'TECNICO_EVALUADOR' && (
         <section className="card ops-card">
-          <h2>Correction Management</h2>
-          <p className="ops-help">Submitted reports are locked until the coordinator requests a correction.</p>
+          <h2>Gestión de Correcciones</h2>
+          <p className="ops-help">Los informes enviados permanecen bloqueados hasta que el coordinador solicite corrección.</p>
           {!report.locked && (
             <form className="ops-form" onSubmit={correct}>
-              <label>Executive Summary
+              <label>Resumen Ejecutivo
                 <textarea name="resumenEjecutivo" defaultValue={report.resumenEjecutivo ?? ''} />
               </label>
-              <label>Findings
+              <label>Hallazgos
                 <textarea name="hallazgos" defaultValue={report.hallazgos ?? ''} />
               </label>
-              <label>Non-Conformities
+              <label>No Conformidades
                 <textarea name="noConformidades" defaultValue={report.noConformidades ?? ''} />
               </label>
-              <label>Recommendations
+              <label>Recomendaciones
                 <textarea name="recomendaciones" defaultValue={report.recomendaciones ?? ''} />
               </label>
-              <button className="secondary ops-wide" disabled={busy}>Save Changes</button>
+              <button className="secondary ops-wide" disabled={busy}>Guardar Cambios</button>
             </form>
           )}
           <button className="primary" disabled={busy || report.locked} onClick={() => void technicianAction('submit')}>
-            Submit for Review
+            Enviar a Revisión
           </button>
           <button className="secondary ops-wide" disabled={busy || !report.locked} onClick={() => void technicianAction('resend')}>
-            Resend Correction
+            Reenviar Corrección
           </button>
         </section>
       )}
 
       {reviews.length > 0 && (
         <section className="card ops-card">
-          <h2>Review Log</h2>
+          <h2>Bitácora de Revisiones</h2>
           <ol className="ops-timeline">
             {reviews.map(item => (
               <li key={item.reviewId}>
-                <strong>{label(item.action)}</strong> · {item.comments || 'No additional comments'}
+                <strong>{label(item.action)}</strong> · {item.comments || 'Sin comentarios adicionales'}
               </li>
             ))}
           </ol>
