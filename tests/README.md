@@ -4,19 +4,38 @@
 
 Automated tests for the RADAR food-safety inspection system (`@reto/backend`, `@reto/frontend`, `@reto/db`, `@reto/shared`).
 
-Latest verified run (2026-09-25), after the 2FA isolation, Playwright locator, and company-portal race fixes:
+Latest verified run (2026-09-25), after dedicated `radar_test` isolation and multi-role UI journeys:
 
 | Suite | Unique tests | Executions | Passed | Failed | Skipped | Flaky |
 |-------|--------------|------------|--------|--------|---------|-------|
-| API smoke (`pnpm test:api:smoke`) | 121 | 121 | 121 | 0 | 0 | 0 |
-| API full (`pnpm test:api:full`, node:test) | 349 | 349 | 349 | 0 | 0 | 0 |
-| E2E Chromium (`tests/playwright.config.ts` project `chromium`) | 69 | 69 | 69 | 0 | 0 | 0 |
-| E2E Pixel 5 (`project` `mobile-chrome`) | 69 | 69 | 69 | 0 | 0 | 0 |
-| **Intended full suite (`pnpm test:all`)** | 539 unique | **608** | **608** | **0** | **0** | **0** |
+| API smoke (`API_URL=http://127.0.0.1:3010/api/v1`) | 121 | 121 | 121 | 0 | 0 | 0 |
+| API full (`pnpm test:api:full` against `radar_test`) | 349 | 349 | 349 | 0 | 0 | 0 |
+| E2E Chromium (`project` `chromium`) | 83 | 83 | 83 | 0 | 0 | 0 |
+| E2E Pixel 5 (`project` `mobile-chrome`) | 78 | 78 | 78 | 0 | 0 | 0 |
+| Playwright listed total | 83 unique | **161** | **161** | **0** | **0** | **0** |
+| Playwright flake re-run | 83 unique | **161** | **161** | **0** | **0** | **0** |
+| Combined API + one Playwright pass | 553 unique | **631** | **631** | **0** | **0** | **0** |
 
-Playwright lists **138 executions** because each of the 69 unique E2E tests runs in both projects. Do not add Chromium + Pixel 5 + unique titles as if they were independent suites.
+Playwright lists **161 executions** because 83 unique E2E titles run on Chromium and 78 of those also run on Pixel 5. Three long role-handoff specs are Chromium-only (`bpm-lifecycle`, `institutional-scheduling`, `reports-history`). Do not add Chromium + Pixel 5 + unique titles as if they were independent suites.
 
-`pnpm test` (root) runs **only** `test:api:full`. Use `pnpm test:all` for smoke + API + E2E.
+`pnpm test` (root) runs **only** `test:api:full`. Use `pnpm test:all` for smoke + API + E2E. Playwright and API suites now default to port **3010** and database **`radar_test`**. They do not mutate the shared compose database `midb2`.
+
+---
+
+## Data safety
+
+The compose database `midb2` on host port 5433 is treated as **shared / not disposable**. Historical Prisma `P3005` and a read-only `_prisma_migrations` check (3 rows, no schema change applied) are the reason tests never drop, reset, or reseed it.
+
+Mutating test setup is gated by `scripts/test-db-guard.mjs`:
+
+- Allowlist: `radar_test` only
+- Blocked: `midb2`, `postgres`, `template0`, `template1`
+- `scripts/reset-test-state.mjs` disables 2FA **only** on the allowlisted database (verified `UPDATE 0` after the API suite; `radar_test` had 0 enabled 2FA rows)
+- `scripts/ensure-test-db.mjs` (Playwright `globalSetup`) creates `radar_test` if missing, applies migrations to that database only, and seeds it only when empty
+- Playwright `webServer` starts backend **3010** + frontend **5174** so a local `3000`/`5173`/`midb2` stack is left untouched
+- E2E company users use `@e2e.radar.test` emails and `deactivateE2eUsers()` soft-deletes them in `afterEach`
+
+Inspect `.env` locally before changing database targets. Do **not** point `TEST_PG_DB` at `midb2`.
 
 ---
 
@@ -24,27 +43,19 @@ Playwright lists **138 executions** because each of the 69 unique E2E tests runs
 
 1. Docker Desktop running
 2. Node.js ≥ 20 and pnpm
-3. PostgreSQL from `docker-pg/docker-compose.yml` (container `mi-postgres2`, database `midb2`, host port **5433**)
-4. Backend on `http://localhost:3000`
-5. Frontend on `http://localhost:5173` (E2E only)
-6. Playwright Chromium: `pnpm exec playwright install chromium`
+3. PostgreSQL from `docker-pg/docker-compose.yml` (container `mi-postgres2`, host port **5433**). Shared data lives in `midb2`; tests use **`radar_test`**
+4. Playwright Chromium: `pnpm exec playwright install chromium`
+5. `pnpm test:db:ensure` once (also runs automatically as Playwright global setup)
 
-Start the stack from `dev-web-reto/`:
+The shared app (`pnpm dev` on 3000/5173) is **not** required for Playwright. Playwright starts its own servers.
 
 ```powershell
 pnpm db:up
-pnpm db:migrate
-pnpm seed
-pnpm dev
-```
-
-If Docker is not on PATH, start Docker Desktop first. The reset script **exits 1** when `docker exec mi-postgres2` cannot disable 2FA — it does not fail open.
-
-Install browsers once:
-
-```powershell
+pnpm test:db:ensure
 pnpm exec playwright install chromium
 ```
+
+If Docker is not on PATH, start Docker Desktop first. The reset script **exits 1** when the target database is not allowlisted — it does not fail open onto `midb2`.
 
 ---
 
@@ -52,16 +63,18 @@ pnpm exec playwright install chromium
 
 | Command | What it runs |
 |---------|----------------|
-| `pnpm test` | API full suite only (resets 2FA, then `tests/api/*.test.mjs`) |
-| `pnpm test:api:smoke` | `scripts/api-smoke-tests.mjs` (121 checks, some accept multiple status codes) |
-| `pnpm test:api:full` | Reset 2FA, then node:test with `--test-concurrency=1` |
+| `pnpm test` | API full suite only (resets 2FA on `radar_test`, then `tests/api/*.test.mjs`) |
+| `pnpm test:db:ensure` | Create/migrate/seed `radar_test` only; never touches `midb2` |
+| `pnpm test:api:smoke` | `scripts/api-smoke-tests.mjs` (121 checks, some accept multiple status codes). Defaults to `http://127.0.0.1:3010/api/v1` |
+| `pnpm test:api:full` | Reset 2FA on `radar_test`, then node:test with `--test-concurrency=1` |
 | `pnpm test:api:auth` … `test:api:workflows` | Single API module |
-| `pnpm test:e2e` | Playwright Chromium + Pixel 5 |
+| `pnpm test:e2e` | Playwright Chromium + Pixel 5 (starts 3010/5174) |
 | `pnpm test:e2e:chromium` | Chromium only |
 | `pnpm test:e2e:mobile` | Pixel 5 viewport only |
-| `pnpm test:e2e:auth` / `:nav` / `:company` / `:pwa` / `:ops` | One spec file, both projects |
+| `pnpm test:e2e:journeys` | New multi-role UI journeys |
+| `pnpm test:e2e:auth` / `:nav` / `:company` / `:pwa` | One original spec file, both projects |
 | `pnpm test:e2e:headed` | Headed browsers |
-| `pnpm test:all` | smoke **and** API full **and** Playwright (the intended complete suite) |
+| `pnpm test:all` | smoke **and** API full **and** Playwright (requires the 3010 test backend for API, or Playwright’s webServer for E2E) |
 | `pnpm build:packages` | `@reto/db` then `@reto/shared` |
 | `pnpm --filter @reto/backend build` | Backend TypeScript build |
 | `pnpm --filter @reto/frontend build` | Frontend Vite production build |
@@ -83,19 +96,22 @@ Seeded password: `Password123!`
 | ADMIN | `admin@salud.gob.do` |
 | COORDINADOR | `coordinador@salud.gob.do` |
 | TECNICO_EVALUADOR | `tecnico1@salud.gob.do` |
+| TECNICO_EVALUADOR (2) | `tecnico2@salud.gob.do` |
 | ADMIN_EMPRESA | `admin@lacteosdelnorte.do` |
 | USUARIO_DELEGADO | `delegado@lacteosdelnorte.do` |
 
-`scripts/reset-test-state.mjs` runs `UPDATE two_factor_auth SET enabled = false` inside `mi-postgres2`. The full API suite uses `--test-concurrency=1` so a 2FA test cannot poison another file’s cached admin token.
+`scripts/reset-test-state.mjs` runs `UPDATE two_factor_auth SET enabled = false` **only** inside allowlisted `radar_test`. The full API suite uses `--test-concurrency=1` so a 2FA test cannot poison another file’s cached admin token.
 
 2FA tests use an **isolated registered user**. Seeded accounts are never left with `enabled = true`. `loginAs()` throws if login returns `requiresTwoFactor` instead of caching a null token.
+
+E2E journeys create unique `@e2e.radar.test` accounts and soft-delete them in teardown. Soft-deleted users can still appear in the admin pending list (product behavior).
 
 ---
 
 ## Environment
 
 ```
-API_URL=http://localhost:3000/api/v1
+API_URL=http://127.0.0.1:3010/api/v1
 TEST_PASSWORD=Password123!
 TEST_ADMIN=admin@salud.gob.do
 TEST_COORDINATOR=coordinador@salud.gob.do
@@ -104,11 +120,15 @@ TEST_COMPANY=admin@lacteosdelnorte.do
 TEST_DELEGATE=delegado@lacteosdelnorte.do
 TEST_PG_CONTAINER=mi-postgres2
 TEST_PG_USER=miusuario
-TEST_PG_DB=midb2
-BASE_URL=http://localhost:5173
+TEST_PG_DB=radar_test
+BASE_URL=http://127.0.0.1:5174
+E2E_API_PORT=3010
+E2E_WEB_PORT=5174
 ```
 
-SMTP in `.env` is a dummy Gmail account. Assignment emails wait on nodemailer’s ~10s connection timeout. The BPM closure API workflow therefore takes ~30s; that is SMTP, not an arbitrary test sleep.
+Do not set `TEST_PG_DB=midb2`. Playwright global setup and the 2FA reset will refuse blocked names.
+
+SMTP in `.env` is a dummy Gmail account for the shared 3000 stack. The test backend starts with `SMTP_HOST=''` so assignment mail is logged, not sent.
 
 ---
 
@@ -131,16 +151,29 @@ tests/
 │   ├── 09-uploads.test.mjs
 │   └── 10-workflows.test.mjs
 └── e2e/
+    ├── global-setup.ts
     ├── helpers.ts
     ├── auth.spec.ts
     ├── navigation.spec.ts
     ├── company.spec.ts
     ├── operational.spec.ts
-    └── pwa.spec.ts
+    ├── pwa.spec.ts
+    ├── registration.spec.ts
+    ├── company-establishments.spec.ts
+    ├── bpm-lifecycle.spec.ts
+    ├── institutional-scheduling.spec.ts
+    ├── lapch-alerts.spec.ts
+    ├── complaints.spec.ts
+    ├── reports-history.spec.ts
+    └── notifications-dashboards.spec.ts
 
 scripts/
 ├── api-smoke-tests.mjs
-└── reset-test-state.mjs
+├── reset-test-state.mjs
+├── test-db-guard.mjs
+├── ensure-test-db.mjs
+├── start-test-backend.mjs
+└── start-test-frontend.mjs
 ```
 
 Artifacts (`test-results/`, `playwright-report/`, backend/frontend log dumps) are gitignored. Traces, screenshots, and videos are retained **on failure only**.
@@ -149,13 +182,32 @@ Artifacts (`test-results/`, `playwright-report/`, backend/frontend log dumps) ar
 
 ## Feature-to-test matrix
 
+SRS RF-01–RF-20 mapped to **UI journeys** vs API-only. API coverage is not claimed as UI coverage.
+
+| RF | Actor | UI journey | Existing | Notes / gaps |
+|----|-------|------------|----------|--------------|
+| RF-01 | All roles | Sign-in, validation, session | `auth.spec.ts` | UI |
+| RF-02 | Applicant + ADMIN | Sign-up, pending block, approve/reject | `registration.spec.ts` | No carta upload in the sign-up form (API-only). Pending login shows a generic connection notice because the UI maps Spanish `pendiente`/`rechaz` while the API returns English 403 text |
+| RF-03 | ADMIN_EMPRESA / delegate | Register establishment + legal representative; other companies cannot see it | `company-establishments.spec.ts` | Assignment succeeds and persists as `representantes`; the portal list still shows “No representatives registered” because it reads `inst.represents` |
+| RF-04 | Coordinator / technician / company | Assignment notification isolation + dashboards | `notifications-dashboards.spec.ts`, `navigation.spec.ts` | UI |
+| RF-05 | Company | Draft BPM, reopen, attach, submit | `bpm-lifecycle.spec.ts`, `company.spec.ts` | Attachment card shows `Attachment #<id>` not the original filename |
+| RF-06 | Coordinator | Assign / reassign technician | `bpm-lifecycle.spec.ts`, `institutional-scheduling.spec.ts` | UI |
+| RF-07 / RF-10 | Coordinator / technician | Schedule + calendar visibility | `institutional-scheduling.spec.ts` | Reschedule and cancel exist in the API client, **not** in the calendar UI |
+| RF-08 | Coordinator | LAPCH proceeds + does-not-proceed | `lapch-alerts.spec.ts` | UI; technician/company nav hidden |
+| RF-09 | Coordinator | Complaint proceeds / no-proceed / referral | `complaints.spec.ts` | There is **no** unauthenticated public intake page. Generate-case requires a linked establishment (400 otherwise) |
+| RF-11–RF-15 | Technician | Start field form, C/CP/NC/N/A, evidence, save, score, lock | `bpm-lifecycle.spec.ts` | GPS not driven. Playwright `setOffline` re-hydrates `started` from the stale list item and disables Save Draft; not claimed as offline E2E |
+| RF-16–RF-18 | Technician + coordinator | Submit report, request correction, save, resubmit, approve, close | `bpm-lifecycle.spec.ts` | After `SOLICITAR_CORRECCION` `locked` is false, so **Resubmit Correction** stays disabled; technician uses **Submit for Review** again |
+| RF-19 | Coordinator | Official file after close | `bpm-lifecycle.spec.ts` | `GET /cases/:id/close/pdf` is **302** to a `.txt` stub, not a PDF |
+| RF-20 | Coordinator / company | History search + company-scoped certificates | `reports-history.spec.ts` | UI |
+| RNF-01 | — | Manifest, `sw.js` served, no SW controller in Vite dev | `pwa.spec.ts` | Production service-worker registration is **not** covered (SW only registers in `PROD`) |
+
 ### Authentication (RF-01)
 
 | Behavior | Coverage |
 |----------|----------|
 | Login email / cédula, all five roles | API 01, E2E auth |
 | Wrong password, unknown user, missing fields | API 01, E2E auth |
-| Pending user → 403 | API 01 |
+| Pending user → 403 | API 01, E2E registration (UI shows generic notice) |
 | Refresh / logout | API 01, E2E auth (logout + reload) |
 | Forgot password (no enumeration) | API 01, E2E auth |
 | Reset with DB-issued token; invalid token | API 01 |
@@ -168,6 +220,7 @@ Artifacts (`test-results/`, `playwright-report/`, backend/frontend log dumps) ar
 | Behavior | Coverage |
 |----------|----------|
 | List / get / register / status / delete / self PATCH | API 02 |
+| Approve / reject through User validation UI | E2E registration |
 | Role list | API 03 |
 | Provinces, municipalities, health areas, foods, categories | API 03 |
 | Risk frequency rules get/patch (ADMIN only) | API 03 |
@@ -179,7 +232,8 @@ Artifacts (`test-results/`, `playwright-report/`, backend/frontend log dumps) ar
 | Behavior | Coverage |
 |----------|----------|
 | CRUD-shaped list/get/history/evaluations, create, represent | API 04 |
-| Company portal establishment dialog + empty submit | E2E operational |
+| Company portal establishment dialog + empty submit | E2E operational, E2E company-establishments |
+| Cross-company isolation of a new plant | E2E company-establishments |
 
 ### Dashboards (RF-04)
 
@@ -187,25 +241,26 @@ Artifacts (`test-results/`, `playwright-report/`, backend/frontend log dumps) ar
 |----------|----------|
 | Empresa / coordinador / tecnico role gates | API 08 |
 | Command center metrics, lifecycle, primary action | E2E navigation |
+| Assignment notification visible to technician, not company | E2E notifications-dashboards |
 
 ### BPM, cases, assignments, evaluations (RF-05–RF-11)
 
 | Behavior | Coverage |
 |----------|----------|
-| BPM list/create/update/submit | API 05, E2E company (draft + empty) |
-| Cases list/create/priority/close/PDF stub | API 06, E2E operational |
-| Assign / reassign | API 06, API 10 |
-| Evaluations list/calendar/create/reschedule/cancel | API 07, E2E calendar |
-| Full BPM → assign → eval → answers → evidence → finish → report review/correct/resend/approve → close + 302 PDF | API 10 |
+| BPM list/create/update/submit | API 05, E2E company (draft + empty), E2E bpm-lifecycle (draft → submit) |
+| Cases list/create/priority/close/PDF stub | API 06, E2E operational, E2E bpm-lifecycle |
+| Assign / reassign | API 06, API 10, E2E bpm-lifecycle, E2E institutional-scheduling |
+| Evaluations list/calendar/create/reschedule/cancel | API 07, E2E calendar; **reschedule/cancel UI absent** |
+| Full BPM → assign → eval → answers → evidence → finish → report review/correct/resend/approve → close + 302 PDF | API 10 **and** E2E `bpm-lifecycle.spec.ts` (separate contexts per role) |
 
 ### Field work, risk, evidence, reports (RF-12–RF-18)
 
 | Behavior | Coverage |
 |----------|----------|
-| Templates, start, answers, finish | API 07, API 10 |
-| Score | API 07, API 10 |
-| Evidence create/delete | API 07, API 10 |
-| Report submit/review/correct/resend | API 07, API 10 |
+| Templates, start, answers, finish | API 07, API 10, E2E bpm-lifecycle |
+| Score vs C=1 / CP=0.5 / NC=0 / N/A ignored | API 07, API 10, E2E bpm-lifecycle |
+| Evidence create/delete | API 07, API 10, E2E bpm-lifecycle (upload) |
+| Report submit/review/correct/resend | API 07, API 10, E2E bpm-lifecycle |
 | Field assessment empty or assigned hero | E2E operational |
 | Reports & closure tab | E2E operational |
 
@@ -213,11 +268,11 @@ Artifacts (`test-results/`, `playwright-report/`, backend/frontend log dumps) ar
 
 | Behavior | Coverage |
 |----------|----------|
-| LAPCH CRUD + generate-case + close | API 08, API 10 |
-| Public complaint + generate-case | API 08, API 10 |
-| Notifications list/read isolation | API 08, E2E navigation (bell + dialog) |
-| History search | API 08, E2E operational (360° tab) |
-| Intake complaints/LAPCH form | E2E operational |
+| LAPCH CRUD + generate-case + close | API 08, API 10, E2E lapch-alerts (proceeds + no-proceed) |
+| Public complaint + generate-case | API 08, API 10; E2E complaints is **coordinator intake**, not a public page |
+| Notifications list/read isolation | API 08, E2E navigation (bell + dialog), E2E notifications-dashboards |
+| History search | API 08, E2E operational (360° tab), E2E reports-history |
+| Intake complaints/LAPCH form | E2E operational, E2E lapch-alerts, E2E complaints |
 
 ### Attachments
 
@@ -225,7 +280,7 @@ Artifacts (`test-results/`, `playwright-report/`, backend/frontend log dumps) ar
 |----------|----------|
 | PNG upload/get/delete, isolation, 25MB+1 → 400 | API 09 |
 | Missing file, missing category, 401 | API 08, API 09 |
-| BPM request attachment | API 09 |
+| BPM request attachment | API 09, E2E bpm-lifecycle (UI shows `Attachment #<id>`) |
 
 ### Frontend routes / a11y / responsive / PWA
 
@@ -233,7 +288,7 @@ Artifacts (`test-results/`, `playwright-report/`, backend/frontend log dumps) ar
 |--------|----------|
 | Auth (sign-in, sign-up, recovery, 2FA prompt not on seeded users) | E2E auth |
 | Command center, Users, Governance, Cases, Reports, Operations, Calendar, Company, Field | E2E navigation + operational |
-| Role-hidden nav items | E2E auth, navigation, operational |
+| Role-hidden nav items | E2E auth, navigation, operational, lapch, complaints, reports-history |
 | Hamburger + off-canvas sidebar | E2E navigation (desktop narrow + Pixel 5) |
 | Keyboard focus on sign-in | E2E auth |
 | Offline Mode / Connected | E2E navigation, pwa |
@@ -257,7 +312,7 @@ Artifacts (`test-results/`, `playwright-report/`, backend/frontend log dumps) ar
 | 10-workflows | 12 |
 | **Total** | **349** |
 
-E2E unique titles: auth 24, navigation 21, company 6, operational 13, pwa 5 = **69** × 2 projects = **138**.
+E2E unique titles: auth 24, navigation 21, company 6, operational 13, pwa 5, registration 3, company-establishments 1, bpm-lifecycle 1, institutional-scheduling 1, lapch 2, complaints 2, reports-history 3, notifications 1 = **83**. Chromium runs all 83; Pixel 5 runs 78 (omits bpm-lifecycle, institutional-scheduling, reports-history). Listed executions: **161**.
 
 ---
 
@@ -277,20 +332,70 @@ Notification and profile buttons used `title` plus inner text/emoji, so the acce
 
 ### DEFECT-004 — Official case PDF is a 302 to a `.txt` stub
 
-`GET /cases/:id/close/pdf` after a completed workflow redirects to a text placeholder, not a generated PDF. Tests assert the 302. Real PDF rendering is not implemented.
+`GET /cases/:id/close/pdf` after a completed workflow redirects to a text placeholder, not a generated PDF. UI journeys assert the 302 + `.txt` body. Real PDF rendering is not implemented.
+
+### DEFECT-005 — Pending / rejected login copy is unmapped
+
+`AuthPortal` maps Spanish fragments (`pendiente`, `rechaz`) while the API returns English 403 text (`Account is pending validation` / `Account has been rejected`). The UI shows a generic connection notice instead of the intended pending/rejected message. Covered by `registration.spec.ts`.
+
+### DEFECT-006 — Company portal ignores persisted representatives
+
+`POST /institutions/:id/representatives` stores `representantes`. `CompanyPortal` reads `inst.represents`, so a successful add still shows **No representatives registered**. Covered by `company-establishments.spec.ts` (API GET asserts the row; UI empty-copy is the product defect).
+
+### DEFECT-007 — Attachment cards use the wrong filename field
+
+BPM attachment UI reads `originalName` / `filename`. The API returns `fileName`, so the card shows `Attachment #<id>`. Covered by `bpm-lifecycle.spec.ts`.
+
+### DEFECT-008 — Intake list items lack React keys
+
+`IntakePanel` complaint/alert rows produce React key warnings in the console. Tests still locate rows with `.ops-list > div`.
+
+### DEFECT-009 — Offline rehydrate disables a started field form
+
+`LiveField` `setOffline(true)` reloads evaluations from a stale list item whose status is not `EN_PROCESO`, so `started` becomes false and **Save Draft** is disabled. Offline queue/sync is **not** claimed as E2E coverage.
+
+### DEFECT-010 — Resubmit Correction stays disabled after SOLICITAR_CORRECCION
+
+`SOLICITAR_CORRECCION` sets `report.locked = false`. **Resubmit Correction** requires `locked === true`. The technician must click **Submit for Review** again. Covered by `bpm-lifecycle.spec.ts`.
+
+### DEFECT-011 — Sign-up has no authorization-letter file input
+
+SRS RF-02 carta de autorización. `POST /users/register` accepts `cartaAutorizacionFileId`; the sign-up form has no file input. Tests do not invent an upload control.
+
+### DEFECT-012 — No public unauthenticated complaint page
+
+SRS RF-09 public intake. Complaints are recorded in the coordinator Operations workbench. There is no unauthenticated public form.
+
+### DEFECT-013 — Calendar has no reschedule / cancel controls
+
+API client exposes reschedule/cancel. `TechnicianCalendar` has no matching UI. Institutional journeys reassign through the Cases workbench instead.
+
+### DEFECT-014 — Soft-deleted applicants remain in the pending list
+
+E2E teardown `DELETE /users/:id` sets `isActive = false`. Admin User validation still lists those emails under Pending.
+
+### DEFECT-015 — Admin calendar GET is 403
+
+`GET /evaluations/calendar` as ADMIN returns 403 in some operational runs. The Calendar screen still loads a heading; the 403 is logged.
 
 ---
 
 ## Remaining limitations
 
-1. **SMTP** — Dummy Gmail; assignment mail blocks ~10s each. No inbox assertion.
-2. **Service worker in production** — Registered only when `import.meta.env.PROD`. Dev E2E asserts the file is served and that no controller takes over.
-3. **Real devices / WebKit / Firefox** — Pixel 5 is Playwright device emulation on Chromium, not a physical phone.
+1. **SMTP** — Shared 3000 stack uses dummy Gmail (~10s timeout). The dedicated 3010 test backend starts with `SMTP_HOST=''` so assignment mail is logged, not sent. No inbox assertion.
+2. **Service worker in production** — Registered only when `import.meta.env.PROD`. Dev E2E asserts the file is served and that no controller takes over. Production PWA install/offline cache is **not** covered.
+3. **Firefox / WebKit / Edge / real devices** — Not added as Playwright projects. Pixel 5 is Chromium device emulation, not a physical phone. SRS browser compatibility was not executed.
 4. **Concurrency / load** — API suite is serial (`--test-concurrency=1`) by design after the 2FA cache leak.
-5. **GPS / IndexedDB field sync** — LiveField GPS and offline queue are not driven end-to-end in Playwright.
-6. **Smoke suite** still allows some multi-status expectations (`200/404`, etc.). The node:test suite asserts exact codes for those cases.
-7. **Seeded data mutation** — Workflows create isolated BPM/cases; some smoke mutations (e.g. close alert) hit seed ids. Re-seed if the database is dirty: `pnpm seed`.
-8. **No disable-2FA HTTP API** — Cleanup uses SQL (`disableAllTwoFactor` / reset script).
+5. **GPS / IndexedDB field sync** — LiveField GPS and offline queue are product-gap / defect (DEFECT-009), not mocked into a passing E2E.
+6. **Smoke suite** still allows some multi-status expectations (`200/404`, etc.). The node:test suite asserts exact codes for those cases. Smoke can close seed alert id `1` on `radar_test` (disposable).
+7. **Seeded data on radar_test** — Isolated `@e2e.radar.test` users are soft-deleted. Do not reseed `midb2` from these scripts.
+8. **No disable-2FA HTTP API** — Cleanup uses SQL (`disableAllTwoFactor` / reset script) **only** on allowlisted `radar_test`.
+9. **Missing UI vs SRS** — No carta upload, no public complaint page, no calendar reschedule/cancel, official close file is a `.txt` stub. See DEFECT-004, 011, 012, 013.
+10. **BPM draft PATCH** — Company Portal reopens a draft for attach/submit only; `bpmRequestsService.update` is not called from the UI.
+11. **Representative `cargo`** — the add-rep form collects Position but does not send it; there is no edit/delete-rep UI.
+12. **Calendar “today”** — `TechnicianCalendar` hard-codes `2026-09-21` as today. Journeys schedule ~2 hours ahead and match event pills in the September month view; they do not click Today.
+13. **LAPCH close-without-case** — `POST /lapch-alerts/:id/close` exists; Intake only uses Proceeds / Does Not Proceed (no close button).
+14. **ADMIN_EMPRESA vs USUARIO_DELEGADO** — Company Portal shows the same buttons; API may 403 a delegate on create-institution / add-rep. Isolation tests use a new ADMIN_EMPRESA, not the seeded delegate, for the unique plant.
 
 ---
 
