@@ -12,6 +12,9 @@ export interface LocalDraft {
     answers: FormAnswers;
     notes: Record<string, string>;
     updatedAt: string;
+    /** True after the technician starts the inspection, even if the assignment list is still stale. */
+    started?: boolean;
+    finished?: boolean;
 }
 export interface SyncQueueItem {
     id?: number;
@@ -19,10 +22,13 @@ export interface SyncQueueItem {
     answers: FormAnswers;
     queuedAt: string;
 }
-/**
- * Guarda o actualiza el borrador local de respuestas y notas para una evaluación.
- */
-export declare function saveLocalDraft(evaluationId: number, answers: FormAnswers, notes?: Record<string, string>): Promise<void>;
+/** Mirrors the technician workload so a later visit can restore a started inspection. */
+export declare function saveAssignedEvaluations(items: unknown[]): void;
+export declare function getAssignedEvaluations<T = unknown>(): T[];
+export declare function saveLocalDraft(evaluationId: number, answers: FormAnswers, notes?: Record<string, string>, flags?: {
+    started?: boolean;
+    finished?: boolean;
+}): Promise<void>;
 /**
  * Obtiene el borrador local de una evaluación (IndexedDB con fallback en localStorage).
  */

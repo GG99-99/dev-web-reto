@@ -8,6 +8,7 @@
 import { httpClient } from './httpClient';
 import type {
   ApiResponse,
+  Attachment,
   PaginatedResponse,
   PaginationQuery,
   UserWithPerson,
@@ -62,6 +63,17 @@ async function register(body: RegisterUserRequest): Promise<ApiResponse<Register
   return data;
 }
 
+/** Public upload used by self-registration before `POST /users/register`. */
+async function uploadAuthorizationLetter(file: File): Promise<ApiResponse<Attachment>> {
+  const form = new FormData();
+  form.append('file', file);
+  const { data } = await httpClient.post<ApiResponse<Attachment>>(
+    '/users/register/authorization-letter',
+    form,
+  );
+  return data;
+}
+
 /**
  * Body de `PATCH /users/:id` (editar datos de la `Person` asociada).
  * No está tipado explícitamente en el contrato original; se define aquí
@@ -111,6 +123,7 @@ export const usersService = {
   list,
   getById,
   register,
+  uploadAuthorizationLetter,
   update,
   updateStatus,
   deactivate,

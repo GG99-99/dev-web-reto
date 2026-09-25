@@ -20,8 +20,10 @@ import CompanyPortal from "./CompanyPortal";
 import NotificationsDropdown from "./NotificationsDropdown";
 import AdminGovernancePanel from "./AdminGovernancePanel";
 import {
+  getAssignedEvaluations,
   getPendingSyncQueue,
   removeSyncQueueItem,
+  saveAssignedEvaluations,
 } from "./services/offlineStorage";
 import {
   setAccessTokenProvider,
@@ -308,10 +310,11 @@ function App() {
         if (cancelled) return;
         if (caseResponse?.valid)
           setCases(caseResponse.data.items as unknown as CaseItem[]);
-        if (evaluationResponse?.valid)
-          setEvaluations(
-            evaluationResponse.data.items as unknown as Evaluation[],
-          );
+        if (evaluationResponse?.valid) {
+          const items = evaluationResponse.data.items as unknown as Evaluation[];
+          setEvaluations(items);
+          saveAssignedEvaluations(items);
+        }
         if (dashboardResponse.valid) {
           const data = dashboardResponse.data as unknown as Record<
             string,
@@ -341,10 +344,15 @@ function App() {
           });
         }
       } catch {
-        if (!cancelled)
+        if (!cancelled) {
+          if (typeof navigator !== "undefined" && navigator.onLine === false) {
+            const cached = getAssignedEvaluations<Evaluation>();
+            if (cached.length) setEvaluations(cached);
+          }
           setNotice(
             "Some dashboard data could not be loaded. Check that the backend is running.",
           );
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -586,6 +594,7 @@ function App() {
           )}
           {view === "calendar" && (
             <TechnicianCalendar
+              role={session.role}
               onOpenField={(id) => {
                 setActiveEvaluationId(id);
                 setView("field");
@@ -612,6 +621,17 @@ function App() {
               live
               inform={setNotice}
               onViewReport={(id) => setActiveReportEvalId(id)}
+              onEvaluationUpdated={(evaluationId, patch) => {
+                setEvaluations((current) => {
+                  const next = current.map((entry) =>
+                    entry.evaluationId === evaluationId
+                      ? { ...entry, ...patch }
+                      : entry,
+                  );
+                  saveAssignedEvaluations(next);
+                  return next;
+                });
+              }}
             />
           )}
           {view === "reports" && (
@@ -660,9 +680,9 @@ function errorMessage(error: unknown, fallback: string) {
     (
       error as { response?: { data?: { error?: { message?: string } } } }
     )?.response?.data?.error?.message?.toLowerCase() ?? "";
-  if (message.includes("pendiente"))
+  if (message.includes("pending"))
     return "Your registration is pending approval. We will notify you when access is available.";
-  if (message.includes("rechaz"))
+  if (message.includes("rejected"))
     return "Your registration was not approved. Please contact your organisation administrator.";
   if (message.includes("incorrect"))
     return "The email or ID and password do not match our records.";
@@ -692,12 +712,14 @@ function AuthPortal({
     confirmPassword: "",
     roleId: "2",
   });
+  const [authLetter, setAuthLetter] = useState<File | null>(null);
   const setSignupField = (key: keyof typeof signup, value: string) =>
     setSignup((current) => ({ ...current, [key]: value }));
   const switchMode = (next: AuthMode) => {
     setMode(next);
     setNotice("");
     setBusy(false);
+    setAuthLetter(null);
   };
   const completeLogin = (result: {
     accessToken: string;
@@ -771,8 +793,17 @@ function AuthPortal({
       setNotice("Your passwords do not match.");
       return;
     }
+    if (!authLetter) {
+      setNotice("Upload the authorization letter for your organisation.");
+      return;
+    }
     setBusy(true);
     try {
+      const uploaded = await usersService.uploadAuthorizationLetter(authLetter);
+      if (!uploaded.valid) {
+        setNotice("We could not upload the authorization letter. Please try again.");
+        return;
+      }
       const result = await usersService.register({
         person: {
           name: signup.name,
@@ -782,6 +813,7 @@ function AuthPortal({
         },
         password: signup.password,
         roleId: Number(signup.roleId),
+        cartaAutorizacionFileId: uploaded.data.attachmentId,
       });
       if (!result.valid) {
         setNotice(
@@ -1103,6 +1135,16 @@ function AuthPortal({
                   placeholder="Re-enter your password"
                 />
               </label>
+              <label>
+                Authorization letter
+                <input
+                  type="file"
+                  accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.txt"
+                  onChange={(event) =>
+                    setAuthLetter(event.target.files?.[0] ?? null)
+                  }
+                />
+              </label>
               <button className="primary" disabled={busy}>
                 {busy ? "Submitting…" : "Submit access request"} <span>→</span>
               </button>
@@ -1400,9 +1442,12 @@ function Login({
         name: user?.person?.name ?? usuario,
         role: user?.role?.name ?? "COORDINADOR",
       });
-    } catch {
+    } catch (error) {
       setError(
-        "We could not reach the service. Check the API connection and try again.",
+        errorMessage(
+          error,
+          "We could not reach the service. Check the API connection and try again.",
+        ),
       );
     } finally {
       setBusy(false);

@@ -1,4 +1,4 @@
-import type { ApiResponse, PaginatedResponse, PaginationQuery, UserWithPerson, RegisterUserRequest, RegisterUserResponse, UpdateUserStatusRequest, Role } from '@reto/shared';
+import type { ApiResponse, Attachment, PaginatedResponse, PaginationQuery, UserWithPerson, RegisterUserRequest, RegisterUserResponse, UpdateUserStatusRequest, Role } from '@reto/shared';
 /** Filtros de `GET /users`, combinados con {@link PaginationQuery}. */
 export interface ListUsersQuery extends PaginationQuery {
     status?: string;
@@ -29,6 +29,8 @@ declare function getById(id: number): Promise<ApiResponse<UserWithPerson>>;
  * ```
  */
 declare function register(body: RegisterUserRequest): Promise<ApiResponse<RegisterUserResponse>>;
+/** Public upload used by self-registration before `POST /users/register`. */
+declare function uploadAuthorizationLetter(file: File): Promise<ApiResponse<Attachment>>;
 /**
  * Body de `PATCH /users/:id` (editar datos de la `Person` asociada).
  * No está tipado explícitamente en el contrato original; se define aquí
@@ -60,6 +62,7 @@ export declare const usersService: {
     list: typeof list;
     getById: typeof getById;
     register: typeof register;
+    uploadAuthorizationLetter: typeof uploadAuthorizationLetter;
     update: typeof update;
     updateStatus: typeof updateStatus;
     deactivate: typeof deactivate;

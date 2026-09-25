@@ -13,12 +13,20 @@ export interface CreateAttachmentData {
   fileName: string;
   fileUrl: string;
   mimeType?: string;
-  uploadedById: number;
+  uploadedById?: number;
 }
 
 export const attachmentsModel = {
   create: async (data: CreateAttachmentData) => {
-    return prisma.attachment.create({ data });
+    return prisma.attachment.create({
+      data: {
+        category: data.category,
+        fileName: data.fileName,
+        fileUrl: data.fileUrl,
+        mimeType: data.mimeType,
+        ...(data.uploadedById !== undefined ? { uploadedById: data.uploadedById } : {}),
+      },
+    });
   },
 
   getById: async (attachmentId: number) => {

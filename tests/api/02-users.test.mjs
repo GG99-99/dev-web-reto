@@ -8,9 +8,10 @@
 import { test, describe, before } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  request, loginAll, tokens, sessionUsers,
+  request, upload, loginAll, tokens, sessionUsers,
   assertOk, assertError, assertUnauthorized, assertForbidden,
   assertNotFound, assertValidationError, assertPaginated, uid,
+  registerUser, uniqueEmail, uniqueCedula, PASSWORD, roleIdByName,
 } from './helpers.mjs';
 
 describe('Users', () => {
@@ -52,6 +53,36 @@ describe('Users', () => {
       const res = await request('GET', '/users?page=1&pageSize=5');
       const data = assertOk(res, 200);
       assert.ok(data.items.length <= 5, 'Should return at most 5 items');
+    });
+
+    test('soft-deleted applicants disappear from the pending list', async () => {
+      const isolated = await registerUser({
+        approve: false,
+        email: uniqueEmail('inactive'),
+        cedula: uniqueCedula(),
+      });
+      const before = await request('GET', '/users?status=PENDIENTE_VALIDACION&page=1&pageSize=100');
+      const beforeData = assertOk(before, 200);
+      assert.ok(
+        beforeData.items.some((user) => user.person?.email === isolated.email),
+        'pending list should include the new applicant',
+      );
+
+      const removed = await request('DELETE', `/users/${isolated.userId}`);
+      assertOk(removed, 200);
+
+      const after = await request('GET', '/users?status=PENDIENTE_VALIDACION&page=1&pageSize=100');
+      const afterData = assertOk(after, 200);
+      assert.equal(
+        afterData.items.some((user) => user.person?.email === isolated.email),
+        false,
+      );
+      assert.ok(afterData.items.every((user) => user.isActive !== false));
+
+      const detail = await request('GET', `/users/${isolated.userId}`);
+      const saved = assertOk(detail, 200);
+      assert.equal(saved.isActive, false);
+      assert.equal(saved.status, 'PENDIENTE_VALIDACION');
     });
 
     test('each user has expected shape', async () => {
@@ -223,6 +254,42 @@ describe('Users', () => {
         body: { status: 'APROBADO' },
       });
       assertUnauthorized(res);
+    });
+  });
+
+  describe('POST /users/register/authorization-letter', () => {
+    test('links an unauthenticated authorization letter to the new applicant', async () => {
+      const uploaded = await upload('POST', '/users/register/authorization-letter', {
+        token: null,
+        file: Buffer.from('RADAR authorization letter'),
+        filename: 'carta-api.txt',
+        mimeType: 'text/plain',
+      });
+      const attachment = assertOk(uploaded, 201);
+      assert.equal(attachment.category, 'CARTA_AUTORIZACION');
+      assert.equal(attachment.fileName, 'carta-api.txt');
+
+      const roleId = await roleIdByName('ADMIN_EMPRESA');
+      const registered = await request('POST', '/users/register', {
+        token: null,
+        body: {
+          person: {
+            name: 'Letter Applicant',
+            email: uniqueEmail('letter'),
+            cedula: uniqueCedula(),
+            phone: '809-555-0177',
+          },
+          password: PASSWORD,
+          roleId,
+          cartaAutorizacionFileId: attachment.attachmentId,
+        },
+      });
+      const user = assertOk(registered, 201);
+      const fetched = await request('GET', `/attachments/${attachment.attachmentId}`);
+      const saved = assertOk(fetched, 200);
+      assert.equal(saved.userRegistrationId, user.userId);
+      assert.equal(saved.fileName, 'carta-api.txt');
+      assert.equal(saved.category, 'CARTA_AUTORIZACION');
     });
   });
 

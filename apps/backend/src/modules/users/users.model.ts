@@ -18,6 +18,7 @@ const USER_INCLUDE = { person: true, role: true } satisfies Prisma.UserInclude;
 export const usersModel = {
   getMany: async (filter: UsersFilter, skip: number, take: number, orderBy: Prisma.UserOrderByWithRelationInput) => {
     const where: Prisma.UserWhereInput = {
+      isActive: true,
       ...(filter.status && { status: filter.status }),
       ...(filter.roleId && { roleId: filter.roleId }),
     };

@@ -356,6 +356,16 @@ describe('Auth', () => {
       assertUnauthorized(res);
     });
 
+    test('JSON null body without authentication is a controlled 400, not 500', async () => {
+      const res = await request('POST', '/auth/2fa/enable', { token: null, body: null });
+      assert.notStrictEqual(res.status, 500);
+      assertValidationError(res);
+      const serialized = JSON.stringify(res.data);
+      assert.equal(serialized.toLowerCase().includes('syntaxerror'), false);
+      assert.equal(serialized.toLowerCase().includes('stack'), false);
+      assert.equal(res.data?.error?.message, 'Request body is not valid JSON');
+    });
+
     test('enables 2FA on an isolated user, rejects a bad OTP, then verifies a valid TOTP', async () => {
       const isolated = await registerUser({ email: uniqueEmail('2fa'), cedula: uniqueCedula() });
       const firstLogin = await request('POST', '/auth/login', {

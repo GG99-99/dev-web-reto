@@ -14,7 +14,24 @@ import { ApiError } from '@/lib/common/ApiError';
  * API_CONTRACTS.md).
  * ---------------------------------------------------------------------------
  */
+function isMalformedJson(err: unknown): boolean {
+  if (!(err instanceof SyntaxError)) return false;
+  const parsed = err as SyntaxError & { status?: number; statusCode?: number; type?: string };
+  return parsed.status === 400
+    || parsed.statusCode === 400
+    || parsed.type === 'entity.parse.failed'
+    || /json/i.test(err.message);
+}
+
 export function errorHandler(err: unknown, req: Request, res: Response, _next: NextFunction) {
+  if (isMalformedJson(err)) {
+    const response: ApiErrorResponse = {
+      valid: false,
+      error: { code: 'VALIDATION_ERROR', message: 'Request body is not valid JSON' },
+    };
+    return res.status(400).json(response);
+  }
+
   // Error de negocio ya tipado (lanzado desde model/service/controller/middleware)
   if (err instanceof ApiError) {
     const response: ApiErrorResponse = {

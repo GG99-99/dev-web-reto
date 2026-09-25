@@ -19,6 +19,7 @@ type LiveFieldProps = {
   live: boolean
   inform: (message: string) => void
   onViewReport?: (evaluationId: number) => void
+  onEvaluationUpdated?: (evaluationId: number, patch: Partial<Evaluation>) => void
 }
 
 export interface StructuredQuestion {
@@ -187,7 +188,7 @@ function buildStructuredChapters(template: FormTemplateTree | null): ChapterGrou
   return chapters
 }
 
-export default function LiveField({ items = [], item, live, inform, onViewReport }: LiveFieldProps) {
+export default function LiveField({ items = [], item, live, inform, onViewReport, onEvaluationUpdated }: LiveFieldProps) {
   // Manejo de evaluación activa seleccionada
   const [selectedEvalId, setSelectedEvalId] = useState<number | null>(() => {
     return item?.evaluationId ?? items.find(isActionableAssessment)?.evaluationId ?? items[0]?.evaluationId ?? null
@@ -239,6 +240,8 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
   const [gps, setGps] = useState<{ lat: number; lng: number } | null>(null)
   const [pendingSyncCount, setPendingSyncCount] = useState(0)
   const uploadInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
+  const startedLocally = useRef<Set<number>>(new Set())
+  const hydratedFor = useRef<number | null>(null)
 
   // Monitoreo de conectividad en tiempo real
   useEffect(() => {
@@ -279,11 +282,14 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
     async function loadTemplate() {
       // Intentar primero desde caché local
       const cached = await offlineStorage.getCachedTemplateTree(1)
-      if (!cancelled && cached) {
+      if (cancelled) return
+      if (cached) {
         setTemplate(cached)
         if (cached.h1s && cached.h1s.length > 0) {
           setActiveChapterId((prev) => prev ?? cached.h1s[0].h1Id)
         }
+      } else {
+        setTemplate((current) => current ?? offlineStorage.DEFAULT_BPM_TEMPLATE)
       }
 
       // Si hay red, refrescar plantilla y actualizar caché
@@ -307,31 +313,53 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
     return () => { cancelled = true }
   }, [isOnline])
 
-  // Cargar datos de la evaluación activa (hidratación híbrida backend + local)
+  // Cargar datos de la evaluación activa (hidratación híbrida backend + local).
+  // Going offline must not replace a started inspection with the stale list status.
   useEffect(() => {
     if (!activeItem) return
     let cancelled = false
     const evalId = activeItem.evaluationId
+    const switching = hydratedFor.current !== evalId
+    hydratedFor.current = evalId
 
-    setStarted(activeItem.status === 'EN_PROCESO' || activeItem.status === 'FINALIZADA')
-    setFinished(activeItem.status === 'FINALIZADA')
+    if (switching) {
+      setAnswers({})
+      setNotes({})
+      setEvidences([])
+      setFinished(activeItem.status === 'FINALIZADA')
+      setStarted(
+        activeItem.status === 'EN_PROCESO' ||
+        activeItem.status === 'FINALIZADA' ||
+        startedLocally.current.has(evalId),
+      )
+    }
 
     async function hydrateEvaluation() {
-      // 1. Cargar borrador local (IndexedDB)
       const localDraft = await offlineStorage.getLocalDraft(evalId)
-      if (!cancelled && localDraft) {
+      if (cancelled) return
+
+      const startedNow =
+        activeItem.status === 'EN_PROCESO' ||
+        activeItem.status === 'FINALIZADA' ||
+        Boolean(localDraft?.started) ||
+        startedLocally.current.has(evalId)
+      const finishedNow = activeItem.status === 'FINALIZADA' || Boolean(localDraft?.finished)
+      setStarted(startedNow)
+      setFinished(finishedNow)
+      if (startedNow) startedLocally.current.add(evalId)
+
+      if (localDraft) {
         const answerObj: AnswerMap = {}
         localDraft.answers.forEach((a) => {
           answerObj[a.key] = a.value
         })
-        setAnswers(answerObj)
-        setNotes(localDraft.notes || {})
+        setAnswers((current) => ({ ...answerObj, ...current }))
+        setNotes((current) => ({ ...(localDraft.notes || {}), ...current }))
         if (localDraft.updatedAt) {
           setLastSavedTime(new Date(localDraft.updatedAt).toLocaleTimeString())
         }
       }
 
-      // 2. Si hay red, hidratar con datos oficiales del backend
       if (isOnline) {
         try {
           const detailRes = await evaluationsService.getById(evalId)
@@ -339,32 +367,29 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
             const data = detailRes.data as any
             if (data.status === 'EN_PROCESO' || data.status === 'FINALIZADA') {
               setStarted(true)
+              startedLocally.current.add(evalId)
             }
             if (data.status === 'FINALIZADA') {
               setFinished(true)
             }
 
-            // Si el backend tiene respuestas guardadas en formResponse, fusionar
             if (data.formResponse?.answers && Array.isArray(data.formResponse.answers)) {
               setAnswers((current) => {
                 const merged = { ...current }
                 data.formResponse.answers.forEach((ans: any) => {
-                  if (ans && ans.key && ans.value) {
-                    // Dar prioridad si local no la tiene o conservarla
-                    merged[ans.key] = current[ans.key] ?? ans.value
+                  if (ans && ans.key && ans.value && merged[ans.key] === undefined) {
+                    merged[ans.key] = ans.value
                   }
                 })
                 return merged
               })
             }
 
-            // Evidencias
             if (Array.isArray(data.evidences)) {
               setEvidences(data.evidences)
             }
           }
 
-          // Cargar lista de evidencias frescas
           const evRes = await evidencesService.listByEvaluation(evalId)
           if (!cancelled && evRes.valid) {
             setEvidences(evRes.data)
@@ -431,7 +456,7 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
           const qObj = allQuestions.find((q) => q.key === k)
           return { key: k, txt: qObj?.txt || '', value: v }
         })
-        void offlineStorage.saveLocalDraft(activeItem.evaluationId, answersList, notes)
+        void offlineStorage.saveLocalDraft(activeItem.evaluationId, answersList, notes, { started: true })
         setLastSavedTime(new Date().toLocaleTimeString())
       }
     },
@@ -449,7 +474,7 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
           const qObj = allQuestions.find((q) => q.key === k)
           return { key: k, txt: qObj?.txt || '', value: v }
         })
-        void offlineStorage.saveLocalDraft(activeItem.evaluationId, answersList, updatedNotes)
+        void offlineStorage.saveLocalDraft(activeItem.evaluationId, answersList, updatedNotes, { started: true })
       }
     },
     [notes, activeItem, answers, allQuestions]
@@ -470,7 +495,10 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
 
     try {
       // Guardar siempre en local primero
-      await offlineStorage.saveLocalDraft(activeItem.evaluationId, answersList, notes)
+      await offlineStorage.saveLocalDraft(activeItem.evaluationId, answersList, notes, {
+        started: true,
+        finished,
+      })
       setLastSavedTime(new Date().toLocaleTimeString())
 
       if (isOnline) {
@@ -560,7 +588,13 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
         inform(res.error.message)
         return
       }
+      startedLocally.current.add(activeItem.evaluationId)
       setStarted(true)
+      const answersList: FormAnswers = allQuestions
+        .filter((q) => answers[q.key] !== undefined)
+        .map((q) => ({ key: q.key, txt: q.txt, value: answers[q.key] }))
+      await offlineStorage.saveLocalDraft(activeItem.evaluationId, answersList, notes, { started: true })
+      onEvaluationUpdated?.(activeItem.evaluationId, { status: 'EN_PROCESO' })
       inform('Assessment officially started. You can begin rating the criteria.')
     } catch (err: any) {
       inform(err?.response?.data?.message || 'Error starting the assessment.')

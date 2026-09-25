@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { validateJwt, validateReq, validateRole } from '#backend/middlewares';
+import { uploadSingleFile } from '@/lib/upload/upload';
 import { usersController } from './users.controller';
 import { GetUsersQuerySchema, RegisterUserSchema, UpdateUserSchema, UpdateUserStatusSchema } from './users.schemas';
 import { IdParamSchema } from '@/lib/common/schemas';
@@ -13,7 +14,8 @@ import { IdParamSchema } from '@/lib/common/schemas';
 export const usersRouter:Router = Router();
 
 usersRouter
-  // Público
+  // Público. The letter is uploaded before register because applicants have no session yet.
+  .post('/users/register/authorization-letter', uploadSingleFile, usersController.uploadAuthorizationLetter)
   .post('/users/register', validateReq(RegisterUserSchema, 'body'), usersController.register)
 
   // ADMIN gestiona todos los usuarios; COORDINADOR consulta el directorio
