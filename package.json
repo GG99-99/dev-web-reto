@@ -17,6 +17,7 @@
     "db:logs": "docker compose -f docker-pg/docker-compose.yml logs -f postgres",
     "db:migrate": "pnpm --filter @reto/db exec prisma migrate deploy",
     "seed": "pnpm build:packages && pnpm --filter @reto/backend seed",
+    "test:db:ensure": "node scripts/ensure-test-db.mjs",
     "test:api:smoke": "node scripts/api-smoke-tests.mjs",
     "test:api:full": "node scripts/reset-test-state.mjs && node --test --test-concurrency=1 tests/api/*.test.mjs",
     "test:api:auth": "node --test tests/api/01-auth.test.mjs",
@@ -36,6 +37,7 @@
     "test:e2e:company": "playwright test --config=tests/playwright.config.ts tests/e2e/company.spec.ts",
     "test:e2e:pwa": "playwright test --config=tests/playwright.config.ts tests/e2e/pwa.spec.ts",
     "test:e2e:ops": "playwright test --config=tests/playwright.config.ts tests/e2e/operational.spec.ts",
+    "test:e2e:journeys": "playwright test --config=tests/playwright.config.ts tests/e2e/registration.spec.ts tests/e2e/company-establishments.spec.ts tests/e2e/bpm-lifecycle.spec.ts tests/e2e/institutional-scheduling.spec.ts tests/e2e/lapch-alerts.spec.ts tests/e2e/complaints.spec.ts tests/e2e/reports-history.spec.ts tests/e2e/notifications-dashboards.spec.ts",
     "test:e2e:chromium": "playwright test --config=tests/playwright.config.ts --project=chromium",
     "test:e2e:mobile": "playwright test --config=tests/playwright.config.ts --project=mobile-chrome",
     "test:all": "pnpm test:api:smoke && pnpm test:api:full && pnpm test:e2e"

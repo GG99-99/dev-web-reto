@@ -10,7 +10,7 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import crypto from 'node:crypto';
 
-export const API_URL = process.env.API_URL ?? 'http://localhost:3000/api/v1';
+export const API_URL = process.env.API_URL ?? 'http://127.0.0.1:3010/api/v1';
 export const PASSWORD = process.env.TEST_PASSWORD ?? 'Password123!';
 
 /** Seeded test accounts from users.seeder.ts / persons.seeder.ts */
@@ -54,7 +54,23 @@ export const sessionUsers = {
 
 const DOCKER_CONTAINER = process.env.TEST_PG_CONTAINER ?? 'mi-postgres2';
 const DOCKER_USER = process.env.TEST_PG_USER ?? 'miusuario';
-const DOCKER_DB = process.env.TEST_PG_DB ?? 'midb2';
+const ALLOWED_TEST_DATABASES = ['radar_test'];
+const BLOCKED_DATABASES = ['midb2', 'postgres', 'template0', 'template1'];
+
+function resolveSqlDatabase() {
+  const db = process.env.TEST_PG_DB ?? 'radar_test';
+  if (BLOCKED_DATABASES.includes(db)) {
+    throw new Error(
+      `Refusing SQL against "${db}". Tests may only mutate disposable databases: ${ALLOWED_TEST_DATABASES.join(', ')}.`,
+    );
+  }
+  if (!ALLOWED_TEST_DATABASES.includes(db)) {
+    throw new Error(
+      `Refusing SQL against "${db}". Allowed disposable test databases: ${ALLOWED_TEST_DATABASES.join(', ')}.`,
+    );
+  }
+  return db;
+}
 
 /**
  * Make an HTTP JSON request to the API.
@@ -261,14 +277,15 @@ export async function roleIdByName(name) {
 // ─── Database helpers (Docker exec into the compose Postgres container) ─────
 
 export function dbSql(sql) {
+  const db = resolveSqlDatabase();
   try {
     return execFileSync(
       'docker',
-      ['exec', DOCKER_CONTAINER, 'psql', '-U', DOCKER_USER, '-d', DOCKER_DB, '-t', '-A', '-c', sql],
+      ['exec', DOCKER_CONTAINER, 'psql', '-U', DOCKER_USER, '-d', db, '-t', '-A', '-c', sql],
       { encoding: 'utf8', timeout: 15000 },
     ).trim();
   } catch (err) {
-    throw new Error(`Database command failed (is Docker running and is ${DOCKER_CONTAINER} up?): ${err.message}`);
+    throw new Error(`Database command failed (is Docker running and is ${DOCKER_CONTAINER}/${db} up?): ${err.message}`);
   }
 }
 
