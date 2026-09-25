@@ -437,7 +437,13 @@ function App() {
       </aside>
       <main>
         <header>
-          <button className="hamburger" onClick={() => setMenu(!menu)}>
+          <button
+            type="button"
+            className="hamburger"
+            title="Open navigation"
+            aria-label="Open navigation"
+            onClick={() => setMenu(!menu)}
+          >
             ☰
           </button>
           <div className="crumb">
@@ -449,8 +455,10 @@ function App() {
           </div>
           <div className="header-actions" style={{ position: "relative" }}>
             <button
+              type="button"
               className="notification"
               title="Notifications"
+              aria-label="Notifications"
               onClick={() => setShowNotifications((prev) => !prev)}
             >
               🔔
@@ -482,8 +490,10 @@ function App() {
             />
             <div style={{ position: "relative" }}>
               <button
+                type="button"
                 className="profile"
                 title="Account menu"
+                aria-label="Account menu"
                 onClick={() => setShowProfileMenu((prev) => !prev)}
                 aria-haspopup="true"
                 aria-expanded={showProfileMenu}

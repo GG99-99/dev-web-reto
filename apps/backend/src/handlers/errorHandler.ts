@@ -1,5 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
 import { ZodError } from 'zod';
+import multer from 'multer';
 import { Prisma } from '@reto/db';
 import type { ApiErrorResponse } from '@reto/shared';
 import { ApiError } from '@/lib/common/ApiError';
@@ -21,6 +22,17 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
       error: { code: err.code, message: err.message, details: err.details },
     };
     return res.status(err.statusCode).json(response);
+  }
+
+  if (err instanceof multer.MulterError) {
+    const message = err.code === 'LIMIT_FILE_SIZE'
+      ? 'File exceeds the 25MB size limit'
+      : err.message;
+    const response: ApiErrorResponse = {
+      valid: false,
+      error: { code: 'VALIDATION_ERROR', message },
+    };
+    return res.status(400).json(response);
   }
 
   // Error de validación zod que se haya escapado sin pasar por validateReq

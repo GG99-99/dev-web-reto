@@ -6,6 +6,17 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+apps/backend/backend-stdout.txt
+apps/backend/backend-stderr.txt
+apps/backend/backend.err
+frontend-out.txt
+
+# Test artifacts
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+test-results-api-full-baseline.txt
 
 node_modules
 dist

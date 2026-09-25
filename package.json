@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "pnpm test:api:full",
     "build:db": "pnpm --filter @reto/db build",
     "build:shared": "pnpm --filter @reto/shared build",
     "build:packages": "pnpm build:db && pnpm build:shared",
@@ -17,13 +17,35 @@
     "db:logs": "docker compose -f docker-pg/docker-compose.yml logs -f postgres",
     "db:migrate": "pnpm --filter @reto/db exec prisma migrate deploy",
     "seed": "pnpm build:packages && pnpm --filter @reto/backend seed",
-    "test:api": "node scripts/api-smoke-tests.mjs"
+    "test:api:smoke": "node scripts/api-smoke-tests.mjs",
+    "test:api:full": "node scripts/reset-test-state.mjs && node --test --test-concurrency=1 tests/api/*.test.mjs",
+    "test:api:auth": "node --test tests/api/01-auth.test.mjs",
+    "test:api:users": "node --test tests/api/02-users.test.mjs",
+    "test:api:catalogs": "node --test tests/api/03-roles-catalogs.test.mjs",
+    "test:api:institutions": "node --test tests/api/04-institutions.test.mjs",
+    "test:api:bpm": "node --test tests/api/05-bpm-requests.test.mjs",
+    "test:api:cases": "node --test tests/api/06-cases.test.mjs",
+    "test:api:evaluations": "node --test tests/api/07-evaluations.test.mjs",
+    "test:api:alerts": "node --test tests/api/08-alerts-complaints-notifications.test.mjs",
+    "test:api:uploads": "node --test tests/api/09-uploads.test.mjs",
+    "test:api:workflows": "node --test tests/api/10-workflows.test.mjs",
+    "test:e2e": "playwright test --config=tests/playwright.config.ts",
+    "test:e2e:headed": "playwright test --config=tests/playwright.config.ts --headed",
+    "test:e2e:auth": "playwright test --config=tests/playwright.config.ts tests/e2e/auth.spec.ts",
+    "test:e2e:nav": "playwright test --config=tests/playwright.config.ts tests/e2e/navigation.spec.ts",
+    "test:e2e:company": "playwright test --config=tests/playwright.config.ts tests/e2e/company.spec.ts",
+    "test:e2e:pwa": "playwright test --config=tests/playwright.config.ts tests/e2e/pwa.spec.ts",
+    "test:e2e:ops": "playwright test --config=tests/playwright.config.ts tests/e2e/operational.spec.ts",
+    "test:e2e:chromium": "playwright test --config=tests/playwright.config.ts --project=chromium",
+    "test:e2e:mobile": "playwright test --config=tests/playwright.config.ts --project=mobile-chrome",
+    "test:all": "pnpm test:api:smoke && pnpm test:api:full && pnpm test:e2e"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "module",
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "typescript": "^7.0.2"
   }
 }
