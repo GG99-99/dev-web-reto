@@ -18,6 +18,13 @@ interface CompanyPortalProps {
 
 type TabKey = 'requests' | 'institutions' | 'evaluations'
 
+function representativeRole(type?: string) {
+  if (type === 'LEGAL') return 'Legal Representative'
+  if (type === 'CALIDAD') return 'Quality / Food Safety Manager'
+  if (type === 'CONTACTO') return 'Main Operational Contact'
+  return type || 'Representative'
+}
+
 export default function CompanyPortal({ role, notify, onOpenOfficialReport }: CompanyPortalProps) {
   const [activeTab, setActiveTab] = useState<TabKey>('requests')
   const [loading, setLoading] = useState(true)
@@ -689,7 +696,7 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
                     <div className="cp-attachments-list">
                       {selectedReqDetail.attachments.map((att: any) => (
                         <div key={att.attachmentId} className="cp-attachment-item">
-                          <span>📄 {att.originalName || att.filename || `Attachment #${att.attachmentId}`}</span>
+                          <span>📄 {att.fileName || att.originalName || att.filename || `Attachment #${att.attachmentId}`}</span>
                           <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
                             {att.size ? `${Math.round(att.size / 1024)} KB` : 'Uploaded'}
                           </span>
@@ -849,12 +856,12 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
                       </button>
                     </div>
 
-                    {inst.represents && inst.represents.length > 0 ? (
+                    {(inst.representantes ?? inst.represents ?? []).length > 0 ? (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                        {inst.represents.map((rep: any) => (
-                          <div key={rep.representId} style={{ background: '#f8fafc', padding: '0.45rem 0.65rem', borderRadius: '6px', fontSize: '0.82rem', display: 'flex', justifyContent: 'space-between' }}>
-                            <span><strong>{rep.person?.name || 'Representative'}</strong> ({rep.type || rep.tipo})</span>
-                            <span style={{ color: '#00236f', fontWeight: 600 }}>{rep.type || rep.tipo}</span>
+                        {(inst.representantes ?? inst.represents ?? []).map((rep: any) => (
+                          <div key={rep.representId} style={{ background: '#f8fafc', padding: '0.45rem 0.65rem', borderRadius: '6px', fontSize: '0.82rem', display: 'flex', justifyContent: 'space-between', gap: '0.75rem' }}>
+                            <span><strong>{rep.person?.name || 'Representative'}</strong></span>
+                            <span style={{ color: '#00236f', fontWeight: 600 }}>{representativeRole(rep.type || rep.tipo)}</span>
                           </div>
                         ))}
                       </div>

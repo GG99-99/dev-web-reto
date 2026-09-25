@@ -40,6 +40,11 @@ export const usersController = {
     return res.status(201).json(ok(data));
   },
 
+  uploadAuthorizationLetter: async (req: Request, res: Response) => {
+    const data = await usersService.uploadAuthorizationLetter(req.file);
+    return res.status(201).json(ok(data));
+  },
+
   update: async (req: Request, res: Response) => {
     const userId = Number(req.params.id);
     assertSelfOrAdmin(req, userId);

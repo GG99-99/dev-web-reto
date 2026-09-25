@@ -118,8 +118,13 @@ test.describe('Company establishment and representatives', () => {
         (plant!.representantes ?? []).some((rep) => rep.person?.name === repName && rep.type === 'LEGAL'),
         'GET /institutions must persist the LEGAL representative',
       ).toBe(true);
-      // Product defect: CompanyPortal reads inst.represents, while the API returns representantes.
-      await expect(companyPage.getByText(/no representatives registered/i)).toBeVisible();
+      await expect(companyPage.getByText(repName)).toBeVisible();
+      await expect(companyPage.getByText(/legal representative/i)).toBeVisible();
+      await companyPage.reload();
+      await waitForCompanyPortalAny(companyPage);
+      await companyPage.getByRole('button', { name: /establishments & representatives/i }).click();
+      await expect(companyPage.getByText(repName)).toBeVisible();
+      await expect(companyPage.getByText(/legal representative/i)).toBeVisible();
 
       await signIn(otherPage, USERS.company);
       await waitForCompanyPortal(otherPage);

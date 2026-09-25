@@ -668,10 +668,18 @@ function ReportsPanel({ role, notify, onOpenOfficialReport }: any) {
               <button className="secondary ops-wide" disabled={busy}>Save Changes</button>
             </form>
           )}
-          <button className="primary" disabled={busy || report.locked} onClick={() => void technicianAction('submit')}>
+          <button
+            className="primary"
+            disabled={busy || report.status !== 'BORRADOR'}
+            onClick={() => void technicianAction('submit')}
+          >
             Submit for Review
           </button>
-          <button className="secondary ops-wide" disabled={busy || !report.locked} onClick={() => void technicianAction('resend')}>
+          <button
+            className="secondary ops-wide"
+            disabled={busy || (report.status !== 'EN_CORRECCION' && report.status !== 'DEVUELTO')}
+            onClick={() => void technicianAction('resend')}
+          >
             Resubmit Correction
           </button>
         </section>

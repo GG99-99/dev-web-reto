@@ -1,12 +1,14 @@
 /**
  * Institutional case origin: assign, reassign, schedule, calendar visibility (RF-06, RF-07, RF-10, RF-11).
- * Reschedule and cancel exist in the API client but are not exposed in the UI.
+ * Coordinator reschedule and cancel are exercised on the calendar for the same evaluation.
  */
 import { test, expect } from '@playwright/test';
 import {
   USERS,
   TECH_NAMES,
+  acceptNextDialog,
   clickNav,
+  expectNotice,
   localDateTimeInput,
   openRoleSession,
   selectByOptionText,
@@ -15,7 +17,7 @@ import {
 
 test.describe('Institutional scheduling', () => {
   test('coordinator creates, assigns, reassigns, and schedules an institutional evaluation', async ({ browser }) => {
-    test.setTimeout(120_000);
+    test.setTimeout(180_000);
     const tag = uniqueTag('inst');
     const reason = `E2E institutional inspection ${tag}`;
 
@@ -56,16 +58,37 @@ test.describe('Institutional scheduling', () => {
       const evaluationId = (await scheduled.innerText()).match(/#(\d+)/)?.[1];
       expect(evaluationId).toBeTruthy();
 
-      await expect(coordinator.page.getByRole('button', { name: /reschedule/i })).toHaveCount(0);
-      await expect(coordinator.page.getByRole('button', { name: /^cancel evaluation$/i })).toHaveCount(0);
+      await clickNav(coordinator.page, /calendar agenda/i);
+      const pill = coordinator.page.locator(`button.tc-event-pill[title^="#${evaluationId}:"]`);
+      await expect(pill).toBeVisible({ timeout: 20_000 });
+      await pill.click();
+      await coordinator.page.getByRole('button', { name: /^reschedule$/i }).click();
+      await expect(coordinator.page.getByRole('alert')).toContainText(/date and time/i);
+      await coordinator.page.getByLabel(/new date and time/i).fill(localDateTimeInput(5));
+      await coordinator.page.getByLabel(/reschedule note/i).fill(`Moved for coverage ${tag}`);
+      await coordinator.page.getByRole('button', { name: /^reschedule$/i }).click();
+      await expectNotice(coordinator.page, /evaluation rescheduled/i);
+      await expect(coordinator.page.locator(`button.tc-event-pill[title^="#${evaluationId}:"]`)).toHaveAttribute('title', /REPROGRAMADA/);
 
       tech2 = await openRoleSession(browser, USERS.technician2);
       await clickNav(tech2.page, /calendar agenda/i);
-      await expect(tech2.page.locator(`button.tc-event-pill[title^="#${evaluationId}:"]`)).toBeVisible({ timeout: 20_000 });
+      const techPill = tech2.page.locator(`button.tc-event-pill[title^="#${evaluationId}:"]`);
+      await expect(techPill).toBeVisible({ timeout: 20_000 });
+      await techPill.click();
+      await expect(tech2.page.getByRole('button', { name: /^reschedule$/i })).toHaveCount(0);
+      await expect(tech2.page.getByRole('button', { name: /^cancel evaluation$/i })).toHaveCount(0);
+      await tech2.page.getByRole('button', { name: /^close$/i }).click();
 
       tech1 = await openRoleSession(browser, USERS.technician);
       await clickNav(tech1.page, /calendar agenda/i);
       await expect(tech1.page.locator(`button.tc-event-pill[title^="#${evaluationId}:"]`)).toHaveCount(0);
+
+      await clickNav(coordinator.page, /calendar agenda/i);
+      await coordinator.page.locator(`button.tc-event-pill[title^="#${evaluationId}:"]`).click();
+      acceptNextDialog(coordinator.page);
+      await coordinator.page.getByRole('button', { name: /^cancel evaluation$/i }).click();
+      await expectNotice(coordinator.page, /evaluation cancelled/i);
+      await expect(coordinator.page.locator(`button.tc-event-pill[title^="#${evaluationId}:"]`)).toHaveAttribute('title', /CANCELADA/);
     } finally {
       await coordinator.context.close();
       if (tech1) await tech1.context.close();

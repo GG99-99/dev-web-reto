@@ -22,6 +22,9 @@ export interface LocalDraft {
   answers: FormAnswers;
   notes: Record<string, string>;
   updatedAt: string;
+  /** True after the technician starts the inspection, even if the assignment list is still stale. */
+  started?: boolean;
+  finished?: boolean;
 }
 
 export interface SyncQueueItem {
@@ -79,16 +82,31 @@ function lsGet<T>(key: string): T | null {
 /**
  * Guarda o actualiza el borrador local de respuestas y notas para una evaluación.
  */
+const ASSIGNED_EVALUATIONS_KEY = 'radar_assigned_evaluations';
+
+/** Mirrors the technician workload so a later visit can restore a started inspection. */
+export function saveAssignedEvaluations(items: unknown[]): void {
+  lsSet(ASSIGNED_EVALUATIONS_KEY, items);
+}
+
+export function getAssignedEvaluations<T = unknown>(): T[] {
+  return lsGet<T[]>(ASSIGNED_EVALUATIONS_KEY) ?? [];
+}
+
 export async function saveLocalDraft(
   evaluationId: number,
   answers: FormAnswers,
   notes: Record<string, string> = {},
+  flags: { started?: boolean; finished?: boolean } = {},
 ): Promise<void> {
+  const previous = lsGet<LocalDraft>(`radar_eval_${evaluationId}`);
   const draft: LocalDraft = {
     evaluationId,
     answers,
     notes,
     updatedAt: new Date().toISOString(),
+    started: flags.started ?? previous?.started ?? false,
+    finished: flags.finished ?? previous?.finished ?? false,
   };
 
   // Guardar en localStorage como espejo inmediato
@@ -171,7 +189,7 @@ export async function getCachedTemplateTree(templateId: number): Promise<FormTem
   const local = lsGet<FormTemplateTree>(`radar_template_${templateId}`);
   if (local) return local;
 
-  return DEFAULT_BPM_TEMPLATE;
+  return null;
 }
 
 export const DEFAULT_BPM_TEMPLATE: FormTemplateTree = ({

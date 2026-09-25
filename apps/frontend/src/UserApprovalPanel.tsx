@@ -26,7 +26,7 @@ export default function UserApprovalPanel({ notify }: UserApprovalPanelProps) {
     try {
       const response = await usersService.list({ page: 1, pageSize: 100 });
       if (response.valid && response.data?.items) {
-        setUsers(response.data.items);
+        setUsers(response.data.items.filter((user) => user.isActive !== false));
       }
     } catch (err: unknown) {
       console.error('Error loading users:', err);

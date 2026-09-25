@@ -32,7 +32,7 @@ test.describe('BPM request through final closure', () => {
   });
 
   test('company, coordinator, and technician complete one request across role handoffs', async ({ browser }) => {
-    test.setTimeout(240_000);
+    test.setTimeout(300_000);
     const tag = uniqueTag('bpm');
     const motivo = `E2E BPM lifecycle ${tag}`;
     const observaciones = `Morning shift window ${tag}`;
@@ -75,8 +75,11 @@ test.describe('BPM request through final closure', () => {
         await expect(company.page.getByText(motivo)).toBeVisible();
         await expect(company.page.getByText(/draft/i).first()).toBeVisible();
         await expect(company.page.getByText(observaciones)).toBeVisible();
-        // Product defect: detail shows "Attachment #<id>" because the UI reads originalName/filename, not fileName.
-        await expect(company.page.getByText(/Attachment #\d+/i)).toBeVisible();
+        await expect(company.page.getByText(`auth-letter-${tag}.txt`)).toBeVisible();
+        await company.page.reload();
+        await waitForCompanyPortal(company.page);
+        await company.page.locator('.cp-request-row', { hasText: `#${requestId}` }).first().click();
+        await expect(company.page.getByText(`auth-letter-${tag}.txt`)).toBeVisible();
 
         const companyToken = (await apiLogin(USERS.company)).accessToken;
         const detail = await apiGet(`/bpm-requests/${requestId}`, companyToken);
@@ -157,9 +160,27 @@ test.describe('BPM request through final closure', () => {
         await expect(technician!.page.getByText(/last saved|saved:/i).first()).toBeVisible({ timeout: 15_000 });
       });
 
-      await test.step('IndexedDB telemetry is present; full offline toggle is not exercised because it resets inspection state', async () => {
-        await expect(technician!.page.getByText(/indexeddb/i).first()).toBeVisible();
-        await expect(technician!.page.getByRole('button', { name: /save draft on server/i })).toBeEnabled();
+      await test.step('offline transition keeps the started inspection and local save', async () => {
+        await technician!.page.context().setOffline(true);
+        await expect(technician!.page.getByText(/inspection in progress/i)).toBeVisible();
+        await expect(technician!.page.getByRole('button', { name: /save draft on device/i })).toBeEnabled();
+        await technician!.page.locator('.chapter-nav-btn').first().click();
+        await expect(technician!.page.getByRole('button', { name: /\[ NC \] Does Not Comply/ }).first()).toHaveClass(/active/);
+
+        await clickNav(technician!.page, /calendar agenda/i);
+        await clickNav(technician!.page, /field assessment/i);
+        await expect(technician!.page.getByText(/inspection in progress/i)).toBeVisible({ timeout: 20_000 });
+        if (await technician!.page.locator('#eval-select').count()) {
+          await selectByOptionText(technician!.page, /assigned assessment/i, new RegExp(`#${evaluationId}\\b`));
+        }
+        await technician!.page.locator('.chapter-nav-btn').first().click();
+        await expect(technician!.page.getByRole('button', { name: /\[ NC \] Does Not Comply/ }).first()).toHaveClass(/active/, { timeout: 20_000 });
+        await expect(technician!.page.getByRole('button', { name: /save draft on device/i })).toBeEnabled();
+        await technician!.page.getByRole('button', { name: /save draft on device/i }).click();
+        await expectNotice(technician!.page, /saved in local indexeddb|saved locally/i);
+
+        await technician!.page.context().setOffline(false);
+        await expect(technician!.page.getByRole('button', { name: /save draft on server/i })).toBeEnabled({ timeout: 20_000 });
       });
 
       await test.step('reopen field assessment, verify persisted answers, finish and lock', async () => {
@@ -213,12 +234,13 @@ test.describe('BPM request through final closure', () => {
         await technician!.page.getByLabel(/recommendations/i).fill(`Corrective action plan ${tag}`);
         await technician!.page.getByRole('button', { name: /save changes/i }).click();
         await expectNotice(technician!.page, /correction saved/i);
-        await expect(technician!.page.getByRole('button', { name: /resubmit correction/i })).toBeDisabled();
-        await technician!.page.getByRole('button', { name: /submit for review/i }).click();
-        await expectNotice(technician!.page, /submitted for coordinator review|resubmitted/i);
+        await expect(technician!.page.getByRole('button', { name: /submit for review/i })).toBeDisabled();
+        await expect(technician!.page.getByRole('button', { name: /resubmit correction/i })).toBeEnabled();
+        await technician!.page.getByRole('button', { name: /resubmit correction/i }).click();
+        await expectNotice(technician!.page, /corrected report resubmitted/i);
       });
 
-      await test.step('coordinator approves, closes the case, and the official file is a text stub', async () => {
+      await test.step('coordinator approves, closes the case, and downloads the official PDF', async () => {
         await clickNav(coordinator.page, /reports & closure/i);
         await selectByOptionText(coordinator.page, /^evaluation/i, new RegExp(`#${evaluationId}\\b`));
         await coordinator.page.getByLabel(/health decision/i).selectOption('APROBAR');
@@ -244,9 +266,14 @@ test.describe('BPM request through final closure', () => {
           headers: { Authorization: `Bearer ${coordToken}` },
           redirect: 'manual',
         });
-        expect(pdf.status).toBe(302);
-        const location = pdf.headers.get('location') ?? '';
-        expect(location).toMatch(/\.txt|\/uploads\//);
+        expect(pdf.status).toBe(200);
+        expect(pdf.headers.get('content-type') ?? '').toContain('application/pdf');
+        const bytes = Buffer.from(await pdf.arrayBuffer());
+        expect(bytes.subarray(0, 5).toString('latin1')).toBe('%PDF-');
+        const text = bytes.toString('latin1');
+        expect(text).toContain(`Case #${caseId}`);
+        expect(text).toContain('Official case report');
+        expect(text).toContain(`Closed after approved BPM evaluation ${tag}`);
       });
 
       await test.step('company sees the closed outcome and not another organisation\'s records', async () => {

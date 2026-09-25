@@ -1,7 +1,10 @@
 import type { Request, Response } from 'express';
+import fs from 'node:fs/promises';
+import path from 'node:path';
 import { casesService } from './cases.service';
 import { ok } from '@/lib/common/response';
 import { ApiError } from '@/lib/common/ApiError';
+import { UPLOADS_DIR } from '@/lib/upload/upload';
 
 /**
  * cases.controller.ts
@@ -51,6 +54,17 @@ export const casesController = {
     const caseDetail = await casesService.getById(id);
     await casesService.assertCanDownloadOfficialReport(caseDetail, { personId: req.user.personId, role: req.user.role });
     const attachment = await casesService.getOfficialReportAttachment(id);
-    return res.redirect(302, attachment.fileUrl);
+    const safeName = path.basename(attachment.fileName).replace(/[\r\n"]/g, '');
+    const filePath = path.join(UPLOADS_DIR, path.basename(attachment.fileUrl));
+    let bytes: Buffer;
+    try {
+      bytes = await fs.readFile(filePath);
+    } catch {
+      throw ApiError.notFound('Official report file is not available');
+    }
+    res.setHeader('Content-Type', attachment.mimeType || 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${safeName}"`);
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    return res.status(200).send(bytes);
   },
 };

@@ -290,6 +290,11 @@ export async function fillSignup(page: Page, data: {
   await page.getByLabel(/account type/i).selectOption(data.role === 'delegate' ? '3' : '2');
   await page.getByLabel(/create password/i).fill(data.password ?? PASSWORD);
   await page.getByLabel(/confirm password/i).fill(data.confirmPassword ?? data.password ?? PASSWORD);
+  await page.getByLabel(/authorization letter/i).setInputFiles({
+    name: 'authorization-letter.txt',
+    mimeType: 'text/plain',
+    buffer: LETTER_BYTES,
+  });
 }
 
 export async function registerEstablishment(page: Page, data: {

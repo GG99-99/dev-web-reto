@@ -104,7 +104,7 @@ Seeded password: `Password123!`
 
 2FA tests use an **isolated registered user**. Seeded accounts are never left with `enabled = true`. `loginAs()` throws if login returns `requiresTwoFactor` instead of caching a null token.
 
-E2E journeys create unique `@e2e.radar.test` accounts and soft-delete them in teardown. Soft-deleted users can still appear in the admin pending list (product behavior).
+E2E journeys create unique `@e2e.radar.test` accounts and soft-delete them in teardown. Inactive users are excluded from `GET /users` and the pending validation list.
 
 ---
 
@@ -187,17 +187,17 @@ SRS RF-01–RF-20 mapped to **UI journeys** vs API-only. API coverage is not cla
 | RF | Actor | UI journey | Existing | Notes / gaps |
 |----|-------|------------|----------|--------------|
 | RF-01 | All roles | Sign-in, validation, session | `auth.spec.ts` | UI |
-| RF-02 | Applicant + ADMIN | Sign-up, pending block, approve/reject | `registration.spec.ts` | No carta upload in the sign-up form (API-only). Pending login shows a generic connection notice because the UI maps Spanish `pendiente`/`rechaz` while the API returns English 403 text |
-| RF-03 | ADMIN_EMPRESA / delegate | Register establishment + legal representative; other companies cannot see it | `company-establishments.spec.ts` | Assignment succeeds and persists as `representantes`; the portal list still shows “No representatives registered” because it reads `inst.represents` |
+| RF-02 | Applicant + ADMIN | Sign-up, pending block, approve/reject | `registration.spec.ts` | Sign-up uploads the authorization letter and links it to the applicant. Pending and rejected logins show the mapped English messages |
+| RF-03 | ADMIN_EMPRESA / delegate | Register establishment + legal representative; other companies cannot see it | `company-establishments.spec.ts` | Portal shows the saved name and role from `representantes` after reload |
 | RF-04 | Coordinator / technician / company | Assignment notification isolation + dashboards | `notifications-dashboards.spec.ts`, `navigation.spec.ts` | UI |
-| RF-05 | Company | Draft BPM, reopen, attach, submit | `bpm-lifecycle.spec.ts`, `company.spec.ts` | Attachment card shows `Attachment #<id>` not the original filename |
+| RF-05 | Company | Draft BPM, reopen, attach, submit | `bpm-lifecycle.spec.ts`, `company.spec.ts` | Attachment cards show the API `fileName` after reopen |
 | RF-06 | Coordinator | Assign / reassign technician | `bpm-lifecycle.spec.ts`, `institutional-scheduling.spec.ts` | UI |
-| RF-07 / RF-10 | Coordinator / technician | Schedule + calendar visibility | `institutional-scheduling.spec.ts` | Reschedule and cancel exist in the API client, **not** in the calendar UI |
+| RF-07 / RF-10 | Coordinator / technician | Schedule + calendar visibility | `institutional-scheduling.spec.ts` | Coordinator calendar can reschedule and cancel. `GET /evaluations/calendar` stays technician-only |
 | RF-08 | Coordinator | LAPCH proceeds + does-not-proceed | `lapch-alerts.spec.ts` | UI; technician/company nav hidden |
 | RF-09 | Coordinator | Complaint proceeds / no-proceed / referral | `complaints.spec.ts` | There is **no** unauthenticated public intake page. Generate-case requires a linked establishment (400 otherwise) |
-| RF-11–RF-15 | Technician | Start field form, C/CP/NC/N/A, evidence, save, score, lock | `bpm-lifecycle.spec.ts` | GPS not driven. Playwright `setOffline` re-hydrates `started` from the stale list item and disables Save Draft; not claimed as offline E2E |
-| RF-16–RF-18 | Technician + coordinator | Submit report, request correction, save, resubmit, approve, close | `bpm-lifecycle.spec.ts` | After `SOLICITAR_CORRECCION` `locked` is false, so **Resubmit Correction** stays disabled; technician uses **Submit for Review** again |
-| RF-19 | Coordinator | Official file after close | `bpm-lifecycle.spec.ts` | `GET /cases/:id/close/pdf` is **302** to a `.txt` stub, not a PDF |
+| RF-11–RF-15 | Technician | Start field form, C/CP/NC/N/A, evidence, save, score, lock | `bpm-lifecycle.spec.ts` | Offline keeps started status, answers, and Save Draft, then syncs on reconnect. New evidence files still need a connection. Vite dev has no offline app shell |
+| RF-16–RF-18 | Technician + coordinator | Submit report, request correction, save, resubmit, approve, close | `bpm-lifecycle.spec.ts` | `EN_CORRECCION` / `DEVUELTO` enables Resubmit Correction on the same report |
+| RF-19 | Coordinator | Official file after close | `bpm-lifecycle.spec.ts` | Download is `200` `application/pdf` and begins with `%PDF-` |
 | RF-20 | Coordinator / company | History search + company-scoped certificates | `reports-history.spec.ts` | UI |
 | RNF-01 | — | Manifest, `sw.js` served, no SW controller in Vite dev | `pwa.spec.ts` | Production service-worker registration is **not** covered (SW only registers in `PROD`) |
 
@@ -207,7 +207,7 @@ SRS RF-01–RF-20 mapped to **UI journeys** vs API-only. API coverage is not cla
 |----------|----------|
 | Login email / cédula, all five roles | API 01, E2E auth |
 | Wrong password, unknown user, missing fields | API 01, E2E auth |
-| Pending user → 403 | API 01, E2E registration (UI shows generic notice) |
+| Pending user → 403 | API 01, E2E registration (UI shows pending approval) |
 | Refresh / logout | API 01, E2E auth (logout + reload) |
 | Forgot password (no enumeration) | API 01, E2E auth |
 | Reset with DB-issued token; invalid token | API 01 |
@@ -248,10 +248,10 @@ SRS RF-01–RF-20 mapped to **UI journeys** vs API-only. API coverage is not cla
 | Behavior | Coverage |
 |----------|----------|
 | BPM list/create/update/submit | API 05, E2E company (draft + empty), E2E bpm-lifecycle (draft → submit) |
-| Cases list/create/priority/close/PDF stub | API 06, E2E operational, E2E bpm-lifecycle |
+| Cases list/create/priority/close/PDF | API 06, API 10, E2E bpm-lifecycle |
 | Assign / reassign | API 06, API 10, E2E bpm-lifecycle, E2E institutional-scheduling |
-| Evaluations list/calendar/create/reschedule/cancel | API 07, E2E calendar; **reschedule/cancel UI absent** |
-| Full BPM → assign → eval → answers → evidence → finish → report review/correct/resend/approve → close + 302 PDF | API 10 **and** E2E `bpm-lifecycle.spec.ts` (separate contexts per role) |
+| Evaluations list/calendar/create/reschedule/cancel | API 07, E2E institutional-scheduling (coordinator calendar) |
+| Full BPM → assign → eval → answers → evidence → finish → report review/correct/resend/approve → close + PDF | API 10 **and** E2E `bpm-lifecycle.spec.ts` (separate contexts per role) |
 
 ### Field work, risk, evidence, reports (RF-12–RF-18)
 
@@ -280,7 +280,7 @@ SRS RF-01–RF-20 mapped to **UI journeys** vs API-only. API coverage is not cla
 |----------|----------|
 | PNG upload/get/delete, isolation, 25MB+1 → 400 | API 09 |
 | Missing file, missing category, 401 | API 08, API 09 |
-| BPM request attachment | API 09, E2E bpm-lifecycle (UI shows `Attachment #<id>`) |
+| BPM request attachment | API 09, E2E bpm-lifecycle (UI shows `fileName`) |
 
 ### Frontend routes / a11y / responsive / PWA
 
@@ -320,7 +320,7 @@ E2E unique titles: auth 24, navigation 21, company 6, operational 13, pwa 5, reg
 
 ### DEFECT-001 — 500 on `POST /auth/2fa/enable` with JSON `null` body and no auth
 
-Unusual client payload. Auth should 401 first; the handler can 500. Low severity. **Not patched** (preserve production behavior unless the defect is in the test path).
+Fixed. Malformed JSON (`null`) is `400 VALIDATION_ERROR` with message `Request body is not valid JSON`. A request with no body still returns `401`.
 
 ### DEFECT-002 — Multer `LIMIT_FILE_SIZE` used to return 500
 
@@ -332,19 +332,19 @@ Notification and profile buttons used `title` plus inner text/emoji, so the acce
 
 ### DEFECT-004 — Official case PDF is a 302 to a `.txt` stub
 
-`GET /cases/:id/close/pdf` after a completed workflow redirects to a text placeholder, not a generated PDF. UI journeys assert the 302 + `.txt` body. Real PDF rendering is not implemented.
+Fixed. Close writes a PDF attachment. The download endpoint returns that file with `Content-Type: application/pdf`.
 
 ### DEFECT-005 — Pending / rejected login copy is unmapped
 
-`AuthPortal` maps Spanish fragments (`pendiente`, `rechaz`) while the API returns English 403 text (`Account is pending validation` / `Account has been rejected`). The UI shows a generic connection notice instead of the intended pending/rejected message. Covered by `registration.spec.ts`.
+Fixed in the UI. The API messages stay English. The sign-in screen maps `pending` and `rejected`.
 
 ### DEFECT-006 — Company portal ignores persisted representatives
 
-`POST /institutions/:id/representatives` stores `representantes`. `CompanyPortal` reads `inst.represents`, so a successful add still shows **No representatives registered**. Covered by `company-establishments.spec.ts` (API GET asserts the row; UI empty-copy is the product defect).
+Fixed. The portal reads `representantes` and shows the name plus the persisted role (`LEGAL`, `CALIDAD`, `CONTACTO`).
 
 ### DEFECT-007 — Attachment cards use the wrong filename field
 
-BPM attachment UI reads `originalName` / `filename`. The API returns `fileName`, so the card shows `Attachment #<id>`. Covered by `bpm-lifecycle.spec.ts`.
+Fixed. Cards prefer `fileName`.
 
 ### DEFECT-008 — Intake list items lack React keys
 
@@ -352,15 +352,15 @@ BPM attachment UI reads `originalName` / `filename`. The API returns `fileName`,
 
 ### DEFECT-009 — Offline rehydrate disables a started field form
 
-`LiveField` `setOffline(true)` reloads evaluations from a stale list item whose status is not `EN_PROCESO`, so `started` becomes false and **Save Draft** is disabled. Offline queue/sync is **not** claimed as E2E coverage.
+Fixed for the supported save path. Started status and answers survive an offline transition and a client-side remount, and Save Draft stays enabled. Evidence file upload still requires a connection. A full document reload while offline is not available in the Vite dev server because the service worker registers only in production.
 
-### DEFECT-010 — Resubmit Correction stays disabled after SOLICITAR_CORRECCION
+### DEFECT-010 — Resubmit Correction after SOLICITAR_CORRECCION
 
-`SOLICITAR_CORRECCION` sets `report.locked = false`. **Resubmit Correction** requires `locked === true`. The technician must click **Submit for Review** again. Covered by `bpm-lifecycle.spec.ts`.
+Fixed. Resubmit is enabled when the report status is `EN_CORRECCION` or `DEVUELTO`.
 
 ### DEFECT-011 — Sign-up has no authorization-letter file input
 
-SRS RF-02 carta de autorización. `POST /users/register` accepts `cartaAutorizacionFileId`; the sign-up form has no file input. Tests do not invent an upload control.
+Fixed. Public `POST /users/register/authorization-letter` stores a `CARTA_AUTORIZACION` file, and registration links `cartaAutorizacionFileId`.
 
 ### DEFECT-012 — No public unauthenticated complaint page
 
@@ -368,11 +368,11 @@ SRS RF-09 public intake. Complaints are recorded in the coordinator Operations w
 
 ### DEFECT-013 — Calendar has no reschedule / cancel controls
 
-API client exposes reschedule/cancel. `TechnicianCalendar` has no matching UI. Institutional journeys reassign through the Cases workbench instead.
+Fixed for coordinators on the calendar event. Technicians do not see the actions. Empty date shows a validation message; cancel asks for confirmation. `GET /evaluations/calendar` remains `TECNICO_EVALUADOR` only (DEFECT-015 is the intended role policy, not a defect to relax).
 
 ### DEFECT-014 — Soft-deleted applicants remain in the pending list
 
-E2E teardown `DELETE /users/:id` sets `isActive = false`. Admin User validation still lists those emails under Pending.
+Fixed. `GET /users` returns only `isActive: true`, and the validation table applies the same filter.
 
 ### DEFECT-015 — Admin calendar GET is 403
 
@@ -386,11 +386,11 @@ E2E teardown `DELETE /users/:id` sets `isActive = false`. Admin User validation 
 2. **Service worker in production** — Registered only when `import.meta.env.PROD`. Dev E2E asserts the file is served and that no controller takes over. Production PWA install/offline cache is **not** covered.
 3. **Firefox / WebKit / Edge / real devices** — Not added as Playwright projects. Pixel 5 is Chromium device emulation, not a physical phone. SRS browser compatibility was not executed.
 4. **Concurrency / load** — API suite is serial (`--test-concurrency=1`) by design after the 2FA cache leak.
-5. **GPS / IndexedDB field sync** — LiveField GPS and offline queue are product-gap / defect (DEFECT-009), not mocked into a passing E2E.
+5. **GPS / offline evidence** — LiveField GPS is not driven in E2E. Answer drafts sync after reconnect. Uploading a new evidence file while offline is not queued.
 6. **Smoke suite** still allows some multi-status expectations (`200/404`, etc.). The node:test suite asserts exact codes for those cases. Smoke can close seed alert id `1` on `radar_test` (disposable).
 7. **Seeded data on radar_test** — Isolated `@e2e.radar.test` users are soft-deleted. Do not reseed `midb2` from these scripts.
 8. **No disable-2FA HTTP API** — Cleanup uses SQL (`disableAllTwoFactor` / reset script) **only** on allowlisted `radar_test`.
-9. **Missing UI vs SRS** — No carta upload, no public complaint page, no calendar reschedule/cancel, official close file is a `.txt` stub. See DEFECT-004, 011, 012, 013.
+9. **Public complaint page** — SRS RF-09 public intake is still the coordinator Operations workbench. No unauthenticated public form was added.
 10. **BPM draft PATCH** — Company Portal reopens a draft for attach/submit only; `bpmRequestsService.update` is not called from the UI.
 11. **Representative `cargo`** — the add-rep form collects Position but does not send it; there is no edit/delete-rep UI.
 12. **Calendar “today”** — `TechnicianCalendar` hard-codes `2026-09-21` as today. Journeys schedule ~2 hours ahead and match event pills in the September month view; they do not click Today.

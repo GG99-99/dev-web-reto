@@ -26,7 +26,7 @@ export const attachmentsService = {
   create: async (
     file: Express.Multer.File,
     category: UploadAttachmentRequest['category'],
-    uploadedById: number,
+    uploadedById?: number,
   ): Promise<Attachment> => {
     const fileUrl = `/uploads/${file.filename}`;
     return attachmentsModel.create({

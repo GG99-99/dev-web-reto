@@ -5,6 +5,8 @@ import type {
   UpdateUserStatusRequest,
 } from '@reto/shared';
 import { usersModel, type UsersFilter } from './users.model';
+import { attachmentsModel } from '../attachments/attachments.model';
+import { attachmentsService } from '../attachments/attachments.service';
 import { personService } from '../person/person.service';
 import { ApiError } from '@/lib/common/ApiError';
 import { hashPassword } from '@/lib/auth/password';
@@ -50,6 +52,16 @@ export const usersService = {
   register: async (data: RegisterUserRequest): Promise<RegisterUserResponse> => {
     await personService.assertIsNew(data.person.cedula, data.person.email);
 
+    if (data.cartaAutorizacionFileId) {
+      const letter = await attachmentsModel.getById(data.cartaAutorizacionFileId);
+      if (!letter || letter.category !== 'CARTA_AUTORIZACION') {
+        throw ApiError.validation('Authorization letter was not found');
+      }
+      if (letter.userRegistrationId) {
+        throw ApiError.conflict('Authorization letter is already associated with an applicant');
+      }
+    }
+
     const passwordHash = await hashPassword(data.password);
 
     const user = await usersModel.register(
@@ -60,6 +72,11 @@ export const usersService = {
     );
 
     return user as unknown as RegisterUserResponse;
+  },
+
+  uploadAuthorizationLetter: async (file: Express.Multer.File | undefined) => {
+    if (!file) throw ApiError.validation('Authorization letter file is required');
+    return attachmentsService.create(file, 'CARTA_AUTORIZACION');
   },
 
   updateStatus: async (userId: number, { status, motivoRechazo }: UpdateUserStatusRequest) => {

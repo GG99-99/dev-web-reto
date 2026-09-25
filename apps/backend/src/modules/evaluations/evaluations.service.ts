@@ -62,7 +62,10 @@ export const evaluationsService = {
   },
 
   reschedule: async (evaluationId: number, data: RescheduleEvaluationRequest) => {
-    await evaluationsService.getById(evaluationId);
+    const evaluation = await evaluationsService.getById(evaluationId);
+    if (evaluation.status === 'CANCELADA' || evaluation.status === 'FINALIZADA') {
+      throw ApiError.conflict('This evaluation can no longer be rescheduled');
+    }
     return evaluationsModel.reschedule(evaluationId, new Date(data.scheduledDate), data.observations);
   },
 
@@ -70,6 +73,9 @@ export const evaluationsService = {
     const evaluation = await evaluationsService.getById(evaluationId);
     if (evaluation.status === 'FINALIZADA') {
       throw ApiError.conflict('A completed evaluation cannot be cancelled');
+    }
+    if (evaluation.status === 'CANCELADA') {
+      throw ApiError.conflict('This evaluation is already cancelled');
     }
     return evaluationsModel.cancel(evaluationId);
   },

@@ -284,13 +284,21 @@ describe('BPM inspection workflow', () => {
       token: tokens.coordinator,
       redirect: 'manual',
     });
-    assert.strictEqual(pdf.status, 302, `Expected 302 redirect to the official report, got ${pdf.status}`);
+    assert.strictEqual(pdf.status, 200, `Expected the official PDF download, got ${pdf.status}`);
+    assert.match(pdf.headers.get('content-type') ?? '', /application\/pdf/);
+    const pdfBody = String(pdf.data);
+    assert.ok(pdfBody.startsWith('%PDF-'), 'official report must be a PDF payload');
+    assert.ok(pdfBody.includes(`Case #${caseId}`));
+    assert.ok(pdfBody.includes('Official case report'));
+    assert.ok(pdfBody.includes('Certification granted with observations'));
 
     const companyPdf = await request('GET', `/cases/${caseId}/close/pdf`, {
       token: tokens.company,
       redirect: 'manual',
     });
-    assert.strictEqual(companyPdf.status, 302);
+    assert.strictEqual(companyPdf.status, 200);
+    assert.match(companyPdf.headers.get('content-type') ?? '', /application\/pdf/);
+    assert.ok(String(companyPdf.data).startsWith('%PDF-'));
 
     const techPdf = await request('GET', `/cases/${caseId}/close/pdf`, {
       token: tokens.technician,

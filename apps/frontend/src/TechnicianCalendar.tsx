@@ -4,6 +4,7 @@ import type { EvaluationListItem } from '@reto/shared';
 import './TechnicianCalendar.css';
 
 interface TechnicianCalendarProps {
+  role?: string;
   onOpenField?: (evaluationId: number) => void;
   notify?: (message: string) => void;
 }
@@ -21,13 +22,21 @@ interface CalendarEvent {
   address?: string;
 }
 
-export default function TechnicianCalendar({ onOpenField, notify }: TechnicianCalendarProps) {
+export default function TechnicianCalendar({ role, onOpenField, notify }: TechnicianCalendarProps) {
   // Fecha ancla del calendario (por defecto Septiembre 2026 o fecha actual)
   const [currentDate, setCurrentDate] = useState<Date>(() => new Date('2026-09-21T09:00:00.000Z'));
   const [view, setView] = useState<CalendarView>('month');
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const [rescheduleAt, setRescheduleAt] = useState('');
+  const [rescheduleNote, setRescheduleNote] = useState('');
+  const [actionError, setActionError] = useState('');
+  const [acting, setActing] = useState(false);
+
+  const canManageSchedule = role === 'COORDINADOR'
+    && !!selectedEvent
+    && ['PROGRAMADA', 'REPROGRAMADA', 'EN_PROCESO'].includes(selectedEvent.status);
 
   // Carga de datos combinada (Calendario + Lista detallada)
   const loadCalendarData = async () => {
@@ -107,6 +116,70 @@ export default function TechnicianCalendar({ onOpenField, notify }: TechnicianCa
   useEffect(() => {
     void loadCalendarData();
   }, [currentDate.getFullYear(), currentDate.getMonth()]);
+
+  useEffect(() => {
+    setRescheduleAt('');
+    setRescheduleNote('');
+    setActionError('');
+  }, [selectedEvent?.evaluationId]);
+
+  const apiMessage = (err: unknown) => {
+    const message = (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error?.message;
+    return message || 'The calendar action could not be completed.';
+  };
+
+  const submitReschedule = async () => {
+    if (!selectedEvent) return;
+    if (!rescheduleAt) {
+      setActionError('Choose a new date and time before rescheduling.');
+      return;
+    }
+    const scheduledDate = new Date(rescheduleAt);
+    if (Number.isNaN(scheduledDate.getTime())) {
+      setActionError('The new date and time are not valid.');
+      return;
+    }
+    setActing(true);
+    setActionError('');
+    try {
+      const result = await evaluationsService.reschedule(selectedEvent.evaluationId, {
+        scheduledDate: scheduledDate.toISOString(),
+        observations: rescheduleNote.trim() || undefined,
+      });
+      if (!result.valid) {
+        setActionError(result.error.message);
+        return;
+      }
+      notify?.('Evaluation rescheduled.');
+      setSelectedEvent(null);
+      await loadCalendarData();
+    } catch (err) {
+      setActionError(apiMessage(err));
+    } finally {
+      setActing(false);
+    }
+  };
+
+  const submitCancel = async () => {
+    if (!selectedEvent) return;
+    if (!window.confirm('Cancel this evaluation? Cancelled evaluations do not generate a technical report.')) return;
+    setActing(true);
+    setActionError('');
+    try {
+      const result = await evaluationsService.cancel(selectedEvent.evaluationId);
+      if (!result.valid) {
+        setActionError(result.error.message);
+        return;
+      }
+      notify?.('Evaluation cancelled.');
+      setSelectedEvent(null);
+      await loadCalendarData();
+    } catch (err) {
+      setActionError(apiMessage(err));
+    } finally {
+      setActing(false);
+    }
+  };
 
   // Controles de Navegación
   const handlePrev = () => {
@@ -503,6 +576,34 @@ export default function TechnicianCalendar({ onOpenField, notify }: TechnicianCa
                   <span style={{ color: '#535f73', fontStyle: 'italic' }}>
                     "{selectedEvent.observations}"
                   </span>
+                </div>
+              )}
+
+              {canManageSchedule && (
+                <div className="tc-detail-item">
+                  <label htmlFor="reschedule-at">New date and time</label>
+                  <input
+                    id="reschedule-at"
+                    type="datetime-local"
+                    value={rescheduleAt}
+                    onChange={(event) => setRescheduleAt(event.target.value)}
+                  />
+                  <label htmlFor="reschedule-note">Reschedule note</label>
+                  <textarea
+                    id="reschedule-note"
+                    value={rescheduleNote}
+                    onChange={(event) => setRescheduleNote(event.target.value)}
+                    placeholder="Reason for the new appointment"
+                  />
+                  {actionError && <p role="alert">{actionError}</p>}
+                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.75rem' }}>
+                    <button type="button" className="tc-btn-open-field" disabled={acting} onClick={() => void submitReschedule()}>
+                      Reschedule
+                    </button>
+                    <button type="button" className="tc-btn-nav" disabled={acting} onClick={() => void submitCancel()}>
+                      Cancel evaluation
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

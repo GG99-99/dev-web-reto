@@ -8,6 +8,7 @@ import { institutionsService } from '../institutions/institutions.service';
 import { ApiError } from '@/lib/common/ApiError';
 import { normalizePagination, paginate, type NormalizedPagination } from '@/lib/common/response';
 import { UPLOADS_DIR } from '@/lib/upload/upload';
+import { buildSimplePdf } from '@/lib/pdf/simple-pdf';
 
 /**
  * cases.service.ts
@@ -67,15 +68,8 @@ export const casesService = {
   },
 
   /**
-   * RF-19. Si `emitirInforme` es true, genera un adjunto con el resultado
-   * del cierre.
-   *
-   * ⚠️ STUB: no hay una librería de generación de PDF instalada en el
-   * monorepo (ni pdfkit ni puppeteer). Se genera un archivo de TEXTO PLANO
-   * con el resumen del cierre y se guarda como Attachment con
-   * category=INFORME_OFICIAL_PDF para no bloquear el flujo end-to-end.
-   * TODO: agregar `pdfkit` (ligero) o `puppeteer` (HTML->PDF) y reemplazar
-   * `renderClosingSummary` por un PDF real.
+   * RF-19. When `emitirInforme` is true, writes a real PDF and stores it as
+   * an Attachment with category INFORME_OFICIAL_PDF.
    */
   close: async (caseId: number, requesterId: number, resultadoFinal: string, emitirInforme: boolean): Promise<CloseCaseResponse> => {
     const existing = await casesService.getById(caseId);
@@ -85,15 +79,16 @@ export const casesService = {
 
     let informeOficialUrl: string | undefined;
     if (emitirInforme) {
-      const fileName = `closing-report-case-${caseId}.txt`;
-      const storedName = `${crypto.randomUUID()}.txt`;
-      const content = renderClosingSummary(closed as unknown as CaseDetail, resultadoFinal);
-      await fs.writeFile(path.join(UPLOADS_DIR, storedName), content, 'utf-8');
+      const fileName = `official-report-case-${caseId}.pdf`;
+      const storedName = `${crypto.randomUUID()}.pdf`;
+      const pdf = buildSimplePdf(renderClosingSummary(closed as unknown as CaseDetail, resultadoFinal));
+      await fs.mkdir(UPLOADS_DIR, { recursive: true });
+      await fs.writeFile(path.join(UPLOADS_DIR, storedName), pdf);
 
       const attachment = await casesModel.attachOfficialReport(caseId, {
         fileName,
         fileUrl: `/uploads/${storedName}`,
-        mimeType: 'text/plain',
+        mimeType: 'application/pdf',
         uploadedById: requesterId,
       });
       informeOficialUrl = attachment.fileUrl;
@@ -119,14 +114,15 @@ export const casesService = {
   },
 };
 
-function renderClosingSummary(caseDetail: CaseDetail, resultadoFinal: string): string {
+function renderClosingSummary(caseDetail: CaseDetail, resultadoFinal: string): string[] {
   return [
-    'OFFICIAL CASE CLOSURE REPORT',
-    '(automatically generated document — provisional plain text format,',
-    ' pending replacement with a real PDF, see TODO in cases.service.ts)',
+    'RADAR Sanitario',
+    'Official case report',
+    'MISPAS / DIGEMAPS',
     '',
     `Case #${caseDetail.caseId}`,
-    `Institution: ${caseDetail.institution.name} (RNC ${caseDetail.institution.rnc})`,
+    `Institution: ${caseDetail.institution.name}`,
+    `RNC: ${caseDetail.institution.rnc}`,
     `Origin: ${caseDetail.origin}`,
     `Priority: ${caseDetail.priority}`,
     `Opened at: ${caseDetail.openedAt.toISOString()}`,
@@ -134,5 +130,5 @@ function renderClosingSummary(caseDetail: CaseDetail, resultadoFinal: string): s
     '',
     'Final result:',
     resultadoFinal,
-  ].join('\n');
+  ];
 }
