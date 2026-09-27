@@ -16,7 +16,7 @@ import { ApiError } from '@/lib/common/ApiError';
 async function assertAccessByEvaluationId(evaluationId: number, req: Request) {
   if (!req.user) throw ApiError.unauthorized();
   const evaluation = await evaluationsService.getById(evaluationId);
-  evaluationsService.assertAccess(evaluation, { userId: req.user.userId, role: req.user.role });
+  await evaluationsService.assertAccess(evaluation, { userId: req.user.userId, role: req.user.role, personId: req.user.personId });
   return evaluation;
 }
 

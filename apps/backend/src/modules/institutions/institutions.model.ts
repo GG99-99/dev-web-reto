@@ -65,6 +65,28 @@ export const institutionsModel = {
     return prisma.institution.findUnique({ where: { institutionId }, include: DETAIL_INCLUDE });
   },
 
+  findByRnc: async (rnc: string) => {
+    return prisma.institution.findFirst({ where: { rnc } });
+  },
+
+  /** True when this person is the assigned technician of an evaluation at the institution. */
+  technicianAssigned: async (personId: number, institutionId: number) => {
+    const user = await prisma.user.findUnique({ where: { personId }, select: { userId: true } });
+    if (!user) return false;
+    const hit = await prisma.evaluation.findFirst({
+      where: { institutionId, technicianId: user.userId },
+      select: { evaluationId: true },
+    });
+    return Boolean(hit);
+  },
+
+  municipalityExists: async (municipalityId: number) => {
+    return prisma.municipality.findUnique({
+      where: { municipalityId },
+      select: { municipalityId: true },
+    });
+  },
+
   create: async (data: Omit<Prisma.InstitutionCreateInput, 'propietary' | 'municipality'>, propietaryId: number, municipalityId: number) => {
     return prisma.institution.create({
       data: {

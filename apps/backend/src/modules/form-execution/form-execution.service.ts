@@ -37,9 +37,9 @@ export const formExecutionService = {
     return detail;
   },
 
-  start: async (evaluationId: number, requesterId: number, data: { representId: number; foodId: number }): Promise<any> => {
+  start: async (evaluationId: number, requesterId: number, data: { representId: number; foodId: number }, role?: string | null): Promise<any> => {
     const evaluation = await evaluationsService.getById(evaluationId);
-    if (evaluation.technicianId !== requesterId) {
+    if (role !== 'ADMIN' && evaluation.technicianId !== requesterId) {
       throw ApiError.forbidden('Only the assigned technician can start this evaluation');
     }
     if (evaluation.status !== 'PROGRAMADA' && evaluation.status !== 'REPROGRAMADA') {
@@ -58,9 +58,9 @@ export const formExecutionService = {
     });
   },
 
-  saveAnswers: async (evaluationId: number, requesterId: number, answers: FormAnswers): Promise<FormAnswers> => {
+  saveAnswers: async (evaluationId: number, requesterId: number, answers: FormAnswers, role?: string | null): Promise<FormAnswers> => {
     const evaluation = await evaluationsService.getById(evaluationId);
-    if (evaluation.technicianId !== requesterId) {
+    if (role !== 'ADMIN' && evaluation.technicianId !== requesterId) {
       throw ApiError.forbidden('Only the assigned technician can edit this evaluation');
     }
     if (evaluation.status !== 'EN_PROCESO') {
@@ -78,9 +78,9 @@ export const formExecutionService = {
     return formExecutionModel.upsertAnswers(evaluation.formResponseId, answers);
   },
 
-  finish: async (evaluationId: number, requesterId: number): Promise<FinishEvaluationResponse> => {
+  finish: async (evaluationId: number, requesterId: number, role?: string | null): Promise<FinishEvaluationResponse> => {
     const evaluation = await evaluationsService.getById(evaluationId);
-    if (evaluation.technicianId !== requesterId) {
+    if (role !== 'ADMIN' && evaluation.technicianId !== requesterId) {
       throw ApiError.forbidden('Only the assigned technician can finalize this evaluation');
     }
     if (evaluation.status !== 'EN_PROCESO') {

@@ -2,6 +2,7 @@ import type { Prisma } from '@reto/db';
 import type { CalendarQuery, CreateEvaluationRequest, RescheduleEvaluationRequest } from '@reto/shared';
 import { evaluationsModel, type EvaluationsFilter } from './evaluations.model';
 import { casesService } from '../cases/cases.service';
+import { institutionsService } from '../institutions/institutions.service';
 import { ApiError } from '@/lib/common/ApiError';
 import { normalizePagination, paginate, type NormalizedPagination } from '@/lib/common/response';
 
@@ -42,9 +43,16 @@ export const evaluationsService = {
     return evaluation;
   },
 
-  assertAccess: (evaluation: { technicianId: number }, requester: { userId: number; role: string | null }) => {
+  assertAccess: async (
+    evaluation: { technicianId: number; institutionId: number },
+    requester: { userId: number; role: string | null; personId?: number },
+  ) => {
     if (requester.role === 'COORDINADOR' || requester.role === 'ADMIN') return;
     if (requester.role === 'TECNICO_EVALUADOR' && evaluation.technicianId === requester.userId) return;
+    if ((requester.role === 'ADMIN_EMPRESA' || requester.role === 'USUARIO_DELEGADO') && requester.personId) {
+      await institutionsService.assertAccess(requester.personId, requester.role, evaluation.institutionId);
+      return;
+    }
     throw ApiError.forbidden('You do not have access to this evaluation');
   },
 

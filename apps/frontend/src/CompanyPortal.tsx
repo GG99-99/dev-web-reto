@@ -6,6 +6,7 @@ import {
   evaluationsService,
   dashboardService,
 } from './services'
+import { statusLabel } from './statusLabels'
 import './CompanyPortal.css'
 
 type Role = 'ADMIN' | 'ADMIN_EMPRESA' | 'USUARIO_DELEGADO' | 'COORDINADOR' | 'TECNICO_EVALUADOR'
@@ -17,6 +18,22 @@ interface CompanyPortalProps {
 }
 
 type TabKey = 'requests' | 'institutions' | 'evaluations'
+
+function apiErrorMessage(err: any, fallback: string): string {
+  const apiErr = err?.response?.data?.error
+  const fieldErrors = apiErr?.details?.fieldErrors
+  if (fieldErrors && typeof fieldErrors === 'object') {
+    const parts = Object.entries(fieldErrors).flatMap(([field, messages]) => {
+      const list = Array.isArray(messages) ? messages : []
+      return list.map((message) => `${field}: ${message}`)
+    })
+    if (parts.length) return parts.join('; ')
+  }
+  if (typeof apiErr === 'string' && apiErr) return apiErr
+  if (apiErr?.message) return String(apiErr.message)
+  if (err?.response?.data?.message) return String(err.response.data.message)
+  return fallback
+}
 
 function representativeRole(type?: string) {
   if (type === 'LEGAL') return 'Legal Representative'
@@ -50,6 +67,7 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
   const [provinces, setProvinces] = useState<any[]>([])
   const [municipalities, setMunicipalities] = useState<any[]>([])
   const [selectedProvinceId, setSelectedProvinceId] = useState<string>('')
+  const [selectedMunicipalityId, setSelectedMunicipalityId] = useState<string>('')
 
   // Upload progress / busy
   const [submitting, setSubmitting] = useState(false)
@@ -133,6 +151,7 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
   // Fetch municipalities when province changes
   const handleProvinceChange = async (provinceId: string) => {
     setSelectedProvinceId(provinceId)
+    setSelectedMunicipalityId('')
     setMunicipalities([])
     if (!provinceId) return
     try {
@@ -187,7 +206,7 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
         await loadData()
       }
     } catch (err: any) {
-      notify(err?.response?.data?.message || 'Could not submit the request.')
+      notify(apiErrorMessage(err, 'Could not submit the request.'))
     } finally {
       setSubmitting(false)
     }
@@ -208,7 +227,7 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
         if (detailRes.valid) setSelectedReqDetail(detailRes.data)
       }
     } catch (err: any) {
-      notify(err?.response?.data?.message || 'Error attaching document.')
+      notify(apiErrorMessage(err, 'Error attaching document.'))
     } finally {
       setSubmitting(false)
     }
@@ -265,7 +284,7 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
         setSelectedRequestId(newId)
       }
     } catch (err: any) {
-      notify(err?.response?.data?.message || 'Error creating BPM request.')
+      notify(apiErrorMessage(err, 'Error creating BPM request.'))
     } finally {
       setSubmitting(false)
     }
@@ -276,6 +295,12 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
     e.preventDefault()
     setInstFormError('')
     const form = new FormData(e.currentTarget)
+    const municipalityId = Number(selectedMunicipalityId)
+    if (!Number.isInteger(municipalityId) || municipalityId <= 0) {
+      setInstFormError('Select a province and a municipality before registering.')
+      return
+    }
+
     const body = {
       name: String(form.get('name') || ''),
       nombreComercial: String(form.get('nombreComercial') || ''),
@@ -285,7 +310,7 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
       streetNum: String(form.get('streetNum') || ''),
       phoneNumber: String(form.get('phoneNumber') || ''),
       email: String(form.get('email') || ''),
-      municipalityId: Number(form.get('municipalityId')),
+      municipalityId,
     }
 
     setSubmitting(true)
@@ -294,10 +319,17 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
       if (res.valid) {
         notify(`Establishment "${res.data.name}" registered successfully.`)
         setShowNewInstitutionModal(false)
+        setSelectedProvinceId('')
+        setSelectedMunicipalityId('')
+        setMunicipalities([])
         await loadData()
+      } else {
+        const msg = res?.error?.message || 'Error registering establishment.'
+        setInstFormError(msg)
+        notify(msg)
       }
     } catch (err: any) {
-      const msg = err?.response?.data?.message || 'Error registering establishment.'
+      const msg = apiErrorMessage(err, 'Error registering establishment.')
       setInstFormError(msg)
       notify(msg)
     } finally {
@@ -331,7 +363,7 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
         await loadData()
       }
     } catch (err: any) {
-      const msg = err?.response?.data?.error?.message || err?.response?.data?.message || 'Could not update establishment. Please try again.'
+      const msg = apiErrorMessage(err, 'Could not update establishment. Please try again.')
       setEditFormError(msg)
       notify(msg)
     } finally {
@@ -372,7 +404,7 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
         setActiveTab('institutions')
       }
     } catch (err: any) {
-      const msg = err?.response?.data?.message || 'Error adding representative.'
+      const msg = apiErrorMessage(err, 'Error adding representative.')
       setRepFormError(msg)
       notify(msg)
     } finally {
@@ -417,19 +449,7 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
     }
   }
 
-  const formatStatus = (st?: string) => {
-    if (!st) return '—'
-    const statusMap: Record<string, string> = {
-      'BORRADOR': 'Draft',
-      'PENDIENTE_ASIGNACION': 'Pending Assignment',
-      'ASIGNADA': 'Assigned',
-      'EN_PROCESO': 'In Progress',
-      'COMPLETADA': 'Completed',
-      'APROBADO': 'Approved',
-      'RECHAZADA': 'Rejected'
-    }
-    return statusMap[st] || st.replaceAll('_', ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())
-  }
+  const formatStatus = (st?: string) => statusLabel(st)
 
   return (
     <section className="company-portal">
@@ -922,10 +942,10 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
                   <tr key={ev.evaluationId}>
                     <td><strong>#{ev.evaluationId}</strong></td>
                     <td>{ev.institution?.name || 'Establishment'}</td>
-                    <td>{new Date(ev.scheduledDate).toLocaleDateString('es-DO')}</td>
+                    <td>{new Date(ev.scheduledDate).toLocaleDateString('en-US')}</td>
                     <td>
                       <span className={`cp-badge ${ev.priority === 'ALTA' ? 'cp-badge-rejected' : 'cp-badge-done'}`}>
-                        {ev.priority || 'LOW RISK'}
+                        {statusLabel(ev.priority) || 'Low'}
                       </span>
                     </td>
                     <td>
@@ -1112,7 +1132,13 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
                   </label>
                   <label>
                     Municipality *
-                    <select name="municipalityId" required disabled={!selectedProvinceId}>
+                    <select
+                      name="municipalityId"
+                      required
+                      disabled={!selectedProvinceId}
+                      value={selectedMunicipalityId}
+                      onChange={(e) => setSelectedMunicipalityId(e.target.value)}
+                    >
                       <option value="">Select municipality...</option>
                       {municipalities.map((m) => (
                         <option key={m.municipalityId} value={m.municipalityId}>{m.name}</option>

@@ -8,11 +8,12 @@ import {
   reportsService, usersService,
 } from './services'
 import HistoricalDossierModal from './HistoricalDossierModal'
+import { statusLabel } from './statusLabels'
 import './OperationsWorkbench.css'
 
 type Role = 'ADMIN' | 'ADMIN_EMPRESA' | 'USUARIO_DELEGADO' | 'COORDINADOR' | 'TECNICO_EVALUADOR'
-type Tab = 'cases' | 'reports' | 'institutions' | 'bpm' | 'intake' | 'history'
-const label = (value?: string) => (value ?? '—').replaceAll('_', ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase())
+type Tab = 'cases' | 'reports' | 'bpm' | 'intake' | 'history'
+const label = (value?: string) => statusLabel(value)
 // The backend always replies with { valid:false, error: { code, message } } on
 // failure (see ApiErrorResponse in API_CONTRACTS.md §0.1), so the message
 // lives at error.response.data.error.message, not .error itself (that's an
@@ -33,7 +34,6 @@ export default function OperationsWorkbench({ role, initial, onOpenOfficialRepor
   const available = useMemo(() => [
     { id: 'cases' as Tab, name: 'Cases & Multi-Origin', roles: ['ADMIN', 'COORDINADOR'] },
     { id: 'reports' as Tab, name: 'Report review', roles: ['ADMIN', 'COORDINADOR', 'TECNICO_EVALUADOR'] },
-    { id: 'institutions' as Tab, name: 'Institutions', roles: ['ADMIN', 'COORDINADOR', 'ADMIN_EMPRESA'] },
     { id: 'bpm' as Tab, name: 'BPM requests', roles: ['COORDINADOR', 'ADMIN_EMPRESA', 'USUARIO_DELEGADO'] },
     { id: 'intake' as Tab, name: 'Intake: Complaints & LAPCH', roles: ['ADMIN', 'COORDINADOR'] },
     { id: 'history' as Tab, name: 'History 360° Explorer', roles: ['ADMIN', 'COORDINADOR', 'ADMIN_EMPRESA'] },
@@ -48,7 +48,6 @@ export default function OperationsWorkbench({ role, initial, onOpenOfficialRepor
 
     {tab === 'cases' && <CasesPanel notify={setMessage} onOpenDossier={(entityType, id) => setDossierTarget({ entityType, id })} onOpenOfficialReport={onOpenOfficialReport} />}
     {tab === 'reports' && <ReportsPanel role={role} notify={setMessage} onOpenOfficialReport={onOpenOfficialReport} />}
-    {tab === 'institutions' && <InstitutionsPanel role={role} notify={setMessage} />}
     {tab === 'bpm' && <BpmPanel notify={setMessage} />}
     {tab === 'intake' && <IntakePanel notify={setMessage} />}
     {tab === 'history' && <HistoryPanel notify={setMessage} onOpenDossier={(entityType, id) => setDossierTarget({ entityType, id })} />}
@@ -698,112 +697,6 @@ function ReportsPanel({ role, notify, onOpenOfficialReport }: any) {
         </section>
       )}
     </aside>
-  </div>
-}
-
-function InstitutionsPanel({ role, notify }: any) {
-  const [items, setItems] = useState<any[]>([])
-  const [provinces, setProvinces] = useState<any[]>([])
-  const [municipalities, setMunicipalities] = useState<any[]>([])
-  const [query, setQuery] = useState('')
-
-  // GET /institutions is allowed for ADMIN, COORDINADOR, ADMIN_EMPRESA and
-  // USUARIO_DELEGADO (see institutions.router.ts) — for the latter two the
-  // backend auto-scopes results to institutions they own or represent, so
-  // this call is safe (and necessary) for every role this panel is shown to.
-  const load = async () => {
-    try {
-      const provincesResult = await institutionsService.listProvinces()
-      if (provincesResult.valid) setProvinces(provincesResult.data)
-      const r = await institutionsService.list({ q: query || undefined, page: 1, pageSize: 50 })
-      if (r.valid) setItems(r.data.items)
-    } catch (e) {
-      notify(apiError(e))
-    }
-  }
-
-  useEffect(() => { void load() }, [])
-
-  const provinceChange = async (id: string) => {
-    const r = await institutionsService.listMunicipalities(Number(id))
-    if (r.valid) setMunicipalities(r.data)
-  }
-
-  const create = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    const form = event.currentTarget
-    const data = new FormData(form)
-    try {
-      const result = await institutionsService.create({
-        name: String(data.get('name')),
-        streetName: String(data.get('streetName')),
-        streetNum: String(data.get('streetNum')),
-        phoneNumber: String(data.get('phoneNumber')),
-        email: String(data.get('email')),
-        rnc: String(data.get('rnc')),
-        nombreComercial: String(data.get('nombreComercial')),
-        actividadEconomica: String(data.get('actividadEconomica')),
-        municipalityId: Number(data.get('municipalityId')),
-      })
-      if (result.valid) {
-        notify(`Establishment "${result.data.name}" registered successfully.`)
-        form.reset()
-        await load()
-      }
-    } catch (e) {
-      notify(apiError(e))
-    }
-  }
-
-  return <div className="ops-grid">
-    <section className="card ops-card">
-      <div className="card-head">
-        <div>
-          <small className="eyebrow">Health Registry</small>
-          <h2>{['ADMIN', 'COORDINADOR'].includes(role) ? 'Regulated Establishments' : 'My Establishments'}</h2>
-        </div>
-        <button className="text" onClick={() => void load()}>Search</button>
-      </div>
-      <input className="ops-search" value={query} onChange={e => setQuery(e.target.value)} placeholder="Search by company name, trade name, or RNC..." />
-      <div className="ops-list">
-        {items.map(item => (
-          <div key={item.institutionId}>
-            <b>{item.name}</b>
-            <span>{item.nombreComercial || 'No trade name'} · RNC {item.rnc} · {item.actividadEconomica || 'Food'}</span>
-          </div>
-        ))}
-        {!items.length && <p className="ops-empty">No establishments found. You can register a new one in the Company Portal.</p>}
-      </div>
-    </section>
-
-    {role === 'ADMIN_EMPRESA' && (
-      <section className="card ops-card">
-        <h2>Register New Establishment</h2>
-        <form className="ops-form two-col" onSubmit={create}>
-          <label>Legal Name<input name="name" required /></label>
-          <label>Trade Name<input name="nombreComercial" required /></label>
-          <label>RNC<input name="rnc" required onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && e.key.length === 1 && !e.ctrlKey && !e.metaKey) e.preventDefault() }} /></label>
-          <label>Economic Activity<input name="actividadEconomica" required /></label>
-          <label>Street<input name="streetName" required /></label>
-          <label>Number<input name="streetNum" required /></label>
-          <label>Phone<input name="phoneNumber" required /></label>
-          <label>Email<input type="email" name="email" required /></label>
-          <label>Province
-            <select required onChange={e => void provinceChange(e.target.value)}>
-              <option value="">Select</option>
-              {provinces.map(p => <option value={p.provinceId} key={p.provinceId}>{p.name}</option>)}
-            </select>
-          </label>
-          <label>Municipality
-            <select name="municipalityId" required>
-              <option value="">Select</option>
-              {municipalities.map(m => <option value={m.municipalityId} key={m.municipalityId}>{m.name}</option>)}
-            </select>
-          </label>
-          <button className="primary">Register</button>
-        </form>
-      </section>
-    )}
   </div>
 }
 

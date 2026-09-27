@@ -153,12 +153,25 @@ describe('Institutions', () => {
       assertForbidden(res);
     });
 
-    test('ADMIN cannot create institution (403)', async () => {
+    test('ADMIN can create institution', async () => {
+      const munis = await request('GET', '/catalogs/municipalities', { token: tokens.admin });
+      const list = assertOk(munis, 200);
+      assert.ok(Array.isArray(list) && list.length > 0, 'municipalities catalog must be seeded');
+      const unique = uid();
       const res = await request('POST', '/institutions', {
         token: tokens.admin,
-        body: { name: 'X', streetName: 'Y', phoneNumber: '0', email: 'x@x.com', rnc: '1' },
+        body: {
+          name: `Admin Institution ${unique}`,
+          streetName: 'Calle Admin',
+          phoneNumber: '809-555-0002',
+          email: `admin-inst-${unique}@example.com`,
+          rnc: `8${Date.now().toString().slice(-8)}`,
+          nombreComercial: `Admin Business ${unique}`,
+          actividadEconomica: 'Manufactura',
+          municipalityId: list[0].municipalityId,
+        },
       });
-      assertForbidden(res);
+      assertOk(res, 201);
     });
 
     test('returns 400 for empty body', async () => {

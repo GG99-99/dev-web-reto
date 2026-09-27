@@ -644,7 +644,7 @@ function App() {
           {view === "operations" && (
             <OperationsWorkbench
               role={session.role}
-              initial="institutions"
+              initial="cases"
               onOpenOfficialReport={(id) => setActiveReportEvalId(id)}
             />
           )}

@@ -39,9 +39,10 @@ test.describe('Admin operational screens', () => {
     await expect(page.getByRole('tab', { name: /report review/i })).toHaveAttribute('aria-selected', 'true');
   });
 
-  test('Operational workflows open the institutions tab', async ({ page }) => {
+  test('Operational workflows open cases and can switch to intake', async ({ page }) => {
     await clickNav(page, /operational workflows/i);
-    await expect(page.getByRole('tab', { name: /^institutions$/i })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByRole('tab', { name: /^institutions$/i })).toHaveCount(0);
+    await expect(page.getByRole('tab', { name: /cases & multi-origin/i })).toHaveAttribute('aria-selected', 'true');
     await page.getByRole('tab', { name: /intake: complaints/i }).click();
     await expect(page.getByRole('heading', { name: /register health complaint|register lapch/i })).toBeVisible();
   });

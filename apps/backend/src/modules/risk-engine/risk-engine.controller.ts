@@ -15,7 +15,7 @@ export const riskEngineController = {
     if (!req.user) throw ApiError.unauthorized();
     const { id } = req.validated!.params;
     const evaluation = await evaluationsService.getById(id);
-    evaluationsService.assertAccess(evaluation, { userId: req.user.userId, role: req.user.role });
+    await evaluationsService.assertAccess(evaluation, { userId: req.user.userId, role: req.user.role, personId: req.user.personId });
     const data = await riskEngineService.getByEvaluation(id);
     return res.status(200).json(ok(data));
   },

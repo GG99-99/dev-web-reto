@@ -51,10 +51,17 @@ export const casesService = {
     return found as unknown as CaseDetail;
   },
 
-  /** COORDINADOR/ADMIN: full access. TECNICO_EVALUADOR: only if they are the assigned technician. */
-  assertAccess: (caseDetail: { technicianId: number | null }, requester: { userId: number; role: string | null }) => {
+  /** COORDINADOR/ADMIN: full access. Technician: assigned cases. Company: own establishments only. */
+  assertAccess: async (
+    caseDetail: { technicianId: number | null; institutionId: number },
+    requester: { userId: number; role: string | null; personId?: number },
+  ) => {
     if (requester.role === 'COORDINADOR' || requester.role === 'ADMIN') return;
     if (requester.role === 'TECNICO_EVALUADOR' && caseDetail.technicianId === requester.userId) return;
+    if ((requester.role === 'ADMIN_EMPRESA' || requester.role === 'USUARIO_DELEGADO') && requester.personId) {
+      await institutionsService.assertAccess(requester.personId, requester.role, caseDetail.institutionId);
+      return;
+    }
     throw ApiError.forbidden('You do not have access to this case');
   },
 

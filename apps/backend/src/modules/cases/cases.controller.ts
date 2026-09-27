@@ -23,7 +23,7 @@ export const casesController = {
     if (!req.user) throw ApiError.unauthorized();
     const { id } = req.validated!.params;
     const data = await casesService.getById(id);
-    casesService.assertAccess(data, { userId: req.user.userId, role: req.user.role });
+    await casesService.assertAccess(data, { userId: req.user.userId, role: req.user.role, personId: req.user.personId });
     return res.status(200).json(ok(data));
   },
 

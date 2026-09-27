@@ -13,9 +13,11 @@ import { ApiError } from '@/lib/common/ApiError';
 export function validateRole(...roles: UserRole[]) {
   return (req: Request, _res: Response, next: NextFunction) => {
     if (!req.user) throw ApiError.unauthorized();
-    if (!req.user.role || !roles.includes(req.user.role)) {
-      throw ApiError.forbidden();
+    // The health-system administrator can perform every action.
+    if (req.user.role === 'ADMIN' || (req.user.role && roles.includes(req.user.role))) {
+      next();
+      return;
     }
-    next();
+    throw ApiError.forbidden();
   };
 }

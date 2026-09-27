@@ -32,8 +32,8 @@ export const historyService = {
       fechaHasta: query.fechaHasta ? new Date(query.fechaHasta) : undefined,
     };
 
-    // ADMIN_EMPRESA: limitado a su propia empresa (sección 15, "Acceso").
-    if (requester.role === 'ADMIN_EMPRESA') {
+    // Company accounts only see history for establishments they own or represent.
+    if (requester.role === 'ADMIN_EMPRESA' || requester.role === 'USUARIO_DELEGADO') {
       filter.institutionIds = await dashboardModel.getOwnedInstitutionIds(requester.personId);
     }
 

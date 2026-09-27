@@ -1,7 +1,7 @@
 import type { Prisma } from '@reto/db';
 import type { CreateBpmRequestRequest, SubmitBpmRequestResponse, UpdateBpmRequestRequest } from '@reto/shared';
 import { bpmRequestsModel, type BpmRequestsFilter } from './bpm-requests.model';
-import { dashboardModel } from '../dashboard/dashboard.model';
+import { institutionsService } from '../institutions/institutions.service';
 import { ApiError } from '@/lib/common/ApiError';
 import { normalizePagination, paginate, type NormalizedPagination } from '@/lib/common/response';
 import prisma from '@reto/db';
@@ -35,22 +35,25 @@ export const bpmRequestsService = {
     return bpmRequest;
   },
 
-  /** Throws if the requester is not the author, institution owner/rep, or COORDINADOR/ADMIN. */
+  /** Throws if the requester cannot see this request. Company users must own the establishment. */
   assertAccess: async (
     bpmRequest: { createdById: number; institutionId?: number },
     requester: { userId: number; role: string | null; personId?: number },
   ) => {
     if (requester.role === 'COORDINADOR' || requester.role === 'ADMIN') return;
-    if (bpmRequest.createdById === requester.userId) return;
-    if (requester.personId && bpmRequest.institutionId) {
-      const owned = await dashboardModel.getOwnedInstitutionIds(requester.personId);
-      if (owned.includes(bpmRequest.institutionId)) return;
+    if (requester.role === 'ADMIN_EMPRESA' || requester.role === 'USUARIO_DELEGADO') {
+      if (!requester.personId || !bpmRequest.institutionId) {
+        throw ApiError.forbidden('You do not have access to this request');
+      }
+      await institutionsService.assertAccess(requester.personId, requester.role, bpmRequest.institutionId);
+      return;
     }
+    if (bpmRequest.createdById === requester.userId) return;
     throw ApiError.forbidden('You do not have access to this request');
   },
 
-  assertIsAuthorAndDraft: (bpmRequest: { createdById: number; status: string }, requester: { userId: number }) => {
-    if (bpmRequest.createdById !== requester.userId) {
+  assertIsAuthorAndDraft: (bpmRequest: { createdById: number; status: string }, requester: { userId: number; role: string | null }) => {
+    if (requester.role !== 'ADMIN' && bpmRequest.createdById !== requester.userId) {
       throw ApiError.forbidden('Only the author can modify this request');
     }
     if (bpmRequest.status !== 'BORRADOR') {
@@ -58,19 +61,36 @@ export const bpmRequestsService = {
     }
   },
 
-  create: async (createdById: number, data: CreateBpmRequestRequest) => {
-    return bpmRequestsModel.create(data, createdById);
+  create: async (
+    requester: { userId: number; role: string | null; personId?: number },
+    data: CreateBpmRequestRequest,
+  ) => {
+    if (requester.role === 'ADMIN_EMPRESA' || requester.role === 'USUARIO_DELEGADO') {
+      if (!requester.personId) throw ApiError.forbidden('You do not have access to this establishment');
+      await institutionsService.assertAccess(requester.personId, requester.role, data.institutionId);
+    }
+    return bpmRequestsModel.create(data, requester.userId);
   },
 
-  update: async (bpmRequestId: number, requesterId: number, data: UpdateBpmRequestRequest) => {
+  update: async (
+    bpmRequestId: number,
+    requester: { userId: number; role: string | null; personId?: number },
+    data: UpdateBpmRequestRequest,
+  ) => {
     const bpmRequest = await bpmRequestsService.getById(bpmRequestId);
-    bpmRequestsService.assertIsAuthorAndDraft(bpmRequest, { userId: requesterId });
+    await bpmRequestsService.assertAccess(bpmRequest, requester);
+    bpmRequestsService.assertIsAuthorAndDraft(bpmRequest, requester);
     return bpmRequestsModel.update(bpmRequestId, data);
   },
 
-  addAttachment: async (bpmRequestId: number, requesterId: number, file: Express.Multer.File) => {
+  addAttachment: async (
+    bpmRequestId: number,
+    requester: { userId: number; role: string | null; personId?: number },
+    file: Express.Multer.File,
+  ) => {
     const bpmRequest = await bpmRequestsService.getById(bpmRequestId);
-    if (bpmRequest.createdById !== requesterId) {
+    await bpmRequestsService.assertAccess(bpmRequest, requester);
+    if (requester.role !== 'ADMIN' && bpmRequest.createdById !== requester.userId) {
       throw ApiError.forbidden('Only the author can attach documentation to this request');
     }
 
@@ -80,15 +100,19 @@ export const bpmRequestsService = {
         fileName: file.originalname,
         fileUrl: `/uploads/${file.filename}`,
         mimeType: file.mimetype,
-        uploadedById: requesterId,
+        uploadedById: requester.userId,
         bpmRequestId,
       },
     });
   },
 
-  submit: async (bpmRequestId: number, requesterId: number): Promise<SubmitBpmRequestResponse> => {
+  submit: async (
+    bpmRequestId: number,
+    requester: { userId: number; role: string | null; personId?: number },
+  ): Promise<SubmitBpmRequestResponse> => {
     const bpmRequest = await bpmRequestsService.getById(bpmRequestId);
-    bpmRequestsService.assertIsAuthorAndDraft(bpmRequest, { userId: requesterId });
+    await bpmRequestsService.assertAccess(bpmRequest, requester);
+    bpmRequestsService.assertIsAuthorAndDraft(bpmRequest, requester);
 
     return bpmRequestsModel.submit(bpmRequestId, bpmRequest.institutionId);
   },

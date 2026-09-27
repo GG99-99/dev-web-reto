@@ -6,6 +6,7 @@ import {
   bpmRequestsService,
   institutionsService,
 } from './services'
+import { statusLabel } from './statusLabels'
 import './HistoricalDossierModal.css'
 
 interface HistoricalDossierModalProps {
@@ -82,11 +83,7 @@ export default function HistoricalDossierModal({
     data?.case?.priority ||
     'NOT_SET'
 
-  const priorityLabel = (p?: string | null) => {
-    if (!p) return '—';
-    const map: Record<string, string> = { 'ALTA': 'High', 'MEDIA': 'Medium', 'BAJA': 'Low', 'NOT_SET': 'Not Set' };
-    return map[p] ?? p.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
-  };
+  const priorityLabel = (p?: string | null) => statusLabel(p);
 
   const evaluationId =
     entityType === 'EVALUATION'
@@ -149,7 +146,7 @@ export default function HistoricalDossierModal({
                 <div className="hdm-summary-card">
                   <span className="hdm-summary-label">Current Status</span>
                   <span className="hdm-summary-val" style={{ color: status === 'CERRADO' || status === 'COMPLETADA' ? '#10b981' : '#0284c7' }}>
-                    {status.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c: string) => c.toUpperCase())}
+                    {statusLabel(status)}
                   </span>
                 </div>
                 <div className="hdm-summary-card">

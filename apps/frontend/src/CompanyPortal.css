@@ -568,6 +568,14 @@
   border: 1px solid #dce4f2;
 }
 
+.cp-modal-container > form {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .cp-modal-header {
   background: #f8fafc;
   border-bottom: 1px solid #e2e8f0;
@@ -575,6 +583,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .cp-modal-header h2 {
@@ -617,6 +626,7 @@
   display: flex;
   justify-content: flex-end;
   gap: 0.75rem;
+  flex-shrink: 0;
 }
 
 .cp-badge-pill {

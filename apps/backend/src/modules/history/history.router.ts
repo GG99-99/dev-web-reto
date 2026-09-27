@@ -15,5 +15,5 @@ import { HistorySearchQuerySchema } from './history.schemas';
 export const historyRouter: ExpressRouter = Router();
 
 historyRouter
-  .use('/history', validateJwt, validateRole('COORDINADOR', 'ADMIN', 'ADMIN_EMPRESA'))
+  .use('/history', validateJwt, validateRole('COORDINADOR', 'ADMIN', 'ADMIN_EMPRESA', 'USUARIO_DELEGADO'))
   .get('/history/search', validateReq(HistorySearchQuerySchema, 'query'), historyController.search);

@@ -116,11 +116,11 @@ describe('Cases', () => {
         `Expected 200/201/400/404/409, got ${res.status}: ${JSON.stringify(res.data)}`);
     });
 
-    test('ADMIN cannot create case (403)', async () => {
+    test('ADMIN can reach case creation (not forbidden)', async () => {
       const res = await request('POST', '/cases', {
-        body: { institutionId: 1, origin: 'PROGRAMACION_INSTITUCIONAL' },
+        body: {},
       });
-      assertForbidden(res);
+      assertValidationError(res);
     });
 
     test('TECNICO_EVALUADOR cannot create case (403)', async () => {
@@ -158,11 +158,11 @@ describe('Cases', () => {
       assertValidationError(res);
     });
 
-    test('ADMIN cannot update priority (403)', async () => {
-      const res = await request('PATCH', '/cases/1/priority', {
+    test('ADMIN can update case priority (not forbidden)', async () => {
+      const res = await request('PATCH', '/cases/999999/priority', {
         body: { priority: 'ALTA' },
       });
-      assertForbidden(res);
+      assertNotFound(res);
     });
 
     test('returns 404 for nonexistent case', async () => {
@@ -192,11 +192,11 @@ describe('Cases', () => {
       assertValidationError(res);
     });
 
-    test('ADMIN cannot close case (403)', async () => {
-      const res = await request('POST', '/cases/1/close', {
-        body: { resultadoFinal: 'Cerrado' },
+    test('ADMIN can close a case (not forbidden)', async () => {
+      const res = await request('POST', '/cases/999999/close', {
+        body: { resultadoFinal: 'Closed', emitirInforme: false },
       });
-      assertForbidden(res);
+      assertNotFound(res);
     });
 
     test('returns 404 for nonexistent case', async () => {

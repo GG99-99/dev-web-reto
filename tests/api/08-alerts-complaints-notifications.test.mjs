@@ -404,9 +404,9 @@ describe('Dashboard', () => {
       assertOk(res, 200);
     });
 
-    test('ADMIN cannot access empresa dashboard (403)', async () => {
+    test('ADMIN can access the company dashboard', async () => {
       const res = await request('GET', '/dashboard/empresa');
-      assertForbidden(res);
+      assertOk(res, 200);
     });
 
     test('COORDINADOR cannot access empresa dashboard (403)', async () => {
@@ -453,9 +453,9 @@ describe('Dashboard', () => {
       assertOk(res, 200);
     });
 
-    test('ADMIN cannot access tecnico dashboard (403)', async () => {
+    test('ADMIN can access the technician dashboard', async () => {
       const res = await request('GET', '/dashboard/tecnico');
-      assertForbidden(res);
+      assertOk(res, 200);
     });
 
     test('COORDINADOR cannot access tecnico dashboard (403)', async () => {

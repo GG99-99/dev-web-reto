@@ -31,7 +31,7 @@ institutionsRouter
   )
   .post(
     '/institutions',
-    validateRole('ADMIN_EMPRESA'),
+    validateRole('ADMIN', 'ADMIN_EMPRESA'),
     validateReq(CreateInstitutionSchema, 'body'),
     institutionsController.create,
   )

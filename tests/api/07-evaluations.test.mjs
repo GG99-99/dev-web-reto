@@ -89,12 +89,12 @@ describe('Evaluations', () => {
       assertForbidden(res);
     });
 
-    test('ADMIN cannot access calendar (403)', async () => {
+    test('ADMIN can access the evaluation calendar', async () => {
       const res = await request(
         'GET',
         '/evaluations/calendar?from=2026-09-01&to=2026-10-01&view=month',
       );
-      assertForbidden(res);
+      assertOk(res, 200);
     });
 
     test('returns 400 for missing from/to params', async () => {
@@ -154,11 +154,11 @@ describe('Evaluations', () => {
         `Expected 200/201/400/404/409, got ${res.status}: ${JSON.stringify(res.data)}`);
     });
 
-    test('ADMIN cannot create evaluation (403)', async () => {
+    test('ADMIN can reach evaluation creation (not forbidden)', async () => {
       const res = await request('POST', '/evaluations', {
-        body: { caseId: 1, technicianId: 3, scheduledDate: '2026-10-01' },
+        body: {},
       });
-      assertForbidden(res);
+      assertValidationError(res);
     });
 
     test('TECNICO_EVALUADOR cannot create evaluation (403)', async () => {
@@ -196,11 +196,11 @@ describe('Evaluations', () => {
       assertValidationError(res);
     });
 
-    test('ADMIN cannot reschedule (403)', async () => {
-      const res = await request('PATCH', '/evaluations/1/reschedule', {
-        body: { scheduledDate: '2026-12-01' },
+    test('ADMIN can reschedule an evaluation (not forbidden)', async () => {
+      const res = await request('PATCH', '/evaluations/999999/reschedule', {
+        body: { scheduledDate: '2026-12-01T00:00:00.000Z' },
       });
-      assertForbidden(res);
+      assertNotFound(res);
     });
 
     test('returns 404 for nonexistent evaluation', async () => {
@@ -230,11 +230,9 @@ describe('Evaluations', () => {
         `Expected 200/404/409, got ${res.status}`);
     });
 
-    test('ADMIN cannot cancel evaluation (403)', async () => {
-      const res = await request('POST', '/evaluations/1/cancel', {
-        body: {},
-      });
-      assertForbidden(res);
+    test('ADMIN can cancel an evaluation (not forbidden)', async () => {
+      const res = await request('POST', '/evaluations/999999/cancel');
+      assertNotFound(res);
     });
 
     test('unauthenticated gets 401', async () => {

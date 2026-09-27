@@ -39,7 +39,13 @@ export const institutionsService = {
   },
 
   assertAccess: async (personId: number, role: string | null, institutionId: number) => {
-    if (role === 'ADMIN' || role === 'COORDINADOR' || role === 'TECNICO_EVALUADOR') return;
+    if (role === 'ADMIN' || role === 'COORDINADOR') return;
+
+    if (role === 'TECNICO_EVALUADOR') {
+      const assigned = await institutionsModel.technicianAssigned(personId, institutionId);
+      if (!assigned) throw ApiError.forbidden('You do not have access to this institution');
+      return;
+    }
 
     const institution = await institutionsService.getById(institutionId);
     const isPropietary = institution.propietary.personId === personId;
@@ -51,9 +57,19 @@ export const institutionsService = {
   },
 
   create: async (personId: number, data: CreateInstitutionRequest) => {
+    const municipality = await institutionsModel.municipalityExists(data.municipalityId);
+    if (!municipality) throw ApiError.validation('The selected municipality does not exist.');
+
+    const duplicate = await institutionsModel.findByRnc(data.rnc.trim());
+    if (duplicate) throw ApiError.conflict('An establishment with this RNC is already registered.');
+
     const propietary = await institutionsModel.findOrCreatePropietary(personId);
     const { municipalityId, ...rest } = data;
-    return institutionsModel.create(rest, propietary.propietaryId, municipalityId);
+    return institutionsModel.create(
+      { ...rest, rnc: data.rnc.trim() },
+      propietary.propietaryId,
+      municipalityId,
+    );
   },
 
   update: async (institutionId: number, data: UpdateInstitutionRequest) => {

@@ -14,7 +14,13 @@ export function validateReq(schema: z.ZodTypeAny, source: Source = 'body') {
     const result = await schema.safeParseAsync(req[source]);
 
     if (!result.success) {
-      throw ApiError.validation('Validation error', result.error.flatten());
+      const flat = result.error.flatten();
+      const fieldMessages = Object.entries(flat.fieldErrors).flatMap(([field, messages]) => {
+        const list = Array.isArray(messages) ? messages : [];
+        return list.map((message) => `${field}: ${message}`);
+      });
+      const parts = [...flat.formErrors, ...fieldMessages].filter(Boolean);
+      throw ApiError.validation(parts.length > 0 ? parts.join('; ') : 'Validation error', flat);
     }
 
     if (!req.validated) req.validated = {};

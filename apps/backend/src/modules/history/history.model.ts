@@ -21,7 +21,19 @@ export interface HistoryFilter {
 
 function scopeWhere(filter: HistoryFilter, institutionField: 'institutionId' = 'institutionId') {
   const where: Record<string, unknown> = {};
-  if (filter.institutionIds) where[institutionField] = { in: filter.institutionIds };
+  if (filter.institutionIds) {
+    const allowed = filter.institutionIds;
+    if (filter.institutionId != null && !allowed.includes(filter.institutionId)) {
+      where[institutionField] = -1;
+    } else if (filter.institutionId != null) {
+      where[institutionField] = filter.institutionId;
+    } else if (allowed.length === 0) {
+      where[institutionField] = -1;
+    } else {
+      where[institutionField] = { in: allowed };
+    }
+    return where;
+  }
   if (filter.institutionId) where[institutionField] = filter.institutionId;
   return where;
 }

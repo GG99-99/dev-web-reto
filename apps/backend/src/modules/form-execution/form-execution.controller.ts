@@ -25,7 +25,7 @@ export const formExecutionController = {
     if (!req.user) throw ApiError.unauthorized();
     const { id } = req.validated!.params;
     const body = req.validated!.body;
-    const data = await formExecutionService.start(id, req.user.userId, body);
+    const data = await formExecutionService.start(id, req.user.userId, body, req.user.role);
     return res.status(200).json(ok(data));
   },
 
@@ -33,14 +33,14 @@ export const formExecutionController = {
     if (!req.user) throw ApiError.unauthorized();
     const { id } = req.validated!.params;
     const { answers } = req.validated!.body;
-    const data = await formExecutionService.saveAnswers(id, req.user.userId, answers);
+    const data = await formExecutionService.saveAnswers(id, req.user.userId, answers, req.user.role);
     return res.status(200).json(ok(data));
   },
 
   finish: async (req: Request, res: Response) => {
     if (!req.user) throw ApiError.unauthorized();
     const { id } = req.validated!.params;
-    const data = await formExecutionService.finish(id, req.user.userId);
+    const data = await formExecutionService.finish(id, req.user.userId, req.user.role);
     return res.status(200).json(ok(data));
   },
 };

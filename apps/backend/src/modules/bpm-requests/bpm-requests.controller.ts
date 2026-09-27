@@ -16,18 +16,19 @@ export const bpmRequestsController = {
     const query = req.validated!.query;
 
     // COORDINADOR y ADMIN ven todas las solicitudes.
-    // ADMIN_EMPRESA y USUARIO_DELEGADO ven las solicitudes asociadas a sus establecimientos.
+    // Company accounts only see requests for establishments they own or represent.
     let filter = query;
-    if (req.user.role !== 'COORDINADOR' && req.user.role !== 'ADMIN') {
-      if (req.user.personId) {
-        const ownedIds = await dashboardModel.getOwnedInstitutionIds(req.user.personId);
-        filter = {
-          ...query,
-          ...(ownedIds.length > 0 ? { institutionIds: ownedIds } : { createdById: req.user.userId }),
-        };
-      } else {
-        filter = { ...query, createdById: req.user.userId };
-      }
+    if (req.user.role === 'ADMIN_EMPRESA' || req.user.role === 'USUARIO_DELEGADO') {
+      const ownedIds = req.user.personId
+        ? await dashboardModel.getOwnedInstitutionIds(req.user.personId)
+        : [];
+      const requestedId = query.institutionId as number | undefined;
+      const matched = requestedId
+        ? ownedIds.filter((id) => id === requestedId)
+        : ownedIds;
+      const institutionIds = matched.length > 0 ? matched : [-1];
+      const { institutionId: _ignored, ...rest } = query;
+      filter = { ...rest, institutionIds };
     }
 
     const data = await bpmRequestsService.getMany(filter);
@@ -45,7 +46,10 @@ export const bpmRequestsController = {
   create: async (req: Request, res: Response) => {
     if (!req.user) throw ApiError.unauthorized();
     const body = req.validated!.body;
-    const data = await bpmRequestsService.create(req.user.userId, body);
+    const data = await bpmRequestsService.create(
+      { userId: req.user.userId, role: req.user.role, personId: req.user.personId },
+      body,
+    );
     return res.status(201).json(ok(data));
   },
 
@@ -53,7 +57,7 @@ export const bpmRequestsController = {
     if (!req.user) throw ApiError.unauthorized();
     const { id } = req.validated!.params;
     const body = req.validated!.body;
-    const data = await bpmRequestsService.update(id, req.user.userId, body);
+    const data = await bpmRequestsService.update(id, { userId: req.user.userId, role: req.user.role, personId: req.user.personId }, body);
     return res.status(200).json(ok(data));
   },
 
@@ -61,14 +65,14 @@ export const bpmRequestsController = {
     if (!req.user) throw ApiError.unauthorized();
     if (!req.file) throw ApiError.validation('El archivo ("file") es requerido');
     const { id } = req.validated!.params;
-    const data = await bpmRequestsService.addAttachment(id, req.user.userId, req.file);
+    const data = await bpmRequestsService.addAttachment(id, { userId: req.user.userId, role: req.user.role, personId: req.user.personId }, req.file);
     return res.status(201).json(ok(data));
   },
 
   submit: async (req: Request, res: Response) => {
     if (!req.user) throw ApiError.unauthorized();
     const { id } = req.validated!.params;
-    const data = await bpmRequestsService.submit(id, req.user.userId);
+    const data = await bpmRequestsService.submit(id, { userId: req.user.userId, role: req.user.role, personId: req.user.personId });
     return res.status(200).json(ok(data));
   },
 };

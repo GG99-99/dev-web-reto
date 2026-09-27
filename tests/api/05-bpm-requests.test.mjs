@@ -111,12 +111,12 @@ describe('BPM Requests', () => {
       assertForbidden(res);
     });
 
-    test('ADMIN cannot create bpm-request (403)', async () => {
+    test('ADMIN can reach bpm-request creation (not forbidden)', async () => {
       const res = await request('POST', '/bpm-requests', {
         token: tokens.admin,
-        body: { institutionId: 1, tipoEstablecimiento: 'X', motivo: 'test' },
+        body: {},
       });
-      assertForbidden(res);
+      assertValidationError(res);
     });
 
     test('returns 400 for empty body', async () => {

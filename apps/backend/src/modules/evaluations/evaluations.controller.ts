@@ -21,7 +21,7 @@ export const evaluationsController = {
     if (!req.user) throw ApiError.unauthorized();
     const { id } = req.validated!.params;
     const data = await evaluationsService.getById(id);
-    evaluationsService.assertAccess(data, { userId: req.user.userId, role: req.user.role });
+    await evaluationsService.assertAccess(data, { userId: req.user.userId, role: req.user.role, personId: req.user.personId });
     return res.status(200).json(ok(data));
   },
 

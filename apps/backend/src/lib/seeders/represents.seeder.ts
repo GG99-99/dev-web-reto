@@ -17,6 +17,8 @@ import { logSeed, required } from './seed.utils';
 // ============================== DATA ==============================
 
 const REPRESENTS: { cedula: string; rnc: string; type: 'LEGAL' | 'CALIDAD' | 'CONTACTO' }[] = [
+  // Delegated company user sees only this establishment, not every company.
+  { cedula: '002-0000002-2', rnc: '130123456', type: 'CONTACTO' },
   { cedula: '003-0000001-1', rnc: '130123456', type: 'LEGAL' },
   { cedula: '003-0000002-2', rnc: '130123456', type: 'CALIDAD' },
   { cedula: '003-0000003-3', rnc: '130123456', type: 'CONTACTO' },

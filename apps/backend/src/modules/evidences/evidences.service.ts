@@ -15,7 +15,7 @@ import { UPLOADS_DIR } from '@/lib/upload/upload';
 export const evidencesService = {
   getMany: async (evaluationId: number, requester: { userId: number; role: string | null }) => {
     const evaluation = await evaluationsService.getById(evaluationId);
-    evaluationsService.assertAccess(evaluation, requester);
+    await evaluationsService.assertAccess(evaluation, requester);
     return evidencesModel.getManyByEvaluation(evaluationId);
   },
 
@@ -28,9 +28,10 @@ export const evidencesService = {
     requesterId: number,
     file: Express.Multer.File,
     data: Omit<CreateEvidenceRequest, 'file'>,
+    role?: string | null,
   ) => {
     const evaluation = await evaluationsService.getById(evaluationId);
-    if (evaluation.technicianId !== requesterId) {
+    if (role !== 'ADMIN' && evaluation.technicianId !== requesterId) {
       throw ApiError.forbidden('Only the assigned technician can upload evidence for this evaluation');
     }
     if (evaluation.status === 'FINALIZADA' || evaluation.status === 'CANCELADA') {

@@ -22,7 +22,7 @@ export const evidencesController = {
     if (!req.file) throw ApiError.validation('El archivo ("file") es requerido');
     const { id } = req.validated!.params;
     const body = req.validated!.body;
-    const data = await evidencesService.create(id, req.user.userId, req.file, body);
+    const data = await evidencesService.create(id, req.user.userId, req.file, body, req.user.role);
     return res.status(201).json(ok(data));
   },
 

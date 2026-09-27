@@ -71,6 +71,13 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
       };
       return res.status(409).json(response);
     }
+    if (prismaErr.code === 'P2003') {
+      const response: ApiErrorResponse = {
+        valid: false,
+        error: { code: 'VALIDATION_ERROR', message: 'A related record does not exist.', details: prismaErr.meta },
+      };
+      return res.status(400).json(response);
+    }
     if (prismaErr.code === 'P2025') {
       const response: ApiErrorResponse = {
         valid: false,
