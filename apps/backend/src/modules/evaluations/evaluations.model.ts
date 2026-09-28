@@ -13,6 +13,7 @@ export interface EvaluationsFilter {
   status?: EvaluationStatus;
   technicianId?: number;
   institutionId?: number;
+  institutionIds?: number[];
   from?: Date;
   to?: Date;
 }
@@ -37,7 +38,11 @@ export const evaluationsModel = {
     const where: Prisma.EvaluationWhereInput = {
       ...(filter.status && { status: filter.status }),
       ...(filter.technicianId && { technicianId: filter.technicianId }),
-      ...(filter.institutionId && { institutionId: filter.institutionId }),
+      ...(filter.institutionIds
+        ? { institutionId: { in: filter.institutionIds } }
+        : filter.institutionId
+          ? { institutionId: filter.institutionId }
+          : {}),
       ...((filter.from || filter.to) && {
         scheduledDate: {
           ...(filter.from && { gte: filter.from }),

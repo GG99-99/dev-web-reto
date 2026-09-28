@@ -1,6 +1,7 @@
 import type { HistorySearchQuery, HistorySearchResponse } from '@reto/shared';
 import { historyModel, type HistoryFilter } from './history.model';
 import { dashboardModel } from '../dashboard/dashboard.model';
+import { ApiError } from '@/lib/common/ApiError';
 import { normalizePagination, paginate } from '@/lib/common/response';
 
 /**
@@ -34,7 +35,25 @@ export const historyService = {
 
     // Company accounts only see history for establishments they own or represent.
     if (requester.role === 'ADMIN_EMPRESA' || requester.role === 'USUARIO_DELEGADO') {
-      filter.institutionIds = await dashboardModel.getOwnedInstitutionIds(requester.personId);
+      const ownedIds = requester.personId
+        ? await dashboardModel.getOwnedInstitutionIds(requester.personId)
+        : [];
+      if (query.institutionId != null && !ownedIds.includes(query.institutionId)) {
+        throw ApiError.forbidden('You do not have access to this establishment');
+      }
+      if (query.evaluationId != null) {
+        const institutionId = await historyModel.evaluationInstitutionId(query.evaluationId);
+        if (institutionId == null || !ownedIds.includes(institutionId)) {
+          throw ApiError.forbidden('You do not have access to this evaluation');
+        }
+      }
+      if (query.bpmRequestId != null) {
+        const institutionId = await historyModel.bpmRequestInstitutionId(query.bpmRequestId);
+        if (institutionId == null || !ownedIds.includes(institutionId)) {
+          throw ApiError.forbidden('You do not have access to this request');
+        }
+      }
+      filter.institutionIds = ownedIds;
     }
 
     const results =

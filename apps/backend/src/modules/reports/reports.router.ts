@@ -16,7 +16,12 @@ reportsRouter
   .use('/evaluations', validateJwt)
   .use('/reports', validateJwt)
   .get('/evaluations/:id/report', validateReq(IdParamSchema, 'params'), reportsController.getByEvaluation)
-  .post('/reports/:id/submit', validateReq(IdParamSchema, 'params'), reportsController.submit)
+  .post(
+    '/reports/:id/submit',
+    validateRole('TECNICO_EVALUADOR'),
+    validateReq(IdParamSchema, 'params'),
+    reportsController.submit,
+  )
   .post(
     '/reports/:id/review',
     validateRole('COORDINADOR', 'ADMIN'),
@@ -27,8 +32,14 @@ reportsRouter
   .get('/reports/:id/reviews', validateReq(IdParamSchema, 'params'), reportsController.getReviews)
   .post(
     '/reports/:id/correct',
+    validateRole('TECNICO_EVALUADOR'),
     validateReq(IdParamSchema, 'params'),
     validateReq(CorrectReportSchema, 'body'),
     reportsController.correct,
   )
-  .post('/reports/:id/resend', validateReq(IdParamSchema, 'params'), reportsController.resend);
+  .post(
+    '/reports/:id/resend',
+    validateRole('TECNICO_EVALUADOR'),
+    validateReq(IdParamSchema, 'params'),
+    reportsController.resend,
+  );

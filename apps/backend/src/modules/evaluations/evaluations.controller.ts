@@ -13,7 +13,11 @@ export const evaluationsController = {
   getMany: async (req: Request, res: Response) => {
     if (!req.user) throw ApiError.unauthorized();
     const query = req.validated!.query;
-    const data = await evaluationsService.getMany(query, { userId: req.user.userId, role: req.user.role });
+    const data = await evaluationsService.getMany(query, {
+      userId: req.user.userId,
+      role: req.user.role,
+      personId: req.user.personId,
+    });
     return res.status(200).json(ok(data));
   },
 

@@ -18,8 +18,13 @@ export const formExecutionRouter: ExpressRouter = Router();
 formExecutionRouter
   .use('/form-templates', validateJwt)
   .use('/evaluations', validateJwt)
-  .get('/form-templates', formExecutionController.getTemplates)
-  .get('/form-templates/:id/tree', validateReq(IdParamSchema, 'params'), formExecutionController.getTemplateTree)
+  .get('/form-templates', validateRole('ADMIN', 'COORDINADOR', 'TECNICO_EVALUADOR'), formExecutionController.getTemplates)
+  .get(
+    '/form-templates/:id/tree',
+    validateRole('ADMIN', 'COORDINADOR', 'TECNICO_EVALUADOR'),
+    validateReq(IdParamSchema, 'params'),
+    formExecutionController.getTemplateTree,
+  )
   .post(
     '/evaluations/:id/start',
     validateRole('TECNICO_EVALUADOR'),

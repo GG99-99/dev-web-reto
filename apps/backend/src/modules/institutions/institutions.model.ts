@@ -34,12 +34,17 @@ export const institutionsModel = {
     if (filter.provinceId) andClauses.push({ municipality: { provinceId: filter.provinceId } });
     if (filter.rnc) andClauses.push({ rnc: filter.rnc });
     if (filter.personId) {
-      andClauses.push({
-        OR: [
-          { propietary: { personId: filter.personId } },
-          { representantes: { some: { personId: filter.personId } } },
-        ],
-      });
+      // A non-positive id means "this company account has no person to scope by" and must match nothing.
+      if (filter.personId < 0) {
+        andClauses.push({ institutionId: -1 });
+      } else {
+        andClauses.push({
+          OR: [
+            { propietary: { personId: filter.personId } },
+            { representantes: { some: { personId: filter.personId } } },
+          ],
+        });
+      }
     }
     if (filter.q) {
       andClauses.push({

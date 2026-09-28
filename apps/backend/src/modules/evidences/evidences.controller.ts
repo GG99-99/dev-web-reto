@@ -13,13 +13,17 @@ export const evidencesController = {
   getMany: async (req: Request, res: Response) => {
     if (!req.user) throw ApiError.unauthorized();
     const { id } = req.validated!.params;
-    const data = await evidencesService.getMany(id, { userId: req.user.userId, role: req.user.role });
+    const data = await evidencesService.getMany(id, {
+      userId: req.user.userId,
+      role: req.user.role,
+      personId: req.user.personId,
+    });
     return res.status(200).json(ok(data));
   },
 
   create: async (req: Request, res: Response) => {
     if (!req.user) throw ApiError.unauthorized();
-    if (!req.file) throw ApiError.validation('El archivo ("file") es requerido');
+    if (!req.file) throw ApiError.validation('The file ("file") is required');
     const { id } = req.validated!.params;
     const body = req.validated!.body;
     const data = await evidencesService.create(id, req.user.userId, req.file, body, req.user.role);

@@ -30,6 +30,10 @@ export const dashboardModel = {
     return institutions.map((i) => i.institutionId);
   },
 
+  countUnread: async (userId: number) => {
+    return prisma.notification.count({ where: { userId, read: false } });
+  },
+
   getEmpresaData: async (institutionIds: number[], userId: number) => {
     const [misSolicitudes, evaluaciones, notificacionesNoLeidas] = await Promise.all([
       prisma.bpmRequest.findMany({

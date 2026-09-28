@@ -39,6 +39,22 @@ function scopeWhere(filter: HistoryFilter, institutionField: 'institutionId' = '
 }
 
 export const historyModel = {
+  evaluationInstitutionId: async (evaluationId: number) => {
+    const row = await prisma.evaluation.findUnique({
+      where: { evaluationId },
+      select: { institutionId: true },
+    });
+    return row?.institutionId ?? null;
+  },
+
+  bpmRequestInstitutionId: async (bpmRequestId: number) => {
+    const row = await prisma.bpmRequest.findUnique({
+      where: { bpmRequestId },
+      select: { institutionId: true },
+    });
+    return row?.institutionId ?? null;
+  },
+
   searchCases: async (filter: HistoryFilter): Promise<HistorySearchItem[]> => {
     const where: Prisma.CaseWhereInput = {
       ...scopeWhere(filter),

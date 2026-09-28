@@ -5,6 +5,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { casesModel, type CasesFilter } from './cases.model';
 import { institutionsService } from '../institutions/institutions.service';
+import { dashboardModel } from '../dashboard/dashboard.model';
 import { ApiError } from '@/lib/common/ApiError';
 import { normalizePagination, paginate, type NormalizedPagination } from '@/lib/common/response';
 import { UPLOADS_DIR } from '@/lib/upload/upload';
@@ -38,10 +39,24 @@ function buildOrderBy(pagination: NormalizedPagination): Prisma.CaseOrderByWithR
  * la Evaluation vía POST /evaluations.
  */
 export const casesService = {
-  getMany: async (filter: CasesFilter & { page?: number; pageSize?: number; sortBy?: string; sortDir?: 'asc' | 'desc' }) => {
-    const pagination = normalizePagination(filter);
+  getMany: async (
+    filter: CasesFilter & { page?: number; pageSize?: number; sortBy?: string; sortDir?: 'asc' | 'desc' },
+    requester?: { role: string | null; personId?: number },
+  ) => {
+    const effectiveFilter: CasesFilter & typeof filter = { ...filter };
+    if (requester && (requester.role === 'ADMIN_EMPRESA' || requester.role === 'USUARIO_DELEGADO')) {
+      const owned = requester.personId ? await dashboardModel.getOwnedInstitutionIds(requester.personId) : [];
+      if (effectiveFilter.institutionId && !owned.includes(effectiveFilter.institutionId)) {
+        effectiveFilter.institutionIds = [-1];
+        delete effectiveFilter.institutionId;
+      } else if (!effectiveFilter.institutionId) {
+        effectiveFilter.institutionIds = owned.length > 0 ? owned : [-1];
+      }
+    }
+
+    const pagination = normalizePagination(effectiveFilter);
     const orderBy = buildOrderBy(pagination);
-    const { items, total } = await casesModel.getMany(filter, pagination.skip, pagination.take, orderBy);
+    const { items, total } = await casesModel.getMany(effectiveFilter, pagination.skip, pagination.take, orderBy);
     return paginate(items, total, pagination);
   },
 

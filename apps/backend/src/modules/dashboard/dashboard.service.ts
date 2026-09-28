@@ -14,6 +14,10 @@ import { dashboardModel } from './dashboard.model';
 export const dashboardService = {
   getEmpresa: async (personId: number, userId: number): Promise<DashboardEmpresaResponse> => {
     const institutionIds = await dashboardModel.getOwnedInstitutionIds(personId);
+    if (institutionIds.length === 0) {
+      const notificacionesNoLeidas = await dashboardModel.countUnread(userId);
+      return { misSolicitudes: [], evaluaciones: [], notificacionesNoLeidas } as DashboardEmpresaResponse;
+    }
     return dashboardModel.getEmpresaData(institutionIds, userId) as unknown as Promise<DashboardEmpresaResponse>;
   },
 

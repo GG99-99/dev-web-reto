@@ -20,6 +20,15 @@ async function assertAccessByEvaluationId(evaluationId: number, req: Request) {
   return evaluation;
 }
 
+/** Submit, correct, and resend belong to the assigned field technician. Reading a report does not grant those actions. */
+function assertAssignedTechnician(evaluation: { technicianId: number }, req: Request) {
+  if (!req.user) throw ApiError.unauthorized();
+  if (req.user.role === 'ADMIN') return;
+  if (req.user.role !== 'TECNICO_EVALUADOR' || evaluation.technicianId !== req.user.userId) {
+    throw ApiError.forbidden('Only the assigned technician can modify this report');
+  }
+}
+
 export const reportsController = {
   getByEvaluation: async (req: Request, res: Response) => {
     const { id } = req.validated!.params; // evaluationId
@@ -31,7 +40,8 @@ export const reportsController = {
   submit: async (req: Request, res: Response) => {
     const { id } = req.validated!.params; // reportId
     const report = await reportsService.getById(id);
-    await assertAccessByEvaluationId(report.evaluationId, req);
+    const evaluation = await assertAccessByEvaluationId(report.evaluationId, req);
+    assertAssignedTechnician(evaluation, req);
     const data = await reportsService.submit(id);
     return res.status(200).json(ok(data));
   },
@@ -55,7 +65,8 @@ export const reportsController = {
   correct: async (req: Request, res: Response) => {
     const { id } = req.validated!.params; // reportId
     const report = await reportsService.getById(id);
-    await assertAccessByEvaluationId(report.evaluationId, req);
+    const evaluation = await assertAccessByEvaluationId(report.evaluationId, req);
+    assertAssignedTechnician(evaluation, req);
     const body = req.validated!.body;
     const data = await reportsService.correct(id, body);
     return res.status(200).json(ok(data));
@@ -64,7 +75,8 @@ export const reportsController = {
   resend: async (req: Request, res: Response) => {
     const { id } = req.validated!.params; // reportId
     const report = await reportsService.getById(id);
-    await assertAccessByEvaluationId(report.evaluationId, req);
+    const evaluation = await assertAccessByEvaluationId(report.evaluationId, req);
+    assertAssignedTechnician(evaluation, req);
     const data = await reportsService.resend(id);
     return res.status(200).json(ok(data));
   },

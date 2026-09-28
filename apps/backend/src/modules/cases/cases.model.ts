@@ -12,6 +12,7 @@ export interface CasesFilter {
   status?: CaseStatus;
   priority?: CasePriority;
   institutionId?: number;
+  institutionIds?: number[];
   technicianId?: number;
 }
 
@@ -53,7 +54,11 @@ export const casesModel = {
       ...(filter.origin && { origin: filter.origin }),
       ...(filter.status && { status: filter.status }),
       ...(filter.priority && { priority: filter.priority }),
-      ...(filter.institutionId && { institutionId: filter.institutionId }),
+      ...(filter.institutionIds
+        ? { institutionId: { in: filter.institutionIds } }
+        : filter.institutionId
+          ? { institutionId: filter.institutionId }
+          : {}),
       ...(filter.technicianId && { technicianId: filter.technicianId }),
     };
 

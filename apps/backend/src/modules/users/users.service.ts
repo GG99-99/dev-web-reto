@@ -5,6 +5,7 @@ import type {
   UpdateUserStatusRequest,
 } from '@reto/shared';
 import { usersModel, type UsersFilter } from './users.model';
+import { rolesModel } from '../roles/roles.model';
 import { attachmentsModel } from '../attachments/attachments.model';
 import { attachmentsService } from '../attachments/attachments.service';
 import { personService } from '../person/person.service';
@@ -50,6 +51,11 @@ export const usersService = {
   },
 
   register: async (data: RegisterUserRequest): Promise<RegisterUserResponse> => {
+    const role = await rolesModel.getById(data.roleId);
+    if (!role || (role.name !== 'ADMIN_EMPRESA' && role.name !== 'USUARIO_DELEGADO')) {
+      throw ApiError.forbidden('Public registration is only available for company administrator and delegated user accounts');
+    }
+
     await personService.assertIsNew(data.person.cedula, data.person.email);
 
     if (data.cartaAutorizacionFileId) {

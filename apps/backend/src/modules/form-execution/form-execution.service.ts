@@ -49,6 +49,14 @@ export const formExecutionService = {
     const template = await formTemplatesModel.getActive();
     if (!template) throw ApiError.internal('No active form template is configured');
 
+    const represent = await prisma.represent.findUnique({
+      where: { representId: data.representId },
+      select: { institutionId: true },
+    });
+    if (!represent || represent.institutionId !== evaluation.institutionId) {
+      throw ApiError.forbidden('That representative is not accredited for this establishment');
+    }
+
     return formExecutionModel.start(evaluationId, {
       formTemplateId: template.formTemplateId,
       institutionId: evaluation.institutionId,

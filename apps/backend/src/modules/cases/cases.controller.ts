@@ -14,8 +14,9 @@ import { UPLOADS_DIR } from '@/lib/upload/upload';
  */
 export const casesController = {
   getMany: async (req: Request, res: Response) => {
+    if (!req.user) throw ApiError.unauthorized();
     const query = req.validated!.query;
-    const data = await casesService.getMany(query);
+    const data = await casesService.getMany(query, { role: req.user.role, personId: req.user.personId });
     return res.status(200).json(ok(data));
   },
 

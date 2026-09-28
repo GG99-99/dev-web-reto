@@ -3,6 +3,7 @@ import type { CalendarQuery, CreateEvaluationRequest, RescheduleEvaluationReques
 import { evaluationsModel, type EvaluationsFilter } from './evaluations.model';
 import { casesService } from '../cases/cases.service';
 import { institutionsService } from '../institutions/institutions.service';
+import { dashboardModel } from '../dashboard/dashboard.model';
 import { ApiError } from '@/lib/common/ApiError';
 import { normalizePagination, paginate, type NormalizedPagination } from '@/lib/common/response';
 
@@ -25,11 +26,21 @@ function buildOrderBy(pagination: NormalizedPagination): Prisma.EvaluationOrderB
 export const evaluationsService = {
   getMany: async (
     filter: EvaluationsFilter & { page?: number; pageSize?: number; sortBy?: string; sortDir?: 'asc' | 'desc' },
-    requester: { userId: number; role: string | null },
+    requester: { userId: number; role: string | null; personId?: number },
   ) => {
     // RF-07: TECNICO_EVALUADOR solo ve sus propias evaluaciones.
-    const effectiveFilter =
-      requester.role === 'TECNICO_EVALUADOR' ? { ...filter, technicianId: requester.userId } : filter;
+    const effectiveFilter: EvaluationsFilter & typeof filter =
+      requester.role === 'TECNICO_EVALUADOR' ? { ...filter, technicianId: requester.userId } : { ...filter };
+
+    if (requester.role === 'ADMIN_EMPRESA' || requester.role === 'USUARIO_DELEGADO') {
+      const owned = requester.personId ? await dashboardModel.getOwnedInstitutionIds(requester.personId) : [];
+      if (effectiveFilter.institutionId && !owned.includes(effectiveFilter.institutionId)) {
+        effectiveFilter.institutionIds = [-1];
+        delete effectiveFilter.institutionId;
+      } else if (!effectiveFilter.institutionId) {
+        effectiveFilter.institutionIds = owned.length > 0 ? owned : [-1];
+      }
+    }
 
     const pagination = normalizePagination(filter);
     const orderBy = buildOrderBy(pagination);
@@ -58,10 +69,16 @@ export const evaluationsService = {
 
   create: async (data: CreateEvaluationRequest) => {
     const caseDetail = await casesService.getById(data.caseId);
+    if (!caseDetail.technicianId) {
+      throw ApiError.conflict('Assign one evaluator to this case before scheduling a visit');
+    }
+    if (data.technicianId !== caseDetail.technicianId) {
+      throw ApiError.conflict('Only the evaluator currently assigned to this case can be scheduled');
+    }
     return evaluationsModel.create({
       caseId: data.caseId,
       institutionId: caseDetail.institutionId,
-      technicianId: data.technicianId,
+      technicianId: caseDetail.technicianId,
       scheduledDate: new Date(data.scheduledDate),
       reason: data.reason,
       priority: data.priority,

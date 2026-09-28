@@ -24,11 +24,26 @@ function buildOrderBy(pagination: NormalizedPagination): Prisma.InstitutionOrder
   return { name: 'asc' };
 }
 
+const COMPANY_ROLES = new Set(['ADMIN_EMPRESA', 'USUARIO_DELEGADO']);
+
 export const institutionsService = {
-  getMany: async (filter: InstitutionsFilter & { page?: number; pageSize?: number; sortBy?: string; sortDir?: 'asc' | 'desc' }) => {
-    const pagination = normalizePagination(filter);
+  /**
+   * Company accounts only receive establishments they own or represent.
+   * The owner id always comes from the authenticated user, never from the query.
+   */
+  getMany: async (
+    filter: InstitutionsFilter & { page?: number; pageSize?: number; sortBy?: string; sortDir?: 'asc' | 'desc' },
+    requester: { role: string | null; personId?: number },
+  ) => {
+    const scoped: InstitutionsFilter & typeof filter = { ...filter };
+    delete scoped.personId;
+    if (COMPANY_ROLES.has(requester.role ?? '')) {
+      scoped.personId = requester.personId && requester.personId > 0 ? requester.personId : -1;
+    }
+
+    const pagination = normalizePagination(scoped);
     const orderBy = buildOrderBy(pagination);
-    const { items, total } = await institutionsModel.getMany(filter, pagination.skip, pagination.take, orderBy);
+    const { items, total } = await institutionsModel.getMany(scoped, pagination.skip, pagination.take, orderBy);
     return paginate(items, total, pagination);
   },
 

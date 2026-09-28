@@ -13,7 +13,7 @@ import { UPLOADS_DIR } from '@/lib/upload/upload';
  * ---------------------------------------------------------------------------
  */
 export const evidencesService = {
-  getMany: async (evaluationId: number, requester: { userId: number; role: string | null }) => {
+  getMany: async (evaluationId: number, requester: { userId: number; role: string | null; personId?: number }) => {
     const evaluation = await evaluationsService.getById(evaluationId);
     await evaluationsService.assertAccess(evaluation, requester);
     return evidencesModel.getManyByEvaluation(evaluationId);

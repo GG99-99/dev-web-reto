@@ -11,11 +11,9 @@ import { ApiError } from '@/lib/common/ApiError';
  */
 export const institutionsController = {
   getMany: async (req: Request, res: Response) => {
+    if (!req.user) throw ApiError.unauthorized();
     const query = req.validated!.query;
-    const filter = (req.user?.role === 'ADMIN_EMPRESA' || req.user?.role === 'USUARIO_DELEGADO')
-      ? { ...query, personId: req.user.personId }
-      : query;
-    const data = await institutionsService.getMany(filter);
+    const data = await institutionsService.getMany(query, { role: req.user.role, personId: req.user.personId });
     return res.status(200).json(ok(data));
   },
 
