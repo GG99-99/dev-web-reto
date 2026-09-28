@@ -27,6 +27,14 @@ export const assignmentsModel = {
         data: { technicianId, status: 'ASIGNADO' },
       });
 
+      await tx.evaluation.updateMany({
+        where: {
+          caseId,
+          status: { in: ['PROGRAMADA', 'REPROGRAMADA', 'EN_PROCESO'] },
+        },
+        data: { technicianId },
+      });
+
       return assignment;
     });
   },

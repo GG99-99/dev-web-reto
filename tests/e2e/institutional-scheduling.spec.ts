@@ -45,10 +45,10 @@ test.describe('Institutional scheduling', () => {
 
       await selectByOptionText(coordinator.page, /accredited field evaluator/i, TECH_NAMES.technician2);
       await coordinator.page.getByLabel(/assignment instructions/i).fill(`Coverage reassignment ${tag}`);
-      await coordinator.page.getByRole('button', { name: /reassign evaluator/i }).click();
-      await expect(coordinator.page.getByText(/reassigned/i).first()).toBeVisible({ timeout: 20_000 });
+      await coordinator.page.getByRole('button', { name: /replace evaluator/i }).click();
+      await expect(coordinator.page.getByText(/replaced/i).first()).toBeVisible({ timeout: 20_000 });
 
-      await selectByOptionText(coordinator.page, /^field evaluator/i, TECH_NAMES.technician2);
+      await expect(coordinator.page.getByLabel(/^field evaluator/i)).toHaveValue(TECH_NAMES.technician2);
       await coordinator.page.getByLabel(/scheduled date & time/i).fill(localDateTimeInput(2));
       await coordinator.page.getByLabel(/health priority/i).selectOption('ALTA');
       await coordinator.page.getByLabel(/technical reason/i).fill(reason);

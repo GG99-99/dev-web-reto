@@ -780,7 +780,7 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
           >
             {availableEvals.map((e) => (
               <option key={e.evaluationId} value={e.evaluationId}>
-                #{e.evaluationId} — {e.institution?.name || 'Facility'} ({e.status}) — {new Date(e.scheduledDate).toLocaleDateString('en-US')}
+                #{e.evaluationId} — {e.institution?.name || 'Facility'} ({e.status}) — {e.technician?.person?.name || 'Evaluator not assigned'} — {new Date(e.scheduledDate).toLocaleDateString('en-US')}
               </option>
             ))}
           </select>
@@ -811,6 +811,10 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
                 {(activeItem.institution as any).streetName}
               </span>
             )}
+            <span className="hero-detail">
+              <span className="material-symbols-outlined">person</span>
+              Evaluator: {(activeItem as any).technician?.person?.name || 'Not assigned'}
+            </span>
             <span className="hero-detail">
               <span className="material-symbols-outlined">event</span>
               {new Date(activeItem.scheduledDate).toLocaleDateString('en-US', {

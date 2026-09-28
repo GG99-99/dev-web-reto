@@ -54,7 +54,7 @@ export default function OperationsWorkbench({ role, initial, onOpenOfficialRepor
 
     {tab === 'cases' && <CasesPanel notify={setMessage} onOpenDossier={(entityType, id) => setDossierTarget({ entityType, id })} onOpenOfficialReport={onOpenOfficialReport} />}
     {tab === 'reports' && <ReportsPanel role={role} notify={setMessage} onOpenOfficialReport={onOpenOfficialReport} />}
-    {tab === 'bpm' && <BpmPanel notify={setMessage} />}
+    {tab === 'bpm' && <BpmPanel role={role} notify={setMessage} />}
     {tab === 'intake' && <IntakePanel notify={setMessage} />}
     {tab === 'history' && <HistoryPanel notify={setMessage} onOpenDossier={(entityType, id) => setDossierTarget({ entityType, id })} />}
 
@@ -87,7 +87,13 @@ function CasesPanel({ notify, onOpenDossier, onOpenOfficialReport }: any) {
         institutionsService.list({ page: 1, pageSize: 100 }),
         usersService.list({ roleId: 5, status: 'APROBADO', page: 1, pageSize: 100 }),
       ])
-      if (c.valid) setItems(c.data.items)
+      if (c.valid) {
+        setItems(c.data.items)
+        setSelected((current: any) => {
+          if (!current) return current
+          return c.data.items.find((item: any) => item.caseId === current.caseId) ?? current
+        })
+      }
       if (i.valid) setInstitutions(i.data.items)
       if (t.valid) setTechnicians(t.data.items)
     } catch (e) {
@@ -137,13 +143,16 @@ function CasesPanel({ notify, onOpenDossier, onOpenOfficialReport }: any) {
     try {
       const technicianId = Number(data.get('technicianId'))
       const notes = String(data.get('notes') || '')
-      const result = assignments.length
+      const hasEvaluator = Boolean(selected.technicianId) || assignments.length > 0
+      const result = hasEvaluator
         ? await assignmentsService.reassign(selected.caseId, { technicianId, notes })
         : await assignmentsService.assign(selected.caseId, { technicianId, notes })
       if (result.valid) {
-        notify(`Field Evaluator assigned to case #${selected.caseId}.`)
         await open(selected)
         await refresh()
+        notify(hasEvaluator
+          ? `Evaluator replaced on case #${selected.caseId}. Open visits now belong to the new evaluator.`
+          : `Field Evaluator assigned to case #${selected.caseId}.`)
       }
     } catch (e) {
       notify(apiError(e))
@@ -213,6 +222,7 @@ function CasesPanel({ notify, onOpenDossier, onOpenOfficialReport }: any) {
             </strong>
             · <mark className={item.priority === 'ALTA' ? 'high' : 'medium'}>{label(item.priority)}</mark>
             · {label(item.status)}
+            · {item.technician?.person?.name ?? 'Evaluator not assigned'}
           </span>
         </button>)}
         {!filteredItems.length && <p className="ops-empty">No cases match the selected filter.</p>}
@@ -261,24 +271,33 @@ function CasesPanel({ notify, onOpenDossier, onOpenOfficialReport }: any) {
         </div>
 
         <form className="ops-form" onSubmit={assign}>
+          <p style={{ margin: '0 0 0.75rem', fontSize: '0.84rem', color: '#475569' }}>
+            A case has one evaluator at a time.
+            {(assignments[0]?.assignedTo?.person?.name || selected.technician?.person?.name)
+              ? ` Current evaluator: ${assignments[0]?.assignedTo?.person?.name || selected.technician?.person?.name}. Choosing another person replaces them and moves any open visit.`
+              : ' Assign one evaluator before scheduling the visit.'}
+          </p>
           <label>Accredited Field Evaluator
-            <select name="technicianId" required defaultValue={assignments[0]?.technicianId || ''}>
-              <option value="">Select evaluator for this assignment...</option>
-              {technicians.map(t => <option key={t.userId} value={t.userId}>{t.person?.name ?? `Technician #${t.userId}`} ({t.email})</option>)}
+            <select name="technicianId" required defaultValue="" key={selected.caseId}>
+              <option value="">{(selected.technicianId || assignments.length) ? 'Select a different evaluator...' : 'Select evaluator for this assignment...'}</option>
+              {technicians
+                .filter((t) => Number(t.userId) !== Number(assignments[0]?.assignedToId ?? selected.technicianId))
+                .map(t => <option key={t.userId} value={t.userId}>{t.person?.name ?? `Technician #${t.userId}`} ({t.email})</option>)}
             </select>
           </label>
           <label>Assignment Instructions / Notes
             <input name="notes" placeholder="Notes about inspection scope" />
           </label>
-          <button className="primary">{assignments.length ? 'Reassign Evaluator' : 'Assign Evaluator'}</button>
+          <button className="primary">{(selected.technicianId || assignments.length) ? 'Replace Evaluator' : 'Assign Evaluator'}</button>
         </form>
 
         {assignments.length > 0 && (
           <div style={{ marginTop: '1rem', borderTop: '1px solid #e2e8f0', paddingTop: '0.75rem' }}>
             <strong style={{ fontSize: '0.76rem', color: '#64748b', textTransform: 'uppercase' }}>Assignment History</strong>
             <ol className="ops-timeline" style={{ marginTop: '0.4rem' }}>
-              {assignments.map(a => <li key={a.assignmentId}>
-                <strong>{a.technician?.person?.name ?? `User #${a.technicianId}`}</strong> · {a.isReassignment ? 'Reassigned' : 'Assigned'}
+              {assignments.map((a, index) => <li key={a.assignmentId}>
+                <strong>{a.assignedTo?.person?.name ?? `User #${a.assignedToId}`}</strong>
+                · {index === 0 ? 'Current evaluator' : a.isReassignment ? 'Replaced' : 'Assigned'}
                 {a.notes && <span> — "{a.notes}"</span>}
               </li>)}
             </ol>
@@ -286,23 +305,39 @@ function CasesPanel({ notify, onOpenDossier, onOpenOfficialReport }: any) {
         )}
       </section>}
 
-      {selected && <CaseLifecycle caseItem={selected} technicians={technicians} notify={notify} refreshed={refresh} />}
+      {selected && (
+        <CaseLifecycle
+          caseItem={selected}
+          currentEvaluator={{
+            id: assignments[0]?.assignedToId ?? selected.technicianId,
+            name: assignments[0]?.assignedTo?.person?.name ?? selected.technician?.person?.name,
+          }}
+          notify={notify}
+          refreshed={refresh}
+        />
+      )}
     </aside>
   </div>
 }
 
-function CaseLifecycle({ caseItem, technicians, notify, refreshed }: any) {
+function CaseLifecycle({ caseItem, currentEvaluator, notify, refreshed }: any) {
   const [busy, setBusy] = useState(false)
+  const evaluatorId = Number(currentEvaluator?.id)
+  const hasEvaluator = Number.isInteger(evaluatorId) && evaluatorId > 0
 
   const schedule = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    if (!hasEvaluator) {
+      notify('Assign one evaluator to this case before scheduling a visit.')
+      return
+    }
     const form = event.currentTarget
     const data = new FormData(form)
     setBusy(true)
     try {
       const result = await evaluationsService.create({
         caseId: caseItem.caseId,
-        technicianId: Number(data.get('technicianId')),
+        technicianId: evaluatorId,
         scheduledDate: new Date(String(data.get('scheduledDate'))).toISOString(),
         priority: String(data.get('priority')) as any,
         reason: String(data.get('reason') || '') || undefined,
@@ -344,10 +379,10 @@ function CaseLifecycle({ caseItem, technicians, notify, refreshed }: any) {
     <h2>Schedule Evaluation or Close Case</h2>
     <form className="ops-form" onSubmit={schedule}>
       <label>Field Evaluator
-        <select name="technicianId" required>
-          <option value="">Select evaluator</option>
-          {technicians.map(t => <option key={t.userId} value={t.userId}>{t.person?.name ?? `Evaluator #${t.userId}`}</option>)}
-        </select>
+        <input
+          readOnly
+          value={hasEvaluator ? (currentEvaluator.name || `Evaluator #${evaluatorId}`) : 'Assign one evaluator before scheduling'}
+        />
       </label>
       <label>Scheduled Date & Time
         <input type="datetime-local" name="scheduledDate" required />
@@ -365,7 +400,7 @@ function CaseLifecycle({ caseItem, technicians, notify, refreshed }: any) {
       <label>Inspector Notes
         <textarea name="observations" placeholder="Pre-visit instructions for the field inspection..." />
       </label>
-      <button className="primary" disabled={busy}>Schedule on Calendar</button>
+      <button className="primary" disabled={busy || !hasEvaluator}>Schedule on Calendar</button>
     </form>
 
     <hr className="ops-rule" />
@@ -502,7 +537,7 @@ function ReportsPanel({ role, notify, onOpenOfficialReport }: any) {
           <option value="">Select a registered evaluation...</option>
           {evaluations.map(item => (
             <option key={item.evaluationId} value={item.evaluationId}>
-              #{item.evaluationId} · {item.institution?.name ?? 'Establishment'} · [{label(item.status)}]
+              #{item.evaluationId} · {item.institution?.name ?? 'Establishment'} · {item.technician?.person?.name ?? 'Evaluator not assigned'} · [{label(item.status)}]
             </option>
           ))}
         </select>
@@ -515,7 +550,7 @@ function ReportsPanel({ role, notify, onOpenOfficialReport }: any) {
             ● Cancelled
           </mark>
           <h2>{selectedEval.institution?.name ?? 'Establishment'}</h2>
-          <p>Evaluation #{selectedEval.evaluationId} · Originally scheduled for {new Date(selectedEval.scheduledDate).toLocaleDateString()}</p>
+          <p>Evaluation #{selectedEval.evaluationId} · Originally scheduled for {new Date(selectedEval.scheduledDate).toLocaleDateString()} · Evaluator: {selectedEval.technician?.person?.name ?? 'Not assigned'}</p>
           <div style={{ background: '#fff5f5', border: '1px solid #fed7d7', borderRadius: '8px', padding: '1.25rem', marginTop: '1rem' }}>
             <h3 style={{ color: '#c53030', margin: '0 0 0.5rem 0', fontSize: '1rem' }}>
               ⚠️ Evaluation Process Cancelled
@@ -542,7 +577,7 @@ function ReportsPanel({ role, notify, onOpenOfficialReport }: any) {
             ● {label(selectedEval.status)}
           </mark>
           <h2>{selectedEval.institution?.name ?? 'Establishment'}</h2>
-          <p>Evaluation #{selectedEval.evaluationId} · Date: {new Date(selectedEval.scheduledDate).toLocaleDateString()}</p>
+          <p>Evaluation #{selectedEval.evaluationId} · Date: {new Date(selectedEval.scheduledDate).toLocaleDateString()} · Evaluator: {selectedEval.technician?.person?.name ?? 'Not assigned'}</p>
           <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '8px', padding: '1.25rem', marginTop: '1rem' }}>
             <h3 style={{ color: '#0369a1', margin: '0 0 0.5rem 0', fontSize: '1rem' }}>
               ℹ️ Report Awaiting Field Conclusion
@@ -558,6 +593,7 @@ function ReportsPanel({ role, notify, onOpenOfficialReport }: any) {
           <mark>{label(report.status)}</mark>
           <h2>{report.institution?.name ?? report.evaluation?.institution?.name ?? selectedEval?.institution?.name ?? 'Health Inspection Report'}</h2>
           <p>Version {report.version} · {report.locked ? '🔒 Locked for review' : '✏️ Editable draft'}</p>
+          <p>Assigned evaluator: {selectedEval?.technician?.person?.name ?? report.evaluation?.technician?.person?.name ?? 'Not assigned'}</p>
           <h3>Findings and Non-Conformities</h3>
           <p>{report.noConformidades || 'No non-conformities were recorded.'}</p>
           <h3>Technical Recommendations</h3>
@@ -706,7 +742,8 @@ function ReportsPanel({ role, notify, onOpenOfficialReport }: any) {
   </div>
 }
 
-function BpmPanel({ notify }: any) {
+function BpmPanel({ notify, role }: any) {
+  const canCreate = role === 'ADMIN' || role === 'ADMIN_EMPRESA' || role === 'USUARIO_DELEGADO'
   const [items, setItems] = useState<any[]>([])
   const [institutions, setInstitutions] = useState<any[]>([])
 
@@ -782,7 +819,7 @@ function BpmPanel({ notify }: any) {
             <b>#{item.bpmRequestId} · {item.institution?.name ?? 'Establishment'}</b>
             <span>
               {item.tipoEstablecimiento} · <mark>{label(item.status)}</mark>
-              {item.status === 'BORRADOR' && (
+              {canCreate && item.status === 'BORRADOR' && (
                 <button className="text" onClick={() => void submit(item.bpmRequestId)}>
                   🚀 Submit for Evaluation
                 </button>
@@ -794,7 +831,7 @@ function BpmPanel({ notify }: any) {
       </div>
     </section>
 
-    <section className="card ops-card">
+    {canCreate && <section className="card ops-card">
       <h2>Create BPM Request</h2>
       <form className="ops-form" onSubmit={create}>
         <label>Establishment
@@ -817,7 +854,7 @@ function BpmPanel({ notify }: any) {
         </label>
         <button className="primary">Save Draft</button>
       </form>
-    </section>
+    </section>}
   </div>
 }
 

@@ -71,6 +71,7 @@ export type Evaluation = {
   status: string;
   priority?: string;
   institution?: { name?: string };
+  technician?: { person?: { name?: string } };
 };
 
 const sessionKey = "radar-session";
@@ -595,10 +596,14 @@ function App() {
           {view === "calendar" && (
             <TechnicianCalendar
               role={session.role}
-              onOpenField={(id) => {
-                setActiveEvaluationId(id);
-                setView("field");
-              }}
+              onOpenField={
+                session.role === "TECNICO_EVALUADOR"
+                  ? (id) => {
+                      setActiveEvaluationId(id);
+                      setView("field");
+                    }
+                  : undefined
+              }
               notify={setNotice}
             />
           )}
@@ -610,7 +615,7 @@ function App() {
               onOpenOfficialReport={(id) => setActiveReportEvalId(id)}
             />
           )}
-          {view === "field" && (
+          {view === "field" && session.role === "TECNICO_EVALUADOR" && (
             <LiveField
               items={visibleEvaluations}
               item={
@@ -1207,7 +1212,9 @@ function Overview({
         <button
           type="button"
           className="cc-btn-white"
-          onClick={() => go(isTechnician ? "field" : "cases")}
+          onClick={() =>
+            go(isCompany ? "company" : isTechnician ? "field" : "cases")
+          }
         >
           {primaryAction} <span>→</span>
         </button>
@@ -1261,9 +1268,11 @@ function Overview({
               <small className="eyebrow">Schedule</small>
               <h2>Upcoming assessments</h2>
             </div>
-            <button type="button" className="text" onClick={() => go("calendar")}>
-              View calendar →
-            </button>
+            {!isCompany && (
+              <button type="button" className="text" onClick={() => go("calendar")}>
+                View calendar →
+              </button>
+            )}
           </div>
           {loading ? (
             <div className="skeleton">
@@ -1290,6 +1299,8 @@ function Overview({
                     </b>
                     <small>
                       {date(item.scheduledDate)} · {title(item.status)}
+                      {" · "}
+                      {item.technician?.person?.name ?? "Evaluator not assigned"}
                     </small>
                   </span>
                   <mark
@@ -1304,7 +1315,7 @@ function Overview({
             <Empty
               label="No scheduled assessments yet"
               action={isCompany ? "Review requests" : "Open cases"}
-              go={() => go("cases")}
+              go={() => go(isCompany ? "company" : "cases")}
             />
           )}
         </section>
@@ -1408,7 +1419,8 @@ function Empty({
 }) {
   return (
     <div className="empty">
-      ○<p>{label}</p>
+      <span className="empty-mark" aria-hidden="true">○</span>
+      <p>{label}</p>
       {action && (
         <button className="text" onClick={go}>
           {action} →

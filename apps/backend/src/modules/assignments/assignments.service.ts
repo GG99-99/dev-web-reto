@@ -27,8 +27,18 @@ export const assignmentsService = {
   },
 
   reassign: async (caseId: number, assignedById: number, data: AssignTechnicianRequest) => {
-    await casesService.getById(caseId);
+    const existing = await casesService.getById(caseId);
+    if (existing.technicianId === data.technicianId) {
+      throw ApiError.conflict('This case already has that evaluator. Choose a different person to replace them.');
+    }
     const assignment = await assignmentsModel.create(caseId, data.technicianId, assignedById, data.notes, true);
+    if (existing.technicianId && existing.technicianId !== data.technicianId) {
+      await notificationsService.notify(
+        existing.technicianId,
+        `Case #${caseId} reassigned`,
+        `You are no longer the evaluator for case #${caseId}. Open visits were transferred to the new evaluator.`,
+      );
+    }
     await notifyTechnicianAssigned(caseId, data.technicianId, true, data.notes);
     return assignment;
   },

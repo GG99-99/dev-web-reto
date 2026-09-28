@@ -286,10 +286,17 @@
   opacity: 0.85;
 }
 
-.tc-event-title {
+.tc-event-title,
+.tc-event-tech {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.tc-event-tech {
+  font-size: 0.64rem;
+  font-weight: 600;
+  opacity: 0.8;
 }
 
 /* Week View */

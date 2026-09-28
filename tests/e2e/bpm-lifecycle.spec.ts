@@ -117,7 +117,7 @@ test.describe('BPM request through final closure', () => {
         await expectNotice(coordinator.page, /field evaluator assigned/i);
         await expect(coordinator.page.getByText(/assignment history/i)).toBeVisible();
 
-        await selectByOptionText(coordinator.page, /^field evaluator/i, TECH_NAMES.technician);
+        await expect(coordinator.page.getByLabel(/^field evaluator/i)).toHaveValue(TECH_NAMES.technician);
         await coordinator.page.getByLabel(/scheduled date & time/i).fill(localDateTimeInput(2));
         await coordinator.page.getByLabel(/health priority/i).selectOption('ALTA');
         await coordinator.page.getByLabel(/technical reason/i).fill(`Scheduled from BPM ${tag}`);
@@ -138,7 +138,7 @@ test.describe('BPM request through final closure', () => {
         await technician!.page.getByRole('button', { name: /open field form/i }).click();
         await expect(technician!.page.locator('.field-hero-panel')).toBeVisible({ timeout: 20_000 });
         await technician!.page.getByLabel(/present plant representative/i).selectOption({ index: 1 });
-        await selectByOptionText(technician!.page, /food category/i, /lácteos/i);
+        await selectByOptionText(technician!.page, /food category/i, /dairy/i);
         await expect(technician!.page.getByLabel(/specific food item/i)).toBeEnabled();
         await technician!.page.getByLabel(/specific food item/i).selectOption({ index: 1 });
         await technician!.page.getByRole('button', { name: /start good practices assessment/i }).click();

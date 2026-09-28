@@ -20,6 +20,12 @@ interface CalendarEvent {
   observations?: string;
   institutionName: string;
   address?: string;
+  technicianName?: string;
+}
+
+function evaluatorName(item?: { technician?: { person?: { name?: string | null } | null } | null } | null) {
+  const name = item?.technician?.person?.name?.trim();
+  return name || undefined;
 }
 
 export default function TechnicianCalendar({ role, onOpenField, notify }: TechnicianCalendarProps) {
@@ -34,6 +40,7 @@ export default function TechnicianCalendar({ role, onOpenField, notify }: Techni
   const [actionError, setActionError] = useState('');
   const [acting, setActing] = useState(false);
 
+  const canOpenFieldForm = role === 'TECNICO_EVALUADOR'
   const canManageSchedule = role === 'COORDINADOR'
     && !!selectedEvent
     && ['PROGRAMADA', 'REPROGRAMADA', 'EN_PROCESO'].includes(selectedEvent.status);
@@ -86,6 +93,7 @@ export default function TechnicianCalendar({ role, onOpenField, notify }: Techni
             observations: detail?.observations ?? 'Coordinate entry with plant manager.',
             institutionName: detail?.institution?.name ?? `Establishment #${calItem.institutionId ?? calItem.evaluationId}`,
             address: detail?.institution?.streetName ?? 'Dominican Republic',
+            technicianName: evaluatorName(detail),
           });
         });
       } else if (listRes.valid && listRes.data?.items) {
@@ -100,13 +108,14 @@ export default function TechnicianCalendar({ role, onOpenField, notify }: Techni
             observations: item.observations ?? '',
             institutionName: item.institution?.name ?? `Establishment #${item.institutionId}`,
             address: item.institution?.streetName ?? 'Dominican Republic',
+            technicianName: evaluatorName(item),
           });
         });
       }
 
       setEvents(mergedEvents);
     } catch (err: unknown) {
-      console.error('Error al cargar calendario de evaluaciones:', err);
+      console.error('Error loading the evaluation calendar:', err);
       notify?.('Could not synchronize the calendar with the server.');
     } finally {
       setLoading(false);
@@ -425,10 +434,11 @@ export default function TechnicianCalendar({ role, onOpenField, notify }: Techni
                               e.stopPropagation();
                               setSelectedEvent(ev);
                             }}
-                            title={`#${ev.evaluationId}: ${ev.institutionName} (${ev.status})`}
+                            title={`#${ev.evaluationId}: ${ev.institutionName} (${ev.status}) · ${ev.technicianName ?? 'Evaluator not assigned'}`}
                           >
                             <span className="tc-event-time">{timeString}</span>
                             <span className="tc-event-title">{ev.institutionName}</span>
+                            <span className="tc-event-tech">{ev.technicianName ?? 'Evaluator not assigned'}</span>
                           </button>
                         );
                       })}
@@ -464,6 +474,7 @@ export default function TechnicianCalendar({ role, onOpenField, notify }: Techni
                           {ev.scheduledDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                         </span>
                         <span className="tc-event-title">{ev.institutionName}</span>
+                        <span className="tc-event-tech">{ev.technicianName ?? 'Evaluator not assigned'}</span>
                       </button>
                     ))}
                     {dayEvents.length === 0 && (
@@ -498,18 +509,23 @@ export default function TechnicianCalendar({ role, onOpenField, notify }: Techni
                       <strong>Priority:</strong> {ev.priority}
                     </p>
                     <p style={{ fontSize: '0.8rem', color: '#718096', marginTop: '0.2rem' }}>
+                      Evaluator: {ev.technicianName ?? 'Not assigned'}
+                    </p>
+                    <p style={{ fontSize: '0.8rem', color: '#718096', marginTop: '0.2rem' }}>
                       📍 {ev.address}
                     </p>
                   </div>
-                  <button
-                    className="tc-btn-open-field"
-                    onClick={() => {
-                      if (onOpenField) onOpenField(ev.evaluationId);
-                    }}
-                  >
-                    <span className="material-symbols-outlined" style={{ fontSize: '1.1rem' }}>play_circle</span>
-                    Evaluate
-                  </button>
+                  {canOpenFieldForm && (
+                    <button
+                      className="tc-btn-open-field"
+                      onClick={() => {
+                        if (onOpenField) onOpenField(ev.evaluationId);
+                      }}
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: '1.1rem' }}>play_circle</span>
+                      Evaluate
+                    </button>
+                  )}
                 </div>
               ))
             )}
@@ -547,6 +563,11 @@ export default function TechnicianCalendar({ role, onOpenField, notify }: Techni
                       minute: '2-digit',
                     })}
                   </span>
+                </div>
+
+                <div className="tc-detail-item">
+                  <label>Assigned evaluator</label>
+                  <span>{selectedEvent.technicianName ?? 'Not assigned'}</span>
                 </div>
 
                 <div className="tc-detail-item">
@@ -616,18 +637,20 @@ export default function TechnicianCalendar({ role, onOpenField, notify }: Techni
               >
                 Close
               </button>
-              <button
-                type="button"
-                className="tc-btn-open-field"
-                onClick={() => {
-                  const evalId = selectedEvent.evaluationId;
-                  setSelectedEvent(null);
-                  if (onOpenField) onOpenField(evalId);
-                }}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: '1.1rem' }}>checklist</span>
-                ⚡ Open Field Form
-              </button>
+              {canOpenFieldForm && (
+                <button
+                  type="button"
+                  className="tc-btn-open-field"
+                  onClick={() => {
+                    const evalId = selectedEvent.evaluationId;
+                    setSelectedEvent(null);
+                    if (onOpenField) onOpenField(evalId);
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '1.1rem' }}>checklist</span>
+                  ⚡ Open Field Form
+                </button>
+              )}
             </div>
           </div>
         </div>

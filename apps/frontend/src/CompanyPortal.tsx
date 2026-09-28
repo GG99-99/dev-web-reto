@@ -35,6 +35,24 @@ function apiErrorMessage(err: any, fallback: string): string {
   return fallback
 }
 
+function allowRncKey(e: { key: string; ctrlKey: boolean; metaKey: boolean; altKey: boolean; preventDefault: () => void }) {
+  if (e.ctrlKey || e.metaKey || e.altKey) return
+  const navigation = ['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Enter', 'Home', 'End']
+  if (navigation.includes(e.key)) return
+  if (!/^[0-9-]$/.test(e.key)) e.preventDefault()
+}
+
+function sanitizeRncPaste(e: { clipboardData: DataTransfer; preventDefault: () => void; currentTarget: HTMLInputElement }) {
+  const text = e.clipboardData.getData('text')
+  if (/^[0-9-]*$/.test(text)) return
+  e.preventDefault()
+  const cleaned = text.replace(/[^0-9-]/g, '')
+  const input = e.currentTarget
+  const start = input.selectionStart ?? input.value.length
+  const end = input.selectionEnd ?? start
+  input.setRangeText(cleaned, start, end, 'end')
+}
+
 function representativeRole(type?: string) {
   if (type === 'LEGAL') return 'Legal Representative'
   if (type === 'CALIDAD') return 'Quality / Food Safety Manager'
@@ -43,6 +61,8 @@ function representativeRole(type?: string) {
 }
 
 export default function CompanyPortal({ role, notify, onOpenOfficialReport }: CompanyPortalProps) {
+  const canManageEstablishments = role === 'ADMIN' || role === 'ADMIN_EMPRESA'
+  const canRequestInspection = role === 'ADMIN' || role === 'ADMIN_EMPRESA' || role === 'USUARIO_DELEGADO'
   const [activeTab, setActiveTab] = useState<TabKey>('requests')
   const [loading, setLoading] = useState(true)
   const [requests, setRequests] = useState<any[]>([])
@@ -62,6 +82,7 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
   const [showEditInstitutionModal, setShowEditInstitutionModal] = useState(false)
   const [editingInstitution, setEditingInstitution] = useState<any>(null)
   const [editFormError, setEditFormError] = useState('')
+  const [editingDraft, setEditingDraft] = useState(false)
 
   // Geographic selectors for institution creation
   const [provinces, setProvinces] = useState<any[]>([])
@@ -162,6 +183,10 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
     }
   }
 
+  useEffect(() => {
+    setEditingDraft(false)
+  }, [selectedRequestId])
+
   // Fetch full details when selected request changes
   useEffect(() => {
     if (!selectedRequestId) {
@@ -194,6 +219,37 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
     const completed = requests.filter((r) => r.status === 'COMPLETADA' || r.status === 'APROBADO').length
     return { totalRequests, inProgress, drafts, completed }
   }, [requests])
+
+  const handleUpdateRequest = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    if (!selectedReqDetail || selectedReqDetail.status !== 'BORRADOR') return
+    const form = new FormData(e.currentTarget)
+    const tipoEstablecimiento = String(form.get('tipoEstablecimiento') || '')
+    const motivo = String(form.get('motivo') || '')
+    const observaciones = String(form.get('observaciones') || '')
+    if (!tipoEstablecimiento || !motivo) {
+      notify('Please complete all required fields.')
+      return
+    }
+    setSubmitting(true)
+    try {
+      const res = await bpmRequestsService.update(selectedReqDetail.bpmRequestId, {
+        tipoEstablecimiento,
+        motivo,
+        observaciones,
+      })
+      if (res.valid) {
+        notify(`BPM Request #${selectedReqDetail.bpmRequestId} updated.`)
+        setEditingDraft(false)
+        setSelectedReqDetail((current: any) => current ? { ...current, ...res.data } : res.data)
+        await loadData()
+      }
+    } catch (err: any) {
+      notify(apiErrorMessage(err, 'Could not update the draft request.'))
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   // Submit draft request to evaluation
   const handleSubmitRequest = async (id: number) => {
@@ -461,7 +517,7 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
             <>
               <h1>{mainInstitution.name}</h1>
               <p>
-                <span>🏢 RNC: <strong>{mainInstitution.rnc || 'No disponible'}</strong></span>
+                <span>🏢 RNC: <strong>{mainInstitution.rnc || 'Not available'}</strong></span>
                 {mainInstitution.streetName && (
                   <span>📍 {mainInstitution.streetName} #{mainInstitution.streetNum || ''}</span>
                 )}
@@ -471,53 +527,43 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
             </>
           ) : (
             <>
-              <h1>Portal de Autogestión de la Empresa</h1>
+              <h1>Company Self-Service Portal</h1>
               <p style={{ marginTop: '0.35rem', opacity: 0.95, maxWidth: '680px', lineHeight: '1.45' }}>
-                <span>🏢 Aún no tienes un establecimiento vinculado. Registra tu empresa o instalación con su RNC oficial para iniciar solicitudes de certificación sanitaria BPM.</span>
+                <span>🏢 You do not have a linked establishment yet. Register your company or facility with its official RNC to start BPM sanitary certification requests.</span>
               </p>
             </>
           )}
         </div>
         <div className="cp-hero-actions">
-          {mainInstitution ? (
-            <>
-              <button
-                type="button"
-                className="cp-btn-white"
-                onClick={() => setShowNewRequestModal(true)}
-              >
-                ➕ New BPM Request
-              </button>
-              <button
-                type="button"
-                className="cp-btn-white"
-                style={{ background: 'rgba(255, 255, 255, 0.2)', color: '#ffffff' }}
-                onClick={() => setShowNewInstitutionModal(true)}
-              >
-                🏭 Register Establishment
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                type="button"
-                className="cp-btn-white"
-                onClick={() => setShowNewInstitutionModal(true)}
-              >
-                🏭 Register Establishment
-              </button>
-              <button
-                type="button"
-                className="cp-btn-white"
-                style={{ background: 'rgba(255, 255, 255, 0.2)', color: '#ffffff' }}
-                onClick={() => {
-                  notify?.('Primero debes registrar tu establecimiento antes de crear una solicitud BPM.')
+          {canRequestInspection && (
+            <button
+              type="button"
+              className="cp-btn-white"
+              onClick={() => {
+                if (!mainInstitution && canManageEstablishments) {
+                  notify('Register your establishment before creating a BPM request.')
                   setShowNewInstitutionModal(true)
-                }}
-              >
-                ➕ New BPM Request
-              </button>
-            </>
+                  return
+                }
+                if (!mainInstitution) {
+                  notify('No establishment is linked to this account yet.')
+                  return
+                }
+                setShowNewRequestModal(true)
+              }}
+            >
+              ➕ New BPM Request
+            </button>
+          )}
+          {canManageEstablishments && (
+            <button
+              type="button"
+              className="cp-btn-white"
+              style={{ background: 'rgba(255, 255, 255, 0.2)', color: '#ffffff' }}
+              onClick={() => setShowNewInstitutionModal(true)}
+            >
+              🏭 Register Establishment
+            </button>
           )}
         </div>
       </div>
@@ -607,7 +653,7 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
                   className="cp-btn-primary"
                   onClick={() => {
                     if (institutions.length === 0) {
-                      notify?.('Primero debes registrar tu establecimiento antes de crear una solicitud BPM.')
+                      notify?.('You must register your establishment before creating a BPM request.')
                       setShowNewInstitutionModal(true)
                     } else {
                       setShowNewRequestModal(true)
@@ -681,31 +727,75 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
                   </div>
                 </div>
 
-                {/* Information block */}
-                <div style={{ margin: '1rem 0', display: 'flex', flexDirection: 'column', gap: '0.6rem', fontSize: '0.88rem' }}>
-                  <div>
-                    <strong style={{ color: '#00236f' }}>Establishment: </strong>
-                    <span>{selectedReqDetail.institution?.name || 'Not specified'}</span>
-                  </div>
-                  <div>
-                    <strong style={{ color: '#00236f' }}>Type: </strong>
-                    <span>{selectedReqDetail.tipoEstablecimiento}</span>
-                  </div>
-                  <div>
-                    <strong style={{ color: '#00236f' }}>Inspection reason: </strong>
-                    <p style={{ margin: '0.2rem 0', color: '#334155', background: '#f8fafc', padding: '0.5rem', borderRadius: '6px' }}>
-                      {selectedReqDetail.motivo}
-                    </p>
-                  </div>
-                  {selectedReqDetail.observaciones && (
+                {/* Information block — drafts stay editable until the request is submitted */}
+                {selectedReqDetail.status === 'BORRADOR' && canRequestInspection && editingDraft ? (
+                  <form onSubmit={handleUpdateRequest} className="cp-form" style={{ margin: '1rem 0' }}>
+                    <label>
+                      Establishment type *
+                      <input
+                        name="tipoEstablecimiento"
+                        required
+                        defaultValue={selectedReqDetail.tipoEstablecimiento || ''}
+                      />
+                    </label>
+                    <label>
+                      Request reason *
+                      <textarea name="motivo" required defaultValue={selectedReqDetail.motivo || ''} />
+                    </label>
+                    <label>
+                      Technical observations (optional)
+                      <textarea name="observaciones" defaultValue={selectedReqDetail.observaciones || ''} />
+                    </label>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button type="submit" disabled={submitting} className="cp-btn-primary">
+                        {submitting ? 'Saving…' : 'Save changes'}
+                      </button>
+                      <button
+                        type="button"
+                        className="cp-btn-secondary"
+                        disabled={submitting}
+                        onClick={() => setEditingDraft(false)}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <div style={{ margin: '1rem 0', display: 'flex', flexDirection: 'column', gap: '0.6rem', fontSize: '0.88rem' }}>
                     <div>
-                      <strong style={{ color: '#00236f' }}>Additional observations: </strong>
-                      <p style={{ margin: '0.2rem 0', color: '#64748b' }}>
-                        {selectedReqDetail.observaciones}
+                      <strong style={{ color: '#00236f' }}>Establishment: </strong>
+                      <span>{selectedReqDetail.institution?.name || 'Not specified'}</span>
+                    </div>
+                    <div>
+                      <strong style={{ color: '#00236f' }}>Type: </strong>
+                      <span>{selectedReqDetail.tipoEstablecimiento}</span>
+                    </div>
+                    <div>
+                      <strong style={{ color: '#00236f' }}>Assigned evaluator: </strong>
+                      <span>
+                        {evaluations.find((ev) => ev.caseId && ev.caseId === selectedReqDetail.case?.caseId)?.technician?.person?.name
+                          || evaluations.find((ev) => ev.institutionId === selectedReqDetail.institutionId)?.technician?.person?.name
+                          || (selectedReqDetail.status === 'BORRADOR' || selectedReqDetail.status === 'PENDIENTE_ASIGNACION'
+                            ? 'Pending assignment'
+                            : 'Not assigned')}
+                      </span>
+                    </div>
+                  <div>
+                      <strong style={{ color: '#00236f' }}>Inspection reason: </strong>
+                      <p style={{ margin: '0.2rem 0', color: '#334155', background: '#f8fafc', padding: '0.5rem', borderRadius: '6px' }}>
+                        {selectedReqDetail.motivo}
                       </p>
                     </div>
-                  )}
-                </div>
+                    {selectedReqDetail.observaciones && (
+                      <div>
+                        <strong style={{ color: '#00236f' }}>Additional observations: </strong>
+                        <p style={{ margin: '0.2rem 0', color: '#64748b' }}>
+                          {selectedReqDetail.observaciones}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Document Attachments */}
                 <div style={{ marginTop: '1.25rem', borderTop: '1px solid #e2e8f0', paddingTop: '1rem' }}>
@@ -754,15 +844,25 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
 
                 {/* Primary Action Buttons */}
                 <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                  {selectedReqDetail.status === 'BORRADOR' && (
-                    <button
-                      type="button"
-                      disabled={submitting}
-                      className="cp-btn-primary"
-                      onClick={() => void handleSubmitRequest(selectedReqDetail.bpmRequestId)}
-                    >
-                      🚀 Submit for Health Evaluation
-                    </button>
+                  {selectedReqDetail.status === 'BORRADOR' && canRequestInspection && !editingDraft && (
+                    <>
+                      <button
+                        type="button"
+                        disabled={submitting}
+                        className="cp-btn-secondary"
+                        onClick={() => setEditingDraft(true)}
+                      >
+                        ✏️ Edit draft
+                      </button>
+                      <button
+                        type="button"
+                        disabled={submitting}
+                        className="cp-btn-primary"
+                        onClick={() => void handleSubmitRequest(selectedReqDetail.bpmRequestId)}
+                      >
+                        🚀 Submit for Health Evaluation
+                      </button>
+                    </>
                   )}
 
                   {(selectedReqDetail.status === 'COMPLETADA' || selectedReqDetail.status === 'APROBADO') && (
@@ -771,7 +871,13 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
                       className="cp-btn-primary"
                       style={{ background: '#047857' }}
                       onClick={() => {
-                        const evalId = selectedReqDetail.evaluationId || evaluations[0]?.evaluationId || 1
+                        const evalId = selectedReqDetail.evaluationId
+                          || selectedReqDetail.case?.evaluations?.[0]?.evaluationId
+                          || evaluations.find((ev) => ev.institution?.institutionId === selectedReqDetail.institutionId)?.evaluationId
+                        if (!evalId) {
+                          notify('No official certificate is available for this request yet.')
+                          return
+                        }
                         if (onOpenOfficialReport) onOpenOfficialReport(evalId)
                         else notify(`Certificate for evaluation #${evalId}`)
                       }}
@@ -796,13 +902,15 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
         <div className="cp-card">
           <div className="cp-card-header">
             <h2><span>🏭</span> Registered Establishments ({institutions.length})</h2>
-            <button
-              type="button"
-              className="cp-btn-primary"
-              onClick={() => setShowNewInstitutionModal(true)}
-            >
-              ➕ Register New Establishment
-            </button>
+            {canManageEstablishments && (
+              <button
+                type="button"
+                className="cp-btn-primary"
+                onClick={() => setShowNewInstitutionModal(true)}
+              >
+                ➕ Register New Establishment
+              </button>
+            )}
           </div>
 
           <div className="cp-help-box">
@@ -816,14 +924,20 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
             <div className="cp-empty">
               <span>🏢</span>
               <h3>No establishments registered</h3>
-              <p>Register your processing plant, distribution center, or food service location.</p>
-              <button
-                type="button"
-                className="cp-btn-primary"
-                onClick={() => setShowNewInstitutionModal(true)}
-              >
-                Register Establishment
-              </button>
+              <p>
+                {canManageEstablishments
+                  ? 'Register your processing plant, distribution center, or food service location.'
+                  : 'No establishment is linked to this account.'}
+              </p>
+              {canManageEstablishments && (
+                <button
+                  type="button"
+                  className="cp-btn-primary"
+                  onClick={() => setShowNewInstitutionModal(true)}
+                >
+                  Register Establishment
+                </button>
+              )}
             </div>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '1.25rem' }}>
@@ -836,17 +950,19 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
                     </div>
                     <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                       <span className="cp-badge cp-badge-assigned">RNC {inst.rnc}</span>
-                      <button
-                        type="button"
-                        className="cp-btn-secondary"
-                        style={{ fontSize: '0.75rem', padding: '0.2rem 0.6rem' }}
-                        onClick={() => {
-                          setEditingInstitution(inst)
-                          setShowEditInstitutionModal(true)
-                        }}
-                      >
-                        ✏️ Edit
-                      </button>
+                      {canManageEstablishments && (
+                        <button
+                          type="button"
+                          className="cp-btn-secondary"
+                          style={{ fontSize: '0.75rem', padding: '0.2rem 0.6rem' }}
+                          onClick={() => {
+                            setEditingInstitution(inst)
+                            setShowEditInstitutionModal(true)
+                          }}
+                        >
+                          ✏️ Edit
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -863,17 +979,19 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
                       <strong style={{ fontSize: '0.82rem', color: '#00236f', textTransform: 'uppercase' }}>
                         👥 Accredited Representatives
                       </strong>
-                      <button
-                        type="button"
-                        className="cp-btn-secondary"
-                        style={{ fontSize: '0.75rem', padding: '0.2rem 0.6rem' }}
-                        onClick={() => {
-                          setSelectedInstForRep(inst.institutionId)
-                          setShowAddRepresentModal(true)
-                        }}
-                      >
-                        ➕ Add
-                      </button>
+                      {canManageEstablishments && (
+                        <button
+                          type="button"
+                          className="cp-btn-secondary"
+                          style={{ fontSize: '0.75rem', padding: '0.2rem 0.6rem' }}
+                          onClick={() => {
+                            setSelectedInstForRep(inst.institutionId)
+                            setShowAddRepresentModal(true)
+                          }}
+                        >
+                          ➕ Add
+                        </button>
+                      )}
                     </div>
 
                     {(inst.representantes ?? inst.represents ?? []).length > 0 ? (
@@ -932,6 +1050,7 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
                   <th>Evaluation #</th>
                   <th>Establishment</th>
                   <th>Date</th>
+                  <th>Evaluator</th>
                   <th>Risk Level (EBR)</th>
                   <th>Status</th>
                   <th style={{ textAlign: 'right' }}>Action</th>
@@ -943,6 +1062,7 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
                     <td><strong>#{ev.evaluationId}</strong></td>
                     <td>{ev.institution?.name || 'Establishment'}</td>
                     <td>{new Date(ev.scheduledDate).toLocaleDateString('en-US')}</td>
+                    <td>{ev.technician?.person?.name || 'Not assigned'}</td>
                     <td>
                       <span className={`cp-badge ${ev.priority === 'ALTA' ? 'cp-badge-rejected' : 'cp-badge-done'}`}>
                         {statusLabel(ev.priority) || 'Low'}
@@ -1104,11 +1224,7 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
                 <div className="cp-form-row">
                   <label>
                     RNC *
-                    <input name="rnc" required placeholder="e.g. 1301234567" onKeyDown={(e) => {
-                      if (!/[0-9\-]/.test(e.key) && !['Backspace','Delete','Tab','ArrowLeft','ArrowRight','Enter'].includes(e.key)) {
-                        e.preventDefault()
-                      }
-                    }} inputMode="numeric" />
+                    <input name="rnc" required placeholder="e.g. 1301234567" onKeyDown={allowRncKey} onPaste={sanitizeRncPaste} inputMode="numeric" />
                   </label>
                   <label>
                     Economic Activity *
@@ -1231,7 +1347,7 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
                 <div className="cp-form-row">
                   <label>
                     Email *
-                    <input type="email" name="email" required placeholder="csantos@empresa.com" />
+                    <input type="email" name="email" required placeholder="csantos@company.com" />
                   </label>
                   <label>
                     Phone *
@@ -1282,7 +1398,7 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
                   <label>Trade Name<input name="nombreComercial" defaultValue={editingInstitution.nombreComercial || ''} /></label>
                 </div>
                 <div className="cp-form-row">
-                  <label>RNC *<input name="rnc" required defaultValue={editingInstitution.rnc} onKeyDown={(e) => { if (!/[0-9\-]/.test(e.key) && !['Backspace','Delete','Tab','ArrowLeft','ArrowRight','Enter'].includes(e.key)) e.preventDefault() }} inputMode="numeric" /></label>
+                  <label>RNC *<input name="rnc" required defaultValue={editingInstitution.rnc} onKeyDown={allowRncKey} onPaste={sanitizeRncPaste} inputMode="numeric" /></label>
                   <label>Economic Activity<input name="actividadEconomica" defaultValue={editingInstitution.actividadEconomica || ''} /></label>
                 </div>
                 <div className="cp-form-row">
