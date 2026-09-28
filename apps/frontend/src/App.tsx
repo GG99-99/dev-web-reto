@@ -573,7 +573,7 @@ function App() {
             <button onClick={() => setNotice("")}>×</button>
           </div>
         )}
-        <>
+        <div className="workspace">
           {view === "overview" && (
             <Overview
               items={visibleEvaluations}
@@ -649,7 +649,7 @@ function App() {
             />
           )}
           {view === "governance" && <AdminGovernancePanel notify={setNotice} />}
-        </>{" "}
+        </div>
         {activeReportEvalId !== null && (
           <InspectionReportModal
             evaluationId={activeReportEvalId}
@@ -1191,31 +1191,31 @@ function Overview({
     : isTechnician
       ? "Open field work"
       : "Review assignments";
+  const todayLabel = new Intl.DateTimeFormat("en", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  }).format(new Date());
   return (
-    <section className="content">
-      <div className="heading">
-        <div>
-          <small className="eyebrow">{title(role)} workspace</small>
-          <h1>
-            Good morning, <em>{name}.</em>
-          </h1>
-          <p>
-            Here is the operational picture for {new Intl.DateTimeFormat("en", {
-              weekday: "long",
-              month: "long",
-              day: "numeric",
-            }).format(new Date())}.
-          </p>
+    <section className="cc">
+      <div className="cc-hero">
+        <div className="cc-hero-info">
+          <small>{title(role)} workspace</small>
+          <h1>Good morning, {name}.</h1>
+          <p>Here is the operational picture for {todayLabel}.</p>
         </div>
         <button
-          className="primary"
+          type="button"
+          className="cc-btn-white"
           onClick={() => go(isTechnician ? "field" : "cases")}
         >
           {primaryAction} <span>→</span>
         </button>
       </div>
-      <div className="metrics">
+      <div className="cc-metrics">
         <Metric
+          icon="📂"
+          tone="navy"
           label={
             isCompany
               ? "My requests"
@@ -1231,35 +1231,37 @@ function Overview({
                 ? "Ready for field work"
                 : "Across all intake channels"
           }
-          kind="navy"
         />
         <Metric
+          icon="📅"
+          tone="blue"
           label={isCompany ? "Evaluations" : "Scheduled assessments"}
           value={items.length}
           detail="Next 7 days"
-          kind="blue"
         />
         <Metric
+          icon="⚠️"
+          tone="amber"
           label={isCompany ? "Unread notifications" : "Sanitary alerts"}
           value={metrics.alerts}
           detail={isCompany ? "New activity to review" : "Require triage"}
-          kind="amber"
         />
         <Metric
+          icon="📄"
+          tone="green"
           label={isTechnician ? "Reports to submit" : "Unresolved reports"}
           value={metrics.complaints}
           detail="Awaiting decision"
-          kind="red"
         />
       </div>
-      <div className="grid">
-        <section className="card">
-          <div className="card-head">
+      <div className="cc-grid">
+        <section className="cc-card">
+          <div className="cc-card-head">
             <div>
               <small className="eyebrow">Schedule</small>
               <h2>Upcoming assessments</h2>
             </div>
-            <button className="text" onClick={() => go("calendar")}>
+            <button type="button" className="text" onClick={() => go("calendar")}>
               View calendar →
             </button>
           </div>
@@ -1270,7 +1272,7 @@ function Overview({
               <i />
             </div>
           ) : items.length ? (
-            <div className="schedule">
+            <div className="cc-schedule">
               {items.slice(0, 4).map((item) => (
                 <div key={item.evaluationId}>
                   <time>
@@ -1306,8 +1308,8 @@ function Overview({
             />
           )}
         </section>
-        <section className="card">
-          <div className="card-head">
+        <section className="cc-card">
+          <div className="cc-card-head">
             <div>
               <small className="eyebrow">Priority queue</small>
               <h2>Needs attention</h2>
@@ -1315,22 +1317,25 @@ function Overview({
             <mark>{cases.length}</mark>
           </div>
           {cases.length ? (
-            cases.slice(0, 3).map((item) => (
-              <button
-                className="attention"
-                key={item.caseId}
-                onClick={() => go("cases")}
-              >
-                <i className={item.priority === "ALTA" ? "red" : "amber"} />
-                <span>
-                  <b>{item.institution?.name ?? `Case #${item.caseId}`}</b>
-                  <small>
-                    {title(item.origin)} · Case #{item.caseId}
-                  </small>
-                </span>
-                →
-              </button>
-            ))
+            <div className="cc-queue">
+              {cases.slice(0, 3).map((item) => (
+                <button
+                  type="button"
+                  className="cc-attention"
+                  key={item.caseId}
+                  onClick={() => go("cases")}
+                >
+                  <i className={item.priority === "ALTA" ? "red" : "amber"} />
+                  <span>
+                    <b>{item.institution?.name ?? `Case #${item.caseId}`}</b>
+                    <small>
+                      {title(item.origin)} · Case #{item.caseId}
+                    </small>
+                  </span>
+                  →
+                </button>
+              ))}
+            </div>
           ) : (
             <Empty
               label={
@@ -1342,22 +1347,22 @@ function Overview({
           )}
         </section>
       </div>
-      <section className="card lifecycle">
-        <div className="card-head">
+      <section className="cc-card">
+        <div className="cc-card-head">
           <div>
             <small className="eyebrow">Workflow coverage</small>
             <h2>Case lifecycle</h2>
           </div>
-          <small>Current API session</small>
+          <small className="cc-session">Current API session</small>
         </div>
-        <div>
+        <div className="cc-lifecycle">
           {[
             [String(cases.length), "Cases"],
             [String(cases.filter((item) => item.technician).length), "Assigned"],
             [String(items.filter((item) => item.status === "EN_PROCESO").length), "In field"],
             [String(items.filter((item) => item.status === "FINALIZADA").length), "Review"],
             [String(metrics.complaints), "Awaiting closure"],
-          ].map(([number, label], index) => (
+          ].map(([number, label]) => (
             <span key={label}>
               <b className={number !== "0" ? "done" : ""}>{number}</b>
               <small>{label}</small>
@@ -1369,21 +1374,26 @@ function Overview({
   );
 }
 function Metric({
+  icon,
+  tone,
   label,
   value,
   detail,
-  kind,
 }: {
+  icon: string;
+  tone: string;
   label: string;
   value: number;
   detail: string;
-  kind: string;
 }) {
   return (
-    <article className={`metric ${kind}`}>
-      <small>{label}</small>
-      <b>{value}</b>
-      <span>{detail}</span>
+    <article className="cc-metric">
+      <div className={`cc-metric-icon ${tone}`}>{icon}</div>
+      <div className="cc-metric-text">
+        <span className="cc-metric-label">{label}</span>
+        <b className="cc-metric-val">{value}</b>
+        <span className="cc-metric-detail">{detail}</span>
+      </div>
     </article>
   );
 }

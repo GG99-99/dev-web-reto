@@ -41,9 +41,15 @@ export default function OperationsWorkbench({ role, initial, onOpenOfficialRepor
 
   useEffect(() => { if (!available.some(item => item.id === tab)) setTab(available[0]?.id ?? 'reports') }, [available, tab])
 
-  return <section className="content operations">
-    <div className="heading compact"><div><small className="eyebrow">Operational Command & Workflows</small><h1>Operations <em>Workbench</em></h1><p>Traceable execution across Multi-Origin Intake, Evaluator Assignment, and Official Sanctions.</p></div></div>
-    <div className="ops-tabs" role="tablist">{available.map(item => <button key={item.id} role="tab" aria-selected={tab === item.id} className={tab === item.id ? 'active' : ''} onClick={() => { setTab(item.id); setMessage('') }}>{item.name}</button>)}</div>
+  return <section className="operations">
+    <div className="ops-hero">
+      <div className="ops-hero-info">
+        <small>Operational Command & Workflows</small>
+        <h1>Operations Workbench</h1>
+        <p>Traceable execution across Multi-Origin Intake, Evaluator Assignment, and Official Sanctions.</p>
+      </div>
+    </div>
+    <div className="ops-tabs" role="tablist">{available.map(item => <button key={item.id} type="button" role="tab" aria-selected={tab === item.id} className={tab === item.id ? 'active' : ''} onClick={() => { setTab(item.id); setMessage('') }}>{item.name}</button>)}</div>
     {message && <div className="ops-message" role="status">ⓘ {message}</div>}
 
     {tab === 'cases' && <CasesPanel notify={setMessage} onOpenDossier={(entityType, id) => setDossierTarget({ entityType, id })} onOpenOfficialReport={onOpenOfficialReport} />}
@@ -909,7 +915,7 @@ function IntakePanel({ notify }: any) {
           const id = mode === 'complaints' ? item.complaintId : item.alertId
           const result = item.resultado
           return (
-            <div key={id} style={{ padding: '0.85rem 0' }}>
+            <div key={id}>
               <b>#{id} · {mode === 'complaints' ? item.tipoDenuncia : `Alert: ${item.numeroAlerta} (${item.producto})`}</b>
               <p style={{ margin: '0.25rem 0', fontSize: '0.82rem', color: '#475569' }}>
                 {item.descripcion}
@@ -1042,7 +1048,7 @@ function HistoryPanel({ notify, onOpenDossier }: any) {
       <h2>Results ({items.length})</h2>
       <div className="ops-list">
         {items.map(item => (
-          <div key={`${item.entityType}-${item.id}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 0' }}>
+          <div key={`${item.entityType}-${item.id}`} className="ops-result">
             <div>
               <b>{label(item.entityType)} #{item.id} · {item.institution?.name}</b>
               <span>{label(item.status)} · {new Date(item.createdAt).toLocaleDateString('en-US')}</span>
