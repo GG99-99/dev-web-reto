@@ -80,6 +80,10 @@ export const evaluationsService = {
     if (caseDetail.status === 'CERRADO') {
       throw ApiError.conflict('A closed case cannot be reopened by scheduling a new evaluation');
     }
+    const openVisit = (caseDetail.evaluations ?? []).some((item) => item.status !== 'CANCELADA');
+    if (openVisit) {
+      throw ApiError.conflict('This case already has an evaluation. Cancel it before scheduling another visit.');
+    }
     return evaluationsModel.create({
       caseId: data.caseId,
       institutionId: caseDetail.institutionId,

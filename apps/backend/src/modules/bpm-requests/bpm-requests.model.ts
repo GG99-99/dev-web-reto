@@ -1,4 +1,5 @@
 import prisma, { type Prisma, type BpmRequestStatus } from '@reto/db';
+import { bpmCaseInclude } from '../lifecycle/request-lifecycle';
 
 /**
  * bpm-requests.model.ts
@@ -16,12 +17,13 @@ export interface BpmRequestsFilter {
 
 const LIST_INCLUDE = {
   institution: { select: { institutionId: true, name: true } },
+  ...bpmCaseInclude,
 } satisfies Prisma.BpmRequestInclude;
 
 const DETAIL_INCLUDE = {
   institution: true,
   attachments: true,
-  case: true,
+  ...bpmCaseInclude,
 } satisfies Prisma.BpmRequestInclude;
 
 export const bpmRequestsModel = {

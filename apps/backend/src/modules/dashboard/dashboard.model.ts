@@ -1,4 +1,5 @@
 import prisma, { type Prisma } from '@reto/db';
+import { bpmCaseInclude, reconcileBpmRows, withLifecycleStatus } from '../lifecycle/request-lifecycle';
 
 /**
  * dashboard.model.ts
@@ -12,13 +13,18 @@ import prisma, { type Prisma } from '@reto/db';
 const EVALUATION_LIST_INCLUDE = {
   institution: { select: { institutionId: true, name: true, streetName: true, rnc: true } },
   technician: { include: { person: true } },
+  score: true,
+  report: { select: { reportId: true, status: true, locked: true } },
+  case: { select: { caseId: true, status: true, bpmRequestId: true, technicianId: true, origin: true, priority: true } },
 } satisfies Prisma.EvaluationInclude;
 
 const BPM_LIST_INCLUDE = {
   institution: { select: { institutionId: true, name: true } },
+  ...bpmCaseInclude,
 } satisfies Prisma.BpmRequestInclude;
 
 const RECENT_TAKE = 5;
+const COMPANY_TAKE = 50;
 
 export const dashboardModel = {
   /** Instituciones de las que `personId` es dueño o representante (para el dashboard de empresa). */
@@ -35,21 +41,23 @@ export const dashboardModel = {
   },
 
   getEmpresaData: async (institutionIds: number[], userId: number) => {
-    const [misSolicitudes, evaluaciones, notificacionesNoLeidas] = await Promise.all([
+    const [solicitudRows, evaluaciones, notificacionesNoLeidas] = await Promise.all([
       prisma.bpmRequest.findMany({
         where: { institutionId: { in: institutionIds } },
         include: BPM_LIST_INCLUDE,
         orderBy: { createdAt: 'desc' },
-        take: RECENT_TAKE,
+        take: COMPANY_TAKE,
       }),
       prisma.evaluation.findMany({
         where: { institutionId: { in: institutionIds } },
         include: EVALUATION_LIST_INCLUDE,
         orderBy: { scheduledDate: 'desc' },
-        take: RECENT_TAKE,
+        take: COMPANY_TAKE,
       }),
       prisma.notification.count({ where: { userId, read: false } }),
     ]);
+    const reconciled = await reconcileBpmRows(solicitudRows);
+    const misSolicitudes = reconciled.map((row) => withLifecycleStatus(row));
     return { misSolicitudes, evaluaciones, notificacionesNoLeidas };
   },
 

@@ -160,7 +160,7 @@ export const institutionsModel = {
     return prisma.evaluation.findMany({
       where: { institutionId },
       include: {
-        institution: { select: { institutionId: true, name: true, streetName: true } },
+        institution: { select: { institutionId: true, name: true, streetName: true, rnc: true } },
         technician: { include: { person: true } },
       },
       orderBy: { scheduledDate: 'desc' },

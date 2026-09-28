@@ -6,7 +6,15 @@ import {
   evaluationsService,
   dashboardService,
 } from './services'
-import { statusLabel } from './statusLabels'
+import { pickCurrentEvaluation } from '@reto/shared'
+import {
+  evaluationLifecycle,
+  isDoneLifecycle,
+  isOpenLifecycle,
+  lifecycleStage,
+  requestLifecycle,
+  statusLabel,
+} from './statusLabels'
 import './CompanyPortal.css'
 
 type Role = 'ADMIN' | 'ADMIN_EMPRESA' | 'USUARIO_DELEGADO' | 'COORDINADOR' | 'TECNICO_EVALUADOR'
@@ -53,6 +61,81 @@ function sanitizeRncPaste(e: { clipboardData: DataTransfer; preventDefault: () =
   input.setRangeText(cleaned, start, end, 'end')
 }
 
+function buildStatusHistory(request: any) {
+  const events: { at: number; label: string }[] = []
+  const push = (at: unknown, label: string) => {
+    if (!at) return
+    const time = new Date(at as string).getTime()
+    if (Number.isNaN(time)) return
+    events.push({ at: time, label })
+  }
+
+  push(request?.createdAt, 'Draft created')
+  push(request?.sentAt, 'Submitted — pending assignment')
+
+  for (const assignment of request?.case?.assignments ?? []) {
+    const name = assignment?.assignedTo?.person?.name
+    push(assignment?.assignedAt, name ? `Evaluator assigned: ${name}` : 'Evaluator assigned')
+  }
+
+  const evaluations = [...(request?.case?.evaluations ?? [])].sort(
+    (a, b) => new Date(a?.createdAt ?? 0).getTime() - new Date(b?.createdAt ?? 0).getTime(),
+  )
+  for (const evaluation of evaluations) {
+    if (evaluation?.status === 'CANCELADA') {
+      push(evaluation.createdAt, `Evaluation #${evaluation.evaluationId} cancelled`)
+      continue
+    }
+    push(evaluation?.createdAt, `Evaluation #${evaluation.evaluationId} scheduled`)
+    push(evaluation?.startedAt, 'Evaluation underway')
+    push(evaluation?.finishedAt, 'Evaluation completed')
+    const reviews = [...(evaluation?.report?.reviews ?? [])].sort(
+      (a, b) => new Date(a?.reviewedAt ?? 0).getTime() - new Date(b?.reviewedAt ?? 0).getTime(),
+    )
+    if (evaluation?.report && evaluation.report.status !== 'BORRADOR') {
+      const anchor = reviews[0]?.reviewedAt
+        ? new Date(new Date(reviews[0].reviewedAt).getTime() - 1).toISOString()
+        : evaluation.finishedAt
+      push(anchor, 'Submitted for review')
+    }
+    for (const review of reviews) {
+      const action = review?.action
+      const label = action === 'APROBAR'
+        ? 'Coordinator approved the evaluation'
+        : action === 'SOLICITAR_CORRECCION' || action === 'DEVOLVER'
+          ? 'Returned for correction'
+          : `Review recorded${action ? `: ${statusLabel(action)}` : ''}`
+      push(review?.reviewedAt, label)
+    }
+  }
+
+  push(request?.case?.closedAt, 'Case closed')
+  events.sort((a, b) => a.at - b.at)
+  return events.filter((event, index) => (
+    index === 0 || event.at !== events[index - 1].at || event.label !== events[index - 1].label
+  ))
+}
+
+function StatusHistory({ request }: { request: any }) {
+  const events = buildStatusHistory(request)
+  if (!events.length) return null
+  return (
+    <div style={{ marginTop: '1.25rem', borderTop: '1px solid #e2e8f0', paddingTop: '1rem' }}>
+      <h3 style={{ fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.5rem 0', color: '#00236f' }}>
+        Status history
+      </h3>
+      <ol style={{ margin: 0, paddingLeft: '1.1rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+        {events.map((event) => (
+          <li key={`${event.at}-${event.label}`} style={{ fontSize: '0.82rem', color: '#334155' }}>
+            <strong>{event.label}</strong>
+            <span style={{ color: '#64748b' }}> · {new Date(event.at).toLocaleString('en-US')}</span>
+          </li>
+        ))}
+      </ol>
+    </div>
+  )
+}
+
 function representativeRole(type?: string) {
   if (type === 'LEGAL') return 'Legal Representative'
   if (type === 'CALIDAD') return 'Quality / Food Safety Manager'
@@ -95,8 +178,8 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
   const [uploadFile, setUploadFile] = useState<File | null>(null)
 
   // Fetch initial data
-  const loadData = async () => {
-    setLoading(true)
+  const loadData = async (silent = false) => {
+    if (!silent) setLoading(true)
     try {
       const isCompanyRole = role === 'ADMIN_EMPRESA' || role === 'USUARIO_DELEGADO'
       const [reqRes, instRes, dashRes, evalRes] = await Promise.allSettled([
@@ -142,12 +225,27 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
         if (combined.length) loadedInstitutions = combined
       }
 
+      const seenEvaluations = new Map<number, any>()
+      for (const evaluation of loadedEvaluations) {
+        if (evaluation?.evaluationId) seenEvaluations.set(evaluation.evaluationId, evaluation)
+      }
+      for (const request of loadedRequests) {
+        for (const evaluation of request?.case?.evaluations ?? []) {
+          if (!evaluation?.evaluationId || seenEvaluations.has(evaluation.evaluationId)) continue
+          seenEvaluations.set(evaluation.evaluationId, {
+            ...evaluation,
+            institution: evaluation.institution ?? request.institution,
+            case: evaluation.case ?? request.case,
+          })
+        }
+      }
+
       setRequests(loadedRequests)
       setInstitutions(loadedInstitutions)
-      setEvaluations(loadedEvaluations)
+      setEvaluations([...seenEvaluations.values()])
 
-      if (loadedRequests.length > 0 && !selectedRequestId) {
-        setSelectedRequestId(loadedRequests[0].bpmRequestId)
+      if (loadedRequests.length > 0) {
+        setSelectedRequestId((current) => current ?? loadedRequests[0].bpmRequestId)
       }
     } catch (err) {
       console.error('Error loading CompanyPortal data:', err)
@@ -158,6 +256,15 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
 
   useEffect(() => {
     void loadData()
+    const refresh = () => {
+      if (document.visibilityState === 'visible') void loadData(true)
+    }
+    window.addEventListener('focus', refresh)
+    document.addEventListener('visibilitychange', refresh)
+    return () => {
+      window.removeEventListener('focus', refresh)
+      document.removeEventListener('visibilitychange', refresh)
+    }
   }, [])
 
   // Load provinces on demand
@@ -213,10 +320,11 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
 
   // Company Metrics calculation
   const metrics = useMemo(() => {
+    const statuses = requests.map((request) => requestLifecycle(request))
     const totalRequests = requests.length
-    const inProgress = requests.filter((r) => ['PENDIENTE_ASIGNACION', 'ASIGNADA', 'EN_PROCESO'].includes(r.status)).length
-    const drafts = requests.filter((r) => r.status === 'BORRADOR').length
-    const completed = requests.filter((r) => r.status === 'COMPLETADA' || r.status === 'APROBADO').length
+    const inProgress = statuses.filter((status) => isOpenLifecycle(status)).length
+    const drafts = statuses.filter((status) => status === 'BORRADOR').length
+    const completed = statuses.filter((status) => isDoneLifecycle(status)).length
     return { totalRequests, inProgress, drafts, completed }
   }, [requests])
 
@@ -468,42 +576,37 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
     }
   }
 
-  // Calculate timeline stepper stage (1 to 5)
-  const getTimelineStage = (status?: string) => {
-    switch (status) {
-      case 'BORRADOR':
-        return 1
-      case 'PENDIENTE_ASIGNACION':
-        return 2
-      case 'ASIGNADA':
-        return 3
-      case 'EN_PROCESO':
-        return 4
-      case 'COMPLETADA':
-      case 'APROBADO':
-        return 5
-      case 'RECHAZADA':
-        return -1
-      default:
-        return 2
-    }
-  }
+  const selectedLifecycle = requestLifecycle(selectedReqDetail)
+  const currentStage = lifecycleStage(selectedLifecycle)
 
-  const currentStage = getTimelineStage(selectedReqDetail?.status)
-
-  // Status semantic class
   const getBadgeClass = (st?: string) => {
     switch (st) {
       case 'BORRADOR': return 'cp-badge-draft'
       case 'PENDIENTE_ASIGNACION': return 'cp-badge-pending'
+      case 'ASIGNADO':
       case 'ASIGNADA': return 'cp-badge-assigned'
-      case 'EN_PROCESO': return 'cp-badge-in-progress'
+      case 'EN_PROCESO':
+      case 'FINALIZADA':
+      case 'ENVIADO':
+      case 'EN_REVISION':
+      case 'EN_CORRECCION': return 'cp-badge-in-progress'
       case 'COMPLETADA':
-      case 'APROBADO': return 'cp-badge-done'
-      case 'RECHAZADA': return 'cp-badge-rejected'
+      case 'APROBADA':
+      case 'APROBADO':
+      case 'CERRADO': return 'cp-badge-done'
+      case 'RECHAZADA':
+      case 'RECHAZADO': return 'cp-badge-rejected'
       default: return 'cp-badge-pending'
     }
   }
+
+  const fieldStepLabel = selectedLifecycle === 'EN_REVISION' || selectedLifecycle === 'ENVIADO'
+    ? 'Under Review'
+    : selectedLifecycle === 'EN_CORRECCION'
+      ? 'Correction'
+      : selectedLifecycle === 'FINALIZADA'
+        ? 'Finished'
+        : 'In Field'
 
   const formatStatus = (st?: string) => statusLabel(st)
 
@@ -682,8 +785,8 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
                       </div>
                     </div>
                     <div className="cp-req-side">
-                      <span className={`cp-badge ${getBadgeClass(req.status)}`}>
-                        {formatStatus(req.status)}
+                      <span className={`cp-badge ${getBadgeClass(requestLifecycle(req))}`}>
+                        {formatStatus(requestLifecycle(req))}
                       </span>
                     </div>
                   </div>
@@ -698,8 +801,8 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
               <div>
                 <div className="cp-card-header">
                   <h2><span>📋</span> Request Detail #{selectedReqDetail.bpmRequestId}</h2>
-                  <span className={`cp-badge ${getBadgeClass(selectedReqDetail.status)}`}>
-                    {formatStatus(selectedReqDetail.status)}
+                  <span className={`cp-badge ${getBadgeClass(selectedLifecycle)}`}>
+                    {formatStatus(selectedLifecycle)}
                   </span>
                 </div>
 
@@ -719,13 +822,17 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
                   </div>
                   <div className={`cp-step ${currentStage >= 4 ? 'done' : ''} ${currentStage === 4 ? 'active' : ''}`}>
                     <div className="cp-step-circle">4</div>
-                    <span className="cp-step-label">In Field</span>
+                    <span className="cp-step-label">{currentStage >= 5 ? 'In Field' : fieldStepLabel}</span>
                   </div>
                   <div className={`cp-step ${currentStage >= 5 ? 'done' : ''} ${currentStage === 5 ? 'active' : ''}`}>
                     <div className="cp-step-circle">5</div>
                     <span className="cp-step-label">Decision</span>
                   </div>
                 </div>
+                <p style={{ margin: '0.35rem 0 0', fontSize: '0.82rem', color: '#334155' }}>
+                  Current state: <strong>{formatStatus(selectedLifecycle)}</strong>
+                  {selectedReqDetail.case?.caseId ? ` · Case #${selectedReqDetail.case.caseId}` : ''}
+                </p>
 
                 {/* Information block — drafts stay editable until the request is submitted */}
                 {selectedReqDetail.status === 'BORRADOR' && canRequestInspection && editingDraft ? (
@@ -773,9 +880,9 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
                     <div>
                       <strong style={{ color: '#00236f' }}>Assigned evaluator: </strong>
                       <span>
-                        {evaluations.find((ev) => ev.caseId && ev.caseId === selectedReqDetail.case?.caseId)?.technician?.person?.name
-                          || evaluations.find((ev) => ev.institutionId === selectedReqDetail.institutionId)?.technician?.person?.name
-                          || (selectedReqDetail.status === 'BORRADOR' || selectedReqDetail.status === 'PENDIENTE_ASIGNACION'
+                        {pickCurrentEvaluation(selectedReqDetail.case?.evaluations)?.technician?.person?.name
+                          || selectedReqDetail.case?.technician?.person?.name
+                          || (selectedLifecycle === 'BORRADOR' || selectedLifecycle === 'PENDIENTE_ASIGNACION'
                             ? 'Pending assignment'
                             : 'Not assigned')}
                       </span>
@@ -842,6 +949,8 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
                   )}
                 </div>
 
+                <StatusHistory request={selectedReqDetail} />
+
                 {/* Primary Action Buttons */}
                 <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                   {selectedReqDetail.status === 'BORRADOR' && canRequestInspection && !editingDraft && (
@@ -865,15 +974,13 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
                     </>
                   )}
 
-                  {(selectedReqDetail.status === 'COMPLETADA' || selectedReqDetail.status === 'APROBADO') && (
+                  {isDoneLifecycle(selectedLifecycle) && (
                     <button
                       type="button"
                       className="cp-btn-primary"
                       style={{ background: '#047857' }}
                       onClick={() => {
-                        const evalId = selectedReqDetail.evaluationId
-                          || selectedReqDetail.case?.evaluations?.[0]?.evaluationId
-                          || evaluations.find((ev) => ev.institution?.institutionId === selectedReqDetail.institutionId)?.evaluationId
+                        const evalId = pickCurrentEvaluation(selectedReqDetail.case?.evaluations)?.evaluationId
                         if (!evalId) {
                           notify('No official certificate is available for this request yet.')
                           return
@@ -1064,27 +1171,31 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
                     <td>{new Date(ev.scheduledDate).toLocaleDateString('en-US')}</td>
                     <td>{ev.technician?.person?.name || 'Not assigned'}</td>
                     <td>
-                      <span className={`cp-badge ${ev.priority === 'ALTA' ? 'cp-badge-rejected' : 'cp-badge-done'}`}>
-                        {statusLabel(ev.priority) || 'Low'}
+                      <span className={`cp-badge ${ev.score?.nivelRiesgo === 'ALTO' ? 'cp-badge-rejected' : 'cp-badge-done'}`}>
+                        {ev.score?.nivelRiesgo ? statusLabel(ev.score.nivelRiesgo) : 'Pending'}
                       </span>
                     </td>
                     <td>
-                      <span className={`cp-badge ${getBadgeClass(ev.status)}`}>
-                        {formatStatus(ev.status)}
+                      <span className={`cp-badge ${getBadgeClass(evaluationLifecycle(ev))}`}>
+                        {formatStatus(evaluationLifecycle(ev))}
                       </span>
                     </td>
                     <td style={{ textAlign: 'right' }}>
-                      <button
-                        type="button"
-                        className="cp-btn-secondary"
-                        style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', color: '#00236f', fontWeight: 700 }}
-                        onClick={() => {
-                          if (onOpenOfficialReport) onOpenOfficialReport(ev.evaluationId)
-                          else notify(`Opening certificate #${ev.evaluationId}`)
-                        }}
-                      >
-                        📄 View Official Certificate (PDF)
-                      </button>
+                      {isDoneLifecycle(evaluationLifecycle(ev)) ? (
+                        <button
+                          type="button"
+                          className="cp-btn-secondary"
+                          style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', color: '#00236f', fontWeight: 700 }}
+                          onClick={() => {
+                            if (onOpenOfficialReport) onOpenOfficialReport(ev.evaluationId)
+                            else notify(`Opening certificate #${ev.evaluationId}`)
+                          }}
+                        >
+                          📄 View Official Certificate (PDF)
+                        </button>
+                      ) : (
+                        <span style={{ color: '#64748b', fontSize: '0.8rem' }}>Available after approval</span>
+                      )}
                     </td>
                   </tr>
                 ))}

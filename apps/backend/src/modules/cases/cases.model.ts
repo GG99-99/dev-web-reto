@@ -1,4 +1,5 @@
 import prisma, { type Prisma, type CaseOrigin, type CasePriority, type CaseStatus } from '@reto/db';
+import { syncBpmRequestForCase } from '../lifecycle/request-lifecycle';
 
 /**
  * cases.model.ts
@@ -43,8 +44,28 @@ const DETAIL_INCLUDE = {
   bpmRequest: true,
   lapchAlert: true,
   complaint: true,
-  evaluations: true,
-  assignments: true,
+  evaluations: {
+    orderBy: { createdAt: 'desc' },
+    include: {
+      technician: { include: { person: true } },
+      score: true,
+      report: {
+        select: {
+          reportId: true,
+          status: true,
+          locked: true,
+          reviews: {
+            orderBy: { reviewedAt: 'asc' },
+            select: { reviewId: true, action: true, reviewedAt: true, comments: true },
+          },
+        },
+      },
+    },
+  },
+  assignments: {
+    orderBy: { assignedAt: 'asc' },
+    include: { assignedTo: { include: { person: true } } },
+  },
   attachments: true,
 } satisfies Prisma.CaseInclude;
 
@@ -97,10 +118,13 @@ export const casesModel = {
   },
 
   close: async (caseId: number, resultadoFinal: string) => {
-    return prisma.case.update({
-      where: { caseId },
-      data: { status: 'CERRADO', closedAt: new Date(), resultadoFinal },
-      include: DETAIL_INCLUDE,
+    return prisma.$transaction(async (tx) => {
+      await tx.case.update({
+        where: { caseId },
+        data: { status: 'CERRADO', closedAt: new Date(), resultadoFinal },
+      });
+      await syncBpmRequestForCase(tx, caseId);
+      return tx.case.findUniqueOrThrow({ where: { caseId }, include: DETAIL_INCLUDE });
     });
   },
 

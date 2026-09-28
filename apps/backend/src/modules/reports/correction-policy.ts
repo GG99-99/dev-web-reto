@@ -6,6 +6,7 @@ import {
   type ReportNarrativeField,
 } from '@reto/shared';
 import { ApiError } from '@/lib/common/ApiError';
+import { syncBpmRequestForCase } from '../lifecycle/request-lifecycle';
 import { readAnswers } from '../form-execution/form-execution.model';
 import { loadEvaluationForm } from '../form-execution/form-completeness';
 
@@ -186,6 +187,7 @@ export async function reopenStaleCorrection(evaluationId: number): Promise<void>
       where: { caseId: report.evaluation.caseId, status: 'EN_REVISION' },
       data: { status: 'EN_EVALUACION' },
     });
+    await syncBpmRequestForCase(prisma, report.evaluation.caseId);
   }
 }
 

@@ -97,7 +97,7 @@ export function reportWorkflowLabel(phase: ReportWorkflowPhase): string {
     case 'resubmitted':
       return 'Resubmitted after correction';
     case 'approved':
-      return 'Approved and closed';
+      return 'Approved';
     default:
       return 'Draft';
   }

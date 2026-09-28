@@ -9,6 +9,7 @@ import { reportsModel } from './reports.model';
 import { readAnswers } from '../form-execution/form-execution.model';
 import { assertEvaluationFormComplete, loadEvaluationForm } from '../form-execution/form-completeness';
 import { notificationsService } from '../notifications/notifications.service';
+import { notifyInstitution } from '../lifecycle/request-lifecycle';
 import { ApiError } from '@/lib/common/ApiError';
 import {
   DEFAULT_PARTIAL_SECTIONS,
@@ -396,7 +397,17 @@ export const reportsService = {
     const { action, comments } = body;
 
     if (action === 'APROBAR') {
-      return reportsModel.approve(reportId, evaluation.evaluationId, evaluation.caseId, coordinatorId, comments);
+      const approved = await reportsModel.approve(reportId, evaluation.evaluationId, evaluation.caseId, coordinatorId, comments);
+      const requestId = evaluation.case?.bpmRequest?.bpmRequestId;
+      await notifyInstitution(
+        evaluation.institutionId,
+        requestId ? `BPM request #${requestId} approved` : `Evaluation #${evaluation.evaluationId} approved`,
+        requestId
+          ? `The coordinator approved BPM request #${requestId}. The decision is now visible in your company portal.`
+          : `The coordinator approved evaluation #${evaluation.evaluationId}. The decision is now visible in your company portal.`,
+        evaluation.case?.bpmRequest?.createdById ? [evaluation.case.bpmRequest.createdById] : [],
+      );
+      return approved;
     }
 
     const feedback = comments?.trim() ?? '';
@@ -434,6 +445,13 @@ export const reportsService = {
         evaluation.technicianId,
         `Evaluation #${evaluation.evaluationId} returned for correction`,
         `${feedback} ${scopeText}`,
+      );
+      const requestId = evaluation.case?.bpmRequest?.bpmRequestId;
+      await notifyInstitution(
+        evaluation.institutionId,
+        requestId ? `BPM request #${requestId} returned for correction` : `Evaluation #${evaluation.evaluationId} returned for correction`,
+        'The coordinator returned the evaluation for correction. It is not approved yet.',
+        evaluation.case?.bpmRequest?.createdById ? [evaluation.case.bpmRequest.createdById] : [],
       );
     } catch {
       // The return itself already succeeded. A notification failure must not roll it back.
@@ -489,7 +507,14 @@ export const reportsService = {
 async function evaluationContext(evaluationId: number) {
   const evaluation = await prisma.evaluation.findUnique({
     where: { evaluationId },
-    select: { evaluationId: true, caseId: true, technicianId: true, formResponseId: true },
+    select: {
+      evaluationId: true,
+      caseId: true,
+      technicianId: true,
+      institutionId: true,
+      formResponseId: true,
+      case: { select: { bpmRequest: { select: { bpmRequestId: true, createdById: true } } } },
+    },
   });
   if (!evaluation) throw ApiError.notFound('Evaluation not found');
   return evaluation;

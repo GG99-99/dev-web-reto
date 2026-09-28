@@ -6,6 +6,7 @@ import crypto from 'node:crypto';
 import { casesModel, type CasesFilter } from './cases.model';
 import { institutionsService } from '../institutions/institutions.service';
 import { dashboardModel } from '../dashboard/dashboard.model';
+import { notifyInstitution } from '../lifecycle/request-lifecycle';
 import { ApiError } from '@/lib/common/ApiError';
 import { normalizePagination, paginate, type NormalizedPagination } from '@/lib/common/response';
 import { UPLOADS_DIR } from '@/lib/upload/upload';
@@ -101,6 +102,13 @@ export const casesService = {
     }
 
     const closed = await casesModel.close(caseId, resultadoFinal);
+    const authorId = existing.bpmRequest?.createdById;
+    await notifyInstitution(
+      existing.institutionId,
+      `Case #${caseId} closed`,
+      `The sanitary case for your establishment is closed. Final result: ${resultadoFinal}`,
+      authorId ? [authorId] : [],
+    );
 
     let informeOficialUrl: string | undefined;
     if (emitirInforme) {

@@ -16,6 +16,12 @@ type Role = 'ADMIN' | 'ADMIN_EMPRESA' | 'USUARIO_DELEGADO' | 'COORDINADOR' | 'TE
 type Tab = 'cases' | 'reports' | 'bpm' | 'intake' | 'history'
 const label = (value?: string) => statusLabel(value)
 
+function technicianOptionLabel(technician: { userId?: number; email?: string | null; person?: { name?: string | null; email?: string | null } | null }) {
+  const name = technician.person?.name?.trim() || `Technician #${technician.userId}`
+  const email = String(technician.person?.email || technician.email || '').trim()
+  return email ? `${name} (${email})` : name
+}
+
 function sectionLabel(id: string, chapters: { h1Id: number; name: string }[] = []) {
   const narrative = REPORT_NARRATIVE_SECTIONS.find((section) => section.id === id)
   if (narrative) return narrative.label
@@ -301,7 +307,7 @@ function CasesPanel({ notify, onOpenDossier, onOpenOfficialReport }: any) {
               <option value="">{(selected.technicianId || assignments.length) ? 'Select a different evaluator...' : 'Select evaluator for this assignment...'}</option>
               {technicians
                 .filter((t) => Number(t.userId) !== Number(assignments[0]?.assignedToId ?? selected.technicianId))
-                .map(t => <option key={t.userId} value={t.userId}>{t.person?.name ?? `Technician #${t.userId}`} ({t.email})</option>)}
+                .map(t => <option key={t.userId} value={t.userId}>{technicianOptionLabel(t)}</option>)}
             </select>
           </label>
           <label>Assignment Instructions / Notes

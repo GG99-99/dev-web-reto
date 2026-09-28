@@ -5,6 +5,7 @@ import { institutionsService } from '../institutions/institutions.service';
 import { ApiError } from '@/lib/common/ApiError';
 import { normalizePagination, paginate, type NormalizedPagination } from '@/lib/common/response';
 import prisma from '@reto/db';
+import { reconcileBpmRows, withLifecycleStatus } from '../lifecycle/request-lifecycle';
 
 /**
  * bpm-requests.service.ts
@@ -26,13 +27,15 @@ export const bpmRequestsService = {
     const pagination = normalizePagination(filter);
     const orderBy = buildOrderBy(pagination);
     const { items, total } = await bpmRequestsModel.getMany(filter, pagination.skip, pagination.take, orderBy);
-    return paginate(items, total, pagination);
+    const reconciled = await reconcileBpmRows(items);
+    return paginate(reconciled.map((item) => withLifecycleStatus(item)), total, pagination);
   },
 
   getById: async (bpmRequestId: number) => {
     const bpmRequest = await bpmRequestsModel.getById(bpmRequestId);
     if (!bpmRequest) throw ApiError.notFound('BPM request not found');
-    return bpmRequest;
+    const [reconciled] = await reconcileBpmRows([bpmRequest]);
+    return withLifecycleStatus(reconciled ?? bpmRequest);
   },
 
   /** Throws if the requester cannot see this request. Company users must own the establishment. */

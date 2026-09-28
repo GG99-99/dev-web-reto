@@ -1,4 +1,5 @@
 import prisma, { type Prisma, type EvaluationStatus, type CasePriority } from '@reto/db';
+import { syncBpmRequestForCase } from '../lifecycle/request-lifecycle';
 
 /**
  * evaluations.model.ts
@@ -31,6 +32,9 @@ const LIST_INCLUDE = {
       person: true,
     },
   },
+  score: true,
+  report: { select: { reportId: true, status: true, locked: true } },
+  case: { select: { caseId: true, status: true, bpmRequestId: true, technicianId: true } },
 } satisfies Prisma.EvaluationInclude;
 
 export const evaluationsModel = {
@@ -85,6 +89,7 @@ export const evaluationsModel = {
       if (current && (current.status === 'ABIERTO' || current.status === 'ASIGNADO')) {
         await tx.case.update({ where: { caseId: data.caseId }, data: { status: 'EN_EVALUACION' } });
       }
+      await syncBpmRequestForCase(tx, data.caseId);
       return evaluation;
     });
   },

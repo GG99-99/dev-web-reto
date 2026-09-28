@@ -6,6 +6,7 @@ import {
   bpmRequestsService,
   institutionsService,
 } from './services'
+import { deriveLifecycleStatus, pickCurrentEvaluation } from '@reto/shared'
 import { statusLabel } from './statusLabels'
 import './HistoricalDossierModal.css'
 
@@ -73,10 +74,22 @@ export default function HistoricalDossierModal({
     data?.rnc ||
     'Not recorded'
 
-  const status =
-    data?.status ||
-    data?.case?.status ||
-    'NOT_AVAILABLE'
+  const currentEvaluation = entityType === 'EVALUATION'
+    ? data
+    : pickCurrentEvaluation(data?.evaluations || data?.case?.evaluations)
+  const linkedCase = entityType === 'CASE' ? data : data?.case
+  const linkedRequest = entityType === 'BPM_REQUEST' ? data : data?.bpmRequest
+  const status = !data
+    ? 'NOT_AVAILABLE'
+    : entityType === 'INSTITUTION'
+      ? (data.status || 'NOT_AVAILABLE')
+      : deriveLifecycleStatus({
+          requestStatus: linkedRequest?.status ?? (entityType === 'BPM_REQUEST' ? data.status : undefined),
+          caseStatus: linkedCase?.status ?? (entityType === 'CASE' ? data.status : undefined),
+          technicianId: linkedCase?.technicianId ?? data?.technicianId,
+          evaluationStatus: currentEvaluation?.status ?? (entityType === 'EVALUATION' ? data.status : undefined),
+          reportStatus: currentEvaluation?.report?.status ?? data?.report?.status,
+        })
 
   const priority =
     data?.priority ||
@@ -145,7 +158,7 @@ export default function HistoricalDossierModal({
                 </div>
                 <div className="hdm-summary-card">
                   <span className="hdm-summary-label">Current Status</span>
-                  <span className="hdm-summary-val" style={{ color: status === 'CERRADO' || status === 'COMPLETADA' ? '#10b981' : '#0284c7' }}>
+                  <span className="hdm-summary-val" style={{ color: status === 'CERRADO' || status === 'APROBADA' || status === 'COMPLETADA' ? '#10b981' : '#0284c7' }}>
                     {statusLabel(status)}
                   </span>
                 </div>
@@ -180,17 +193,19 @@ export default function HistoricalDossierModal({
                   </div>
 
                   {/* Event 2: Triage & Assignment */}
-                  <div className={`hdm-event ${data?.assignments?.length || data?.technicianId ? 'done' : ''}`}>
+                  <div className={`hdm-event ${data?.assignments?.length || data?.technicianId || linkedCase?.technicianId ? 'done' : ''}`}>
                     <div className="hdm-event-header">
                       <span>2. Triage and Evaluator Assignment</span>
                       <span className="hdm-event-date">
-                        {data?.assignments?.[0]?.createdAt ? new Date(data.assignments[0].createdAt).toLocaleDateString('en-US') : 'Completed'}
+                        {(data?.assignments?.[0]?.assignedAt || linkedCase?.assignments?.[0]?.assignedAt)
+                          ? new Date(data?.assignments?.[0]?.assignedAt || linkedCase.assignments[0].assignedAt).toLocaleString('en-US')
+                          : 'Pending'}
                       </span>
                     </div>
                     <div className="hdm-event-body">
-                      {data?.technician?.person?.name || data?.assignments?.[0]?.technician?.person?.name ? (
+                      {data?.technician?.person?.name || data?.assignments?.[0]?.assignedTo?.person?.name || linkedCase?.technician?.person?.name ? (
                         <>
-                          Assigned technical evaluator: <strong>{data?.technician?.person?.name || data?.assignments?.[0]?.technician?.person?.name}</strong>.
+                          Assigned technical evaluator: <strong>{data?.technician?.person?.name || data?.assignments?.[0]?.assignedTo?.person?.name || linkedCase?.technician?.person?.name}</strong>.
                           Technical priority classified as <strong>{priorityLabel(priority)}</strong>.
                         </>
                       ) : (
@@ -214,18 +229,28 @@ export default function HistoricalDossierModal({
                   </div>
 
                   {/* Event 4: Review & Official Outcome */}
-                  <div className={`hdm-event ${data?.resultadoFinal || status === 'CERRADO' ? 'done' : ''}`}>
+                  <div className={`hdm-event ${data?.resultadoFinal || status === 'CERRADO' || status === 'APROBADA' ? 'done' : ''}`}>
                     <div className="hdm-event-header">
                       <span>4. Technical Review and Dossier Closure</span>
                       <span className="hdm-event-date">
-                        {data?.closedAt ? new Date(data.closedAt).toLocaleDateString('en-US') : 'Official Report'}
+                        {(data?.closedAt || linkedCase?.closedAt)
+                          ? new Date(data?.closedAt || linkedCase.closedAt).toLocaleString('en-US')
+                          : status === 'APROBADA'
+                            ? 'Approved'
+                            : 'In progress'}
                       </span>
                     </div>
                     <div className="hdm-event-body">
-                      {data?.resultadoFinal ? (
+                      {data?.resultadoFinal || linkedCase?.resultadoFinal ? (
                         <div>
-                          <strong>Final report:</strong> {data.resultadoFinal}
+                          <strong>Final report:</strong> {data?.resultadoFinal || linkedCase?.resultadoFinal}
                         </div>
+                      ) : status === 'APROBADA' ? (
+                        <span>The coordinator approved the evaluation. Case closure is the remaining step.</span>
+                      ) : status === 'EN_CORRECCION' ? (
+                        <span>The evaluation was returned for correction and is not approved yet.</span>
+                      ) : status === 'EN_REVISION' ? (
+                        <span>The evaluation is under coordinator review.</span>
                       ) : (
                         <span>Dossier in progress towards official sanitary certification and report.</span>
                       )}

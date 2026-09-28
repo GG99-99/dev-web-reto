@@ -1,4 +1,5 @@
 import prisma, { Prisma, type ReportStatus, type ReviewAction, type CorrectionScope } from '@reto/db';
+import { syncBpmRequestForCase } from '../lifecycle/request-lifecycle';
 
 /**
  * reports.model.ts
@@ -112,6 +113,7 @@ export const reportsModel = {
         });
       }
       await moveCase(tx, caseId, 'EN_REVISION');
+      await syncBpmRequestForCase(tx, caseId);
       return report;
     });
   },
@@ -138,6 +140,7 @@ export const reportsModel = {
         data: { status: 'FINALIZADA' },
       });
       await moveCase(tx, caseId, 'EN_REVISION');
+      await syncBpmRequestForCase(tx, caseId);
       return report;
     });
   },
@@ -186,6 +189,7 @@ export const reportsModel = {
         data: { status: 'EN_CORRECCION' },
       });
       await moveCase(tx, caseId, 'EN_EVALUACION');
+      await syncBpmRequestForCase(tx, caseId);
       return report;
     });
   },

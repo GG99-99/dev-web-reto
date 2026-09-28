@@ -1,5 +1,5 @@
 import prisma, { type Prisma } from '@reto/db';
-import type { HistorySearchItem } from '@reto/shared';
+import { deriveLifecycleStatus, pickCurrentEvaluation, type HistorySearchItem } from '@reto/shared';
 
 /**
  * history.model.ts
@@ -88,13 +88,21 @@ export const historyModel = {
         institution: { select: { institutionId: true, name: true } },
         score: true,
         report: { select: { reportId: true, status: true } },
+        case: { select: { status: true, technicianId: true } },
       },
     });
     return evaluations.map((e) => ({
       entityType: 'EVALUATION' as const,
       id: e.evaluationId,
       institution: e.institution,
-      status: e.status,
+      status: e.status === 'CANCELADA'
+        ? 'CANCELADA'
+        : deriveLifecycleStatus({
+            caseStatus: e.case.status,
+            technicianId: e.case.technicianId,
+            evaluationStatus: e.status,
+            reportStatus: e.report?.status,
+          }),
       createdAt: e.createdAt.toISOString(),
       score: e.score ?? undefined,
       reportSummary: e.report ?? undefined,
@@ -112,14 +120,35 @@ export const historyModel = {
     };
     const bpmRequests = await prisma.bpmRequest.findMany({
       where,
-      include: { institution: { select: { institutionId: true, name: true } } },
+      include: {
+        institution: { select: { institutionId: true, name: true } },
+        case: {
+          select: {
+            status: true,
+            technicianId: true,
+            evaluations: {
+              orderBy: { createdAt: 'desc' },
+              select: { status: true, createdAt: true, report: { select: { status: true } } },
+            },
+          },
+        },
+      },
     });
-    return bpmRequests.map((b) => ({
-      entityType: 'BPM_REQUEST' as const,
-      id: b.bpmRequestId,
-      institution: b.institution,
-      status: b.status,
-      createdAt: b.createdAt.toISOString(),
-    }));
+    return bpmRequests.map((b) => {
+      const evaluation = pickCurrentEvaluation(b.case?.evaluations);
+      return {
+        entityType: 'BPM_REQUEST' as const,
+        id: b.bpmRequestId,
+        institution: b.institution,
+        status: deriveLifecycleStatus({
+          requestStatus: b.status,
+          caseStatus: b.case?.status,
+          technicianId: b.case?.technicianId,
+          evaluationStatus: evaluation?.status,
+          reportStatus: evaluation?.report?.status,
+        }),
+        createdAt: b.createdAt.toISOString(),
+      };
+    });
   },
 };

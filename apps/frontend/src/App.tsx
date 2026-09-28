@@ -32,6 +32,8 @@ import {
   setRefreshTokenProvider,
 } from "./services/httpClient";
 import "./App.css";
+import { deriveLifecycleStatus } from "@reto/shared";
+import { statusLabel } from "./statusLabels";
 
 type Role =
   | "ADMIN"
@@ -70,9 +72,22 @@ export type Evaluation = {
   scheduledDate: string;
   status: string;
   priority?: string;
+  technicianId?: number;
   institution?: { name?: string };
   technician?: { person?: { name?: string } };
+  report?: { status?: string | null } | null;
+  case?: { status?: string | null; caseId?: number; technicianId?: number | null } | null;
+  score?: { nivelRiesgo?: string | null } | null;
 };
+
+function evaluationLifecycle(item: Evaluation) {
+  return deriveLifecycleStatus({
+    caseStatus: item.case?.status,
+    technicianId: item.technicianId ?? item.case?.technicianId,
+    evaluationStatus: item.status,
+    reportStatus: item.report?.status,
+  });
+}
 
 const sessionKey = "radar-session";
 const nav: { id: View; label: string; icon: string }[] = [
@@ -325,12 +340,35 @@ function App() {
             data.evaluaciones;
           if (!evaluationResponse?.valid && Array.isArray(dashboardEvaluations))
             setEvaluations(dashboardEvaluations as Evaluation[]);
+          const companyRequests = Array.isArray(data.misSolicitudes)
+            ? (data.misSolicitudes as Array<Record<string, unknown>>)
+            : [];
+          if (
+            activeSession.role === "ADMIN_EMPRESA" ||
+            activeSession.role === "USUARIO_DELEGADO"
+          ) {
+            const companyCases = companyRequests.flatMap((request) => {
+              const linked = request.case as CaseItem & { caseId?: number } | null | undefined;
+              if (!linked?.caseId) return [];
+              return [{
+                ...linked,
+                caseId: linked.caseId,
+                institution: (request.institution as CaseItem["institution"]) ?? linked.institution,
+                origin: linked.origin ?? "SOLICITUD_EMPRESA",
+                status: linked.status,
+                priority: linked.priority ?? "MEDIA",
+              }];
+            });
+            setCases(companyCases);
+          }
+          const awaitingDecision = companyRequests.filter((request) => {
+            const status = String(request.lifecycleStatus ?? request.status ?? "");
+            return status === "EN_REVISION" || status === "FINALIZADA" || status === "EN_CORRECCION";
+          }).length;
           setMetrics({
             pending: Number(
               data.casosPendientes ??
-                (Array.isArray(data.misSolicitudes)
-                  ? data.misSolicitudes.length
-                  : 0),
+                (companyRequests.length || 0),
             ),
             alerts: Array.isArray(data.alertasLapchAbiertas)
               ? data.alertasLapchAbiertas.length
@@ -339,7 +377,7 @@ function App() {
               ? data.denunciasAbiertas.length
               : Array.isArray(data.pendientesDeInforme)
                 ? data.pendientesDeInforme.length
-                : 0,
+                : awaitingDecision,
           });
         }
       } catch {
@@ -360,7 +398,7 @@ function App() {
     return () => {
       cancelled = true;
     };
-  }, [session]);
+  }, [session, view]);
   const visibleCases = cases;
   const visibleEvaluations = evaluations;
   if (!session)
@@ -1305,7 +1343,7 @@ function Overview({
                         `Assessment #${item.evaluationId}`}
                     </b>
                     <small>
-                      {date(item.scheduledDate)} · {title(item.status)}
+                      {date(item.scheduledDate)} · {statusLabel(evaluationLifecycle(item))}
                       {" · "}
                       {item.technician?.person?.name ?? "Evaluator not assigned"}
                     </small>
@@ -1376,10 +1414,10 @@ function Overview({
         <div className="cc-lifecycle">
           {[
             [String(cases.length), "Cases"],
-            [String(cases.filter((item) => item.technician).length), "Assigned"],
-            [String(items.filter((item) => item.status === "EN_PROCESO").length), "In field"],
-            [String(items.filter((item) => item.status === "FINALIZADA").length), "Review"],
-            [String(metrics.complaints), "Awaiting closure"],
+            [String(cases.filter((item) => item.technician || item.technicianId).length), "Assigned"],
+            [String(items.filter((item) => evaluationLifecycle(item) === "EN_PROCESO").length), "In field"],
+            [String(items.filter((item) => ["EN_REVISION", "EN_CORRECCION", "FINALIZADA"].includes(evaluationLifecycle(item))).length), "Review"],
+            [String(items.filter((item) => evaluationLifecycle(item) === "APROBADA").length), "Awaiting closure"],
           ].map(([number, label]) => (
             <span key={label}>
               <b className={number !== "0" ? "done" : ""}>{number}</b>

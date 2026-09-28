@@ -1,4 +1,5 @@
 import prisma, { type Prisma } from '@reto/db';
+import { syncBpmRequestForCase } from '../lifecycle/request-lifecycle';
 
 /**
  * assignments.model.ts
@@ -38,6 +39,7 @@ export const assignmentsModel = {
         },
         data: { technicianId },
       });
+      await syncBpmRequestForCase(tx, caseId);
 
       return assignment;
     });

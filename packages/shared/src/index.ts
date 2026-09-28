@@ -67,6 +67,7 @@ export * from './formCompleteness';
 export * from './riskEngine';
 export * from './evidences';
 export * from './reports';
+export * from './lifecycle';
 export * from './history';
 export * from './notifications';
 export * from './catalogs';
