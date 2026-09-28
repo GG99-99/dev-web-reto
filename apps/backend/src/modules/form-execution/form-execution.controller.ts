@@ -21,6 +21,13 @@ export const formExecutionController = {
     return res.status(200).json(ok(data));
   },
 
+  getEvaluationTemplate: async (req: Request, res: Response) => {
+    if (!req.user) throw ApiError.unauthorized();
+    const { id } = req.validated!.params;
+    const data = await formExecutionService.getEvaluationTemplate(id, req.user.userId, req.user.role);
+    return res.status(200).json(ok(data));
+  },
+
   start: async (req: Request, res: Response) => {
     if (!req.user) throw ApiError.unauthorized();
     const { id } = req.validated!.params;

@@ -34,6 +34,30 @@ async function institutionDetail(id, token = tokens.company) {
   return assertOk(res, 200);
 }
 
+function questionsFromTemplate(template) {
+  const chapters = [];
+  const h1s = [...(template?.h1s ?? [])].sort((a, b) => a.h1Id - b.h1Id);
+  for (const h1 of h1s) {
+    const questions = [];
+    const take = (ask, type, id) => {
+      if (!ask || ask.active === false || id == null) return;
+      questions.push({ key: `${type}_ask:${id}`, txt: ask.name, value: 'C' });
+    };
+    for (const ask of [...(h1.h1Asks ?? [])].sort((a, b) => a.h1AskId - b.h1AskId)) take(ask, 'h1', ask.h1AskId);
+    for (const h2 of [...(h1.h2s ?? [])].sort((a, b) => a.h2Id - b.h2Id)) {
+      for (const ask of [...(h2.h2Asks ?? [])].sort((a, b) => a.h2AskId - b.h2AskId)) take(ask, 'h2', ask.h2AskId);
+      for (const h3 of [...(h2.h3s ?? [])].sort((a, b) => a.h3Id - b.h3Id)) {
+        for (const ask of [...(h3.h3Asks ?? [])].sort((a, b) => a.h3AskId - b.h3AskId)) take(ask, 'h3', ask.h3AskId);
+        for (const h4 of [...(h3.h4s ?? [])].sort((a, b) => a.h4Id - b.h4Id)) {
+          for (const ask of [...(h4.h4Asks ?? [])].sort((a, b) => a.h4AskId - b.h4AskId)) take(ask, 'h4', ask.h4AskId);
+        }
+      }
+    }
+    if (questions.length) chapters.push({ name: h1.name, questions });
+  }
+  return chapters;
+}
+
 async function firstFood() {
   const res = await request('GET', '/catalogs/foods', { token: tokens.admin });
   const foods = assertOk(res, 200);
@@ -198,15 +222,34 @@ describe('BPM inspection workflow', () => {
     });
     assertForbidden(coordinatorStart);
 
+    const form = assertOk(
+      await request('GET', `/evaluations/${evaluationId}/form-template`, { token: tokens.technician }),
+      200,
+    );
+    const chapters = questionsFromTemplate(form.template);
+    assert.ok(chapters.length >= 2, 'the case template must require more than one chapter');
+
+    const partial = await request('PATCH', `/evaluations/${evaluationId}/answers`, {
+      token: tokens.technician,
+      body: { answers: chapters[0].questions },
+    });
+    assertOk(partial, 200);
+
+    const blocked = await request('POST', `/evaluations/${evaluationId}/finish`, { token: tokens.technician });
+    const blockedError = assertValidationError(blocked);
+    assert.match(blockedError.message, /blocked|incomplete|Still open/i);
+    assert.ok(
+      blockedError.details?.chapters?.some((chapter) => chapter.status === 'incomplete'),
+      'finish must name the chapters that are still incomplete',
+    );
+
+    const completeAnswers = chapters.flatMap((chapter) => chapter.questions).map((answer, index) => ({
+      ...answer,
+      value: index === 0 ? 'NC' : index === 1 ? 'CP' : 'C',
+    }));
     const answers = await request('PATCH', `/evaluations/${evaluationId}/answers`, {
       token: tokens.technician,
-      body: {
-        answers: [
-          { key: 'h1_ask:test-1', txt: 'Establishment location is adequate', value: 'C' },
-          { key: 'h1_ask:test-2', txt: 'Walls are washable', value: 'CP' },
-          { key: 'h1_ask:test-3', txt: 'Pest control program documented', value: 'NC' },
-        ],
-      },
+      body: { answers: completeAnswers },
     });
     assertOk(answers, 200);
 

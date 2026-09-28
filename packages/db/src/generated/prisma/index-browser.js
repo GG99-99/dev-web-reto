@@ -208,7 +208,8 @@ exports.Prisma.FormTemplateScalarFieldEnum = {
   formTemplateId: 'formTemplateId',
   name: 'name',
   active: 'active',
-  createAt: 'createAt'
+  createAt: 'createAt',
+  appliesTo: 'appliesTo'
 };
 
 exports.Prisma.FormResponseScalarFieldEnum = {
@@ -227,7 +228,8 @@ exports.Prisma.H1ScalarFieldEnum = {
   h1Id: 'h1Id',
   name: 'name',
   formId: 'formId',
-  formTemplateId: 'formTemplateId'
+  formTemplateId: 'formTemplateId',
+  appliesTo: 'appliesTo'
 };
 
 exports.Prisma.H1AskScalarFieldEnum = {
@@ -478,6 +480,11 @@ exports.Prisma.NotificationScalarFieldEnum = {
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
+};
+
+exports.Prisma.NullableJsonNullValueInput = {
+  DbNull: Prisma.DbNull,
+  JsonNull: Prisma.JsonNull
 };
 
 exports.Prisma.JsonNullValueInput = {

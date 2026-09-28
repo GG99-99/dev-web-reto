@@ -2,6 +2,7 @@ import type { FormAnswers } from '@reto/shared';
 import type { ReviewReportRequest, CorrectReportRequest } from '@reto/shared';
 import type { ComputedRisk } from '../risk-engine/risk-engine.service';
 import { reportsModel } from './reports.model';
+import { assertEvaluationFormComplete } from '../form-execution/form-completeness';
 import { ApiError } from '@/lib/common/ApiError';
 
 /**
@@ -77,6 +78,7 @@ export const reportsService = {
     if (report.status !== 'BORRADOR' && report.status !== 'EN_CORRECCION') {
       throw ApiError.conflict('The report is not in a state that allows submission');
     }
+    await assertEvaluationFormComplete(report.evaluationId);
     return reportsModel.updateStatus(reportId, 'ENVIADO', true);
   },
 
@@ -115,6 +117,7 @@ export const reportsService = {
     if (report.status !== 'EN_CORRECCION' && report.status !== 'DEVUELTO') {
       throw ApiError.conflict('The report is not in correction status');
     }
+    await assertEvaluationFormComplete(report.evaluationId);
     return reportsModel.updateStatus(reportId, 'ENVIADO', true);
   },
 };

@@ -25,6 +25,12 @@ formExecutionRouter
     validateReq(IdParamSchema, 'params'),
     formExecutionController.getTemplateTree,
   )
+  .get(
+    '/evaluations/:id/form-template',
+    validateRole('ADMIN', 'COORDINADOR', 'TECNICO_EVALUADOR'),
+    validateReq(IdParamSchema, 'params'),
+    formExecutionController.getEvaluationTemplate,
+  )
   .post(
     '/evaluations/:id/start',
     validateRole('TECNICO_EVALUADOR'),

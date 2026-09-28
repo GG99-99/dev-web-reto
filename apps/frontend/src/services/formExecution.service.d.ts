@@ -13,6 +13,12 @@ declare function listTemplates(): Promise<ApiResponse<FormTemplateTree[]>>;
  * `GET /form-templates/:id/tree` — Todos los roles operativos.
  * Árbol completo `h1 → h2 → h3 → h4` con sus `*_ask`.
  */
+declare function getEvaluationTemplate(evaluationId: number): Promise<ApiResponse<{
+    formTemplateId: number;
+    context: import('@reto/shared').FormCaseContext;
+    template: FormTemplateTree;
+    completeness: import('@reto/shared').FormCompleteness;
+}>>;
 declare function getTemplateTree(id: number): Promise<ApiResponse<FormTemplateTree>>;
 /**
  * `POST /evaluations/:id/start` — TECNICO_EVALUADOR asignado.
@@ -49,6 +55,7 @@ declare function saveAnswers(evaluationId: number, body: FormAnswersPayload): Pr
 declare function finish(evaluationId: number): Promise<ApiResponse<FinishEvaluationResponse>>;
 export declare const formExecutionService: {
     listTemplates: typeof listTemplates;
+    getEvaluationTemplate: typeof getEvaluationTemplate;
     getTemplateTree: typeof getTemplateTree;
     start: typeof start;
     saveAnswers: typeof saveAnswers;

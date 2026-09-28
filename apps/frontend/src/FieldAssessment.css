@@ -490,6 +490,73 @@
   color: #065f46;
 }
 
+.chapter-nav-btn.incomplete .chapter-stat-badge {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.chapter-nav-btn.na .chapter-stat-badge {
+  background: #e2e8f0;
+  color: #475569;
+}
+
+.form-progress-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #f8faff;
+  border: 1px solid #dce9ff;
+  font-size: 12px;
+  color: #334155;
+}
+
+.form-progress-panel strong {
+  color: #00236f;
+  font-size: 13px;
+}
+
+.form-progress-panel p {
+  margin: 0;
+}
+
+.form-progress-panel ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.form-progress-panel li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.form-progress-panel li b {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.form-na-note {
+  color: #475569;
+}
+
+.form-block-reason {
+  flex: 1 0 100%;
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
 /* Resumen del bloque */
 .block-summary-card {
   background: #f8faff;

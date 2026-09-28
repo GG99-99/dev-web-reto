@@ -216,6 +216,9 @@ model FormTemplate {
   name           String
   active         Boolean
   createAt       DateTime @map("create_at")
+  /// Null means this form applies to every case origin and establishment type.
+  /// Shape: { "origins"?: string[], "establishmentTypes"?: string[] }
+  appliesTo      Json?    @map("applies_to")
 
   h1s           H1[]
   formResponses FormResponse[]
@@ -252,6 +255,9 @@ model H1 {
   name           String
   formId         Int    @map("form_id")
   formTemplateId Int    @map("form_template_id")
+  /// Null means this chapter is required for every case that uses the template.
+  /// Shape: { "origins"?: string[], "establishmentTypes"?: string[] }
+  appliesTo      Json?  @map("applies_to")
 
   formTemplate FormTemplate @relation(fields: [formTemplateId], references: [formTemplateId])
   h1Asks       H1Ask[]

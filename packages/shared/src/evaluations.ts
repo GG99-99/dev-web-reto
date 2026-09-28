@@ -20,7 +20,7 @@ export type Evaluation = Prisma.EvaluationGetPayload<{}>;
  */
 export type EvaluationListItem = Prisma.EvaluationGetPayload<{
   include: {
-    institution: { select: { institutionId: true; name: true; streetName: true } };
+    institution: { select: { institutionId: true; name: true; streetName: true; rnc: true } };
     technician: { include: { person: true } };
   };
 }>;

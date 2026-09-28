@@ -358,7 +358,7 @@ export default function InspectionReportModal({
                   </div>
                   <div className="irm-field">
                     <span className="irm-label">RNC / Tax Registry</span>
-                    <span className="irm-val">{(evaluation?.institution as any)?.rnc ?? 'Not available'}</span>
+                    <span className="irm-val">{evaluation?.institution?.rnc || 'Not available'}</span>
                   </div>
                   <div className="irm-field">
                     <span className="irm-label">Location and Physical Address</span>

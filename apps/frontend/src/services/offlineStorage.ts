@@ -148,6 +148,27 @@ export async function getLocalDraft(evaluationId: number): Promise<LocalDraft | 
   return lsGet<LocalDraft>(`radar_eval_${evaluationId}`);
 }
 
+/** Removes a local draft so a reset evaluation does not reopen old answers. */
+export async function deleteLocalDraft(evaluationId: number): Promise<void> {
+  try {
+    localStorage.removeItem(`radar_eval_${evaluationId}`);
+  } catch {
+    /* ignore */
+  }
+
+  try {
+    const db = await openDB();
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(STORES.ANSWERS, 'readwrite');
+      const req = tx.objectStore(STORES.ANSWERS).delete(evaluationId);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  } catch {
+    /* ignore */
+  }
+}
+
 /**
  * Guarda en caché el árbol completo de la plantilla BPM para uso offline.
  */

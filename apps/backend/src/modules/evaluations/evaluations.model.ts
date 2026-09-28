@@ -19,7 +19,7 @@ export interface EvaluationsFilter {
 }
 
 const LIST_INCLUDE = {
-  institution: { select: { institutionId: true, name: true, streetName: true } },
+  institution: { select: { institutionId: true, name: true, streetName: true, rnc: true } },
   technician: {
     select: {
       userId: true,

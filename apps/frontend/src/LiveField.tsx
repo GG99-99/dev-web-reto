@@ -1,6 +1,13 @@
 // @ts-nocheck
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react'
-import type { AskValue, FormTemplateTree, Evidence, FormAnswers } from '@reto/shared'
+import {
+  assessFormCompleteness,
+  type AskValue,
+  type FormCaseContext,
+  type FormTemplateTree,
+  type Evidence,
+  type FormAnswers,
+} from '@reto/shared'
 import {
   catalogsService,
   evidencesService,
@@ -10,6 +17,7 @@ import {
   offlineStorage,
 } from './services'
 import type { Evaluation } from './App'
+import { statusLabel } from './statusLabels'
 import './App.css'
 import './FieldAssessment.css'
 
@@ -108,84 +116,8 @@ function calculateLiveRisk(answers: AnswerMap): LiveRiskScore {
   }
 }
 
-function buildStructuredChapters(template: FormTemplateTree | null): ChapterGroup[] {
-  if (!template || !template.h1s) return []
-  const chapters: ChapterGroup[] = []
-
-  template.h1s.forEach((h1, h1Idx) => {
-    const chapterQuestions: StructuredQuestion[] = []
-    let qCounter = 1
-    const chapterPrefix = `${h1Idx + 1}`
-
-    // Preguntas directas de H1
-    for (const ask of h1.h1Asks ?? []) {
-      chapterQuestions.push({
-        key: `h1_ask:${ask.h1AskId}`,
-        txt: ask.name,
-        h1Id: h1.h1Id,
-        chapterName: h1.name,
-        sectionName: h1.name,
-        codeLabel: `${chapterPrefix}.${qCounter++}`,
-        askType: 'h1',
-        askId: ask.h1AskId,
-      })
-    }
-
-    // Subniveles H2, H3, H4
-    for (const h2 of h1.h2s ?? []) {
-      for (const ask of h2.h2Asks ?? []) {
-        chapterQuestions.push({
-          key: `h2_ask:${ask.h2AskId}`,
-          txt: ask.name,
-          h1Id: h1.h1Id,
-          chapterName: h1.name,
-          sectionName: h2.name,
-          codeLabel: `${chapterPrefix}.${qCounter++}`,
-          askType: 'h2',
-          askId: ask.h2AskId,
-        })
-      }
-
-      for (const h3 of h2.h3s ?? []) {
-        for (const ask of h3.h3Asks ?? []) {
-          chapterQuestions.push({
-            key: `h3_ask:${ask.h3AskId}`,
-            txt: ask.name,
-            h1Id: h1.h1Id,
-            chapterName: h1.name,
-            sectionName: `${h2.name} / ${h3.name}`,
-            codeLabel: `${chapterPrefix}.${qCounter++}`,
-            askType: 'h3',
-            askId: ask.h3AskId,
-          })
-        }
-
-        for (const h4 of h3.h4s ?? []) {
-          for (const ask of h4.h4Asks ?? []) {
-            chapterQuestions.push({
-              key: `h4_ask:${ask.h4AskId}`,
-              txt: ask.name,
-              h1Id: h1.h1Id,
-              chapterName: h1.name,
-              sectionName: `${h2.name} / ${h4.name}`,
-              codeLabel: `${chapterPrefix}.${qCounter++}`,
-              askType: 'h4',
-              askId: ask.h4AskId,
-            })
-          }
-        }
-      }
-    }
-
-    chapters.push({
-      h1Id: h1.h1Id,
-      name: h1.name,
-      codePrefix: chapterPrefix,
-      questions: chapterQuestions,
-    })
-  })
-
-  return chapters
+function apiMessage(err: any, fallback: string) {
+  return err?.response?.data?.error?.message || err?.response?.data?.message || fallback
 }
 
 export default function LiveField({ items = [], item, live, inform, onViewReport, onEvaluationUpdated }: LiveFieldProps) {
@@ -216,7 +148,10 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
 
   // Estados de datos
   const [template, setTemplate] = useState<FormTemplateTree | null>(null)
+  const [caseContext, setCaseContext] = useState<FormCaseContext>({})
   const [activeChapterId, setActiveChapterId] = useState<number | null>(null)
+  const templateForEval = useRef<number | null>(null)
+  const loadedTemplateId = useRef<number | null>(null)
   const [answers, setAnswers] = useState<AnswerMap>({})
   const [notes, setNotes] = useState<NotesMap>({})
   const [evidences, setEvidences] = useState<Evidence[]>([])
@@ -276,42 +211,46 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
     }
   }, [])
 
-  // Cargar plantilla BPM (con caché offline)
+  // Load the template bound to this evaluation, or the one configured for its case type.
   useEffect(() => {
+    if (!activeItem) return
     let cancelled = false
+    const evalId = activeItem.evaluationId
+    if (templateForEval.current !== evalId) {
+      templateForEval.current = evalId
+      loadedTemplateId.current = null
+      setTemplate(null)
+      setCaseContext({})
+      setActiveChapterId(null)
+    }
+
     async function loadTemplate() {
-      // Intentar primero desde caché local
-      const cached = await offlineStorage.getCachedTemplateTree(1)
-      if (cancelled) return
-      if (cached) {
-        setTemplate(cached)
-        if (cached.h1s && cached.h1s.length > 0) {
-          setActiveChapterId((prev) => prev ?? cached.h1s[0].h1Id)
-        }
-      } else {
-        setTemplate((current) => current ?? offlineStorage.DEFAULT_BPM_TEMPLATE)
+      if (!isOnline) {
+        const cachedId = loadedTemplateId.current
+        if (!cachedId) return
+        const cached = await offlineStorage.getCachedTemplateTree(cachedId)
+        if (!cancelled && cached) setTemplate(cached)
+        return
       }
 
-      // Si hay red, refrescar plantilla y actualizar caché
-      if (isOnline) {
-        try {
-          const res = await formExecutionService.getTemplateTree(1)
-          if (!cancelled && res.valid) {
-            setTemplate(res.data)
-            await offlineStorage.saveCachedTemplateTree(res.data)
-            if (res.data.h1s && res.data.h1s.length > 0) {
-              setActiveChapterId((prev) => prev ?? res.data.h1s[0].h1Id)
-            }
-          }
-        } catch {
-          // Si falla, el caché local ya fue cargado
-        }
+      try {
+        const res = await formExecutionService.getEvaluationTemplate(evalId)
+        if (cancelled || !res.valid) return
+        loadedTemplateId.current = res.data.formTemplateId
+        setTemplate(res.data.template)
+        setCaseContext(res.data.context ?? {})
+        await offlineStorage.saveCachedTemplateTree(res.data.template)
+        const firstRequired = (res.data.completeness?.chapters ?? []).find((chapter) => chapter.status !== 'not_applicable')
+        const firstId = firstRequired?.h1Id ?? res.data.template?.h1s?.[0]?.h1Id
+        if (firstId) setActiveChapterId((prev) => prev ?? firstId)
+      } catch {
+        // Finish stays blocked until the official template loads.
       }
     }
 
     void loadTemplate()
     return () => { cancelled = true }
-  }, [isOnline])
+  }, [activeItem, isOnline])
 
   // Cargar datos de la evaluación activa (hidratación híbrida backend + local).
   // Going offline must not replace a started inspection with the stale list status.
@@ -335,63 +274,82 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
     }
 
     async function hydrateEvaluation() {
-      const localDraft = await offlineStorage.getLocalDraft(evalId)
-      if (cancelled) return
+      let serverDetail: any = null
+      if (isOnline) {
+        try {
+          const detailRes = await evaluationsService.getById(evalId)
+          if (!cancelled && detailRes.valid) serverDetail = detailRes.data
+        } catch {
+          serverDetail = null
+        }
+      }
 
-      const startedNow =
-        activeItem.status === 'EN_PROCESO' ||
-        activeItem.status === 'FINALIZADA' ||
-        Boolean(localDraft?.started) ||
-        startedLocally.current.has(evalId)
-      const finishedNow = activeItem.status === 'FINALIZADA' || Boolean(localDraft?.finished)
-      setStarted(startedNow)
-      setFinished(finishedNow)
-      if (startedNow) startedLocally.current.add(evalId)
+      const resetToStart =
+        serverDetail &&
+        (serverDetail.status === 'PROGRAMADA' || serverDetail.status === 'REPROGRAMADA') &&
+        !serverDetail.formResponse
+      if (resetToStart) {
+        await offlineStorage.deleteLocalDraft(evalId)
+        await offlineStorage.removeSyncQueueItem(evalId)
+        if (cancelled) return
+        startedLocally.current.delete(evalId)
+        setAnswers({})
+        setNotes({})
+        setEvidences([])
+        setStarted(false)
+        setFinished(false)
+        setLastSavedTime('')
+      } else {
+        const localDraft = await offlineStorage.getLocalDraft(evalId)
+        if (cancelled) return
 
-      if (localDraft) {
-        const answerObj: AnswerMap = {}
-        localDraft.answers.forEach((a) => {
-          answerObj[a.key] = a.value
-        })
-        setAnswers((current) => ({ ...answerObj, ...current }))
-        setNotes((current) => ({ ...(localDraft.notes || {}), ...current }))
-        if (localDraft.updatedAt) {
-          setLastSavedTime(new Date(localDraft.updatedAt).toLocaleTimeString())
+        const startedNow =
+          activeItem.status === 'EN_PROCESO' ||
+          activeItem.status === 'FINALIZADA' ||
+          serverDetail?.status === 'EN_PROCESO' ||
+          serverDetail?.status === 'FINALIZADA' ||
+          Boolean(localDraft?.started) ||
+          startedLocally.current.has(evalId)
+        const finishedNow =
+          activeItem.status === 'FINALIZADA' ||
+          serverDetail?.status === 'FINALIZADA' ||
+          Boolean(localDraft?.finished)
+        setStarted(startedNow)
+        setFinished(finishedNow)
+        if (startedNow) startedLocally.current.add(evalId)
+
+        if (localDraft) {
+          const answerObj: AnswerMap = {}
+          localDraft.answers.forEach((a) => {
+            answerObj[a.key] = a.value
+          })
+          setAnswers((current) => ({ ...answerObj, ...current }))
+          setNotes((current) => ({ ...(localDraft.notes || {}), ...current }))
+          if (localDraft.updatedAt) {
+            setLastSavedTime(new Date(localDraft.updatedAt).toLocaleTimeString())
+          }
+        }
+
+        if (serverDetail?.formResponse?.answers && Array.isArray(serverDetail.formResponse.answers)) {
+          setAnswers((current) => {
+            const merged = { ...current }
+            serverDetail.formResponse.answers.forEach((ans: any) => {
+              if (ans && ans.key && ans.value && merged[ans.key] === undefined) {
+                merged[ans.key] = ans.value
+              }
+            })
+            return merged
+          })
+        }
+        if (Array.isArray(serverDetail?.evidences)) {
+          setEvidences(serverDetail.evidences)
         }
       }
 
       if (isOnline) {
         try {
-          const detailRes = await evaluationsService.getById(evalId)
-          if (!cancelled && detailRes.valid) {
-            const data = detailRes.data as any
-            if (data.status === 'EN_PROCESO' || data.status === 'FINALIZADA') {
-              setStarted(true)
-              startedLocally.current.add(evalId)
-            }
-            if (data.status === 'FINALIZADA') {
-              setFinished(true)
-            }
-
-            if (data.formResponse?.answers && Array.isArray(data.formResponse.answers)) {
-              setAnswers((current) => {
-                const merged = { ...current }
-                data.formResponse.answers.forEach((ans: any) => {
-                  if (ans && ans.key && ans.value && merged[ans.key] === undefined) {
-                    merged[ans.key] = ans.value
-                  }
-                })
-                return merged
-              })
-            }
-
-            if (Array.isArray(data.evidences)) {
-              setEvidences(data.evidences)
-            }
-          }
-
           const evRes = await evidencesService.listByEvaluation(evalId)
-          if (!cancelled && evRes.valid) {
+          if (!cancelled && evRes.valid && !resetToStart) {
             setEvidences(evRes.data)
           }
         } catch {
@@ -425,22 +383,36 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
     setPendingSyncCount(queue.length)
   }
 
-  // Estructuración jerárquica de capítulos
-  const chapters = useMemo(() => buildStructuredChapters(template), [template])
+  const answerList = useMemo(
+    () => Object.entries(answers).map(([key, value]) => ({ key, value })),
+    [answers],
+  )
+  const completeness = useMemo(
+    () => assessFormCompleteness(template, answerList, caseContext),
+    [template, answerList, caseContext],
+  )
+  const chapters = completeness.chapters
 
   // Capítulo actualmente seleccionado
   const activeChapter = useMemo(() => {
     if (!chapters.length) return null
-    return chapters.find((c) => c.h1Id === activeChapterId) ?? chapters[0]
+    return chapters.find((c) => c.h1Id === activeChapterId) ?? chapters.find((c) => c.status !== 'not_applicable') ?? chapters[0]
   }, [chapters, activeChapterId])
 
-  // Todas las preguntas aplanadas para cómputos globales
+  // Preguntas que esta plantilla exige para el tipo de caso actual
   const allQuestions = useMemo(() => {
-    return chapters.flatMap((c) => c.questions)
+    return chapters.filter((c) => c.status !== 'not_applicable').flatMap((c) => c.questions)
   }, [chapters])
 
-  // Motor de Riesgo Dinámico en vivo
-  const liveRisk = useMemo(() => calculateLiveRisk(answers), [answers])
+  // Motor de Riesgo Dinámico en vivo, solo con criterios que aplican a este caso
+  const liveRisk = useMemo(() => {
+    const applicable = new Set(completeness.applicableKeys)
+    const scoped: AnswerMap = {}
+    for (const [key, value] of Object.entries(answers)) {
+      if (applicable.has(key)) scoped[key] = value
+    }
+    return calculateLiveRisk(scoped)
+  }, [answers, completeness.applicableKeys])
 
   // Manejador para responder un criterio
   const handleAnswerChange = useCallback(
@@ -667,8 +639,8 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
   // Finalizar evaluación y disparar motor de riesgo e informe (RF-14, RF-16)
   async function finishAssessment() {
     if (!activeItem) return
-    if (liveRisk.totalAnswered === 0) {
-      inform('You must answer applicable criteria before finishing the assessment.')
+    if (!completeness.canSubmit) {
+      inform(completeness.blockReason || 'Required chapters are still incomplete.')
       return
     }
 
@@ -693,9 +665,9 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
 
       setFinished(true)
       setFinishSummary(res.data)
-      inform(`Assessment finished! Determined risk level: ${res.data.score.nivelRiesgo}.`)
+      inform(`Assessment finished. Risk level: ${statusLabel(res.data.score.nivelRiesgo)}.`)
     } catch (err: any) {
-      inform(err?.response?.data?.message || 'Could not finish the assessment.')
+      inform(apiMessage(err, 'Could not finish the assessment.'))
     } finally {
       setBusy(false)
     }
@@ -723,49 +695,6 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
 
   return (
     <section className="field-container">
-      {/* 1. Sub-barra PWA Offline & Estado del Dispositivo */}
-      <div className="field-sync-bar">
-        <div className="sync-status-group">
-          <span
-            className={`sync-pulse-dot ${
-              busy ? 'syncing' : isOnline ? 'online' : 'offline'
-            }`}
-          />
-          <div>
-            <div className="sync-title">
-              {isOnline ? 'Online PWA Engine • Synchronized' : 'PWA Offline Mode Active (IndexedDB)'}
-            </div>
-            <div className="sync-subtext">
-              <span>{liveRisk.totalAnswered} locally cached answers</span>
-              {pendingSyncCount > 0 && (
-                <mark className="high">
-                  {pendingSyncCount} pending sync
-                </mark>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="sync-device-telemetry">
-          {gps && (
-            <div className="telemetry-item" title="Location captured by GPS">
-              <span className="material-symbols-outlined">near_me</span>
-              <span>GPS: {gps.lat.toFixed(4)}°, {gps.lng.toFixed(4)}°</span>
-            </div>
-          )}
-          {lastSavedTime && (
-            <div className="telemetry-item" title="Last saved time">
-              <span className="material-symbols-outlined">save</span>
-              <span>Saved: {lastSavedTime}</span>
-            </div>
-          )}
-          <div className="telemetry-item" title="IndexedDB Storage">
-            <span className="material-symbols-outlined">database</span>
-            <span>IndexedDB v1</span>
-          </div>
-        </div>
-      </div>
-
       {/* Selector de Evaluaciones Asignadas (si hay más de una) */}
       {availableEvals.length > 1 && (
         <div className="field-eval-selector">
@@ -795,7 +724,7 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
               {finished ? 'Finished Assessment' : started ? 'Inspection in Progress' : 'Scheduled'}
             </span>
             <span className="hero-badge case">Record #{activeItem.evaluationId}</span>
-            <span className="hero-badge version">GMP Form 2026</span>
+            <span className="hero-badge version">{template?.name || 'Official GMP form'}</span>
           </div>
           <h1>{activeItem.institution?.name || 'Facility under Audit'}</h1>
           <div className="hero-details-row">
@@ -955,7 +884,7 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
           <div>
             <strong>Assessment finished and verdict successfully issued!</strong>
             <p style={{ margin: '4px 0 0 0', fontSize: '13px' }}>
-              Score: {finishSummary.score?.puntajeObtenido} | Compliance: {finishSummary.score?.porcentajeCumplimiento}% | Risk Level: <b>{finishSummary.score?.nivelRiesgo}</b> | Inspection Frequency: <b>{finishSummary.score?.frecuenciaInspeccion}</b>. The case has moved to Coordinator review.
+              Score: {finishSummary.score?.puntajeObtenido} | Compliance: {finishSummary.score?.porcentajeCumplimiento}% | Risk Level: <b>{statusLabel(finishSummary.score?.nivelRiesgo)}</b> | Inspection Frequency: <b>{statusLabel(finishSummary.score?.frecuenciaInspeccion)}</b>. The case has moved to Coordinator review.
             </p>
           </div>
         </div>
@@ -968,36 +897,59 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
           <div className="chapters-header">
             <span className="chapters-title">GMP Sanitary Chapters</span>
             <span className="chapters-count-badge">
-              {chapters.length} Chapters
+              {completeness.answeredQuestions}/{completeness.requiredQuestions}
             </span>
           </div>
 
+          <div className="form-progress-panel">
+            <strong>Total progress: {completeness.percent}%</strong>
+            <p>
+              {completeness.answeredQuestions} of {completeness.requiredQuestions} required criteria
+              {completeness.caseLabel ? ` for ${completeness.caseLabel}` : ''}.
+            </p>
+            <ul>
+              {chapters.filter((ch) => ch.status !== 'not_applicable').map((ch) => (
+                <li key={ch.h1Id}>
+                  <span>{ch.name}</span>
+                  <b>
+                    {ch.status === 'complete' ? 'Complete' : ch.status === 'exempt' ? 'N/A' : 'Incomplete'}
+                    {' '}
+                    {ch.answered}/{ch.required}
+                  </b>
+                </li>
+              ))}
+            </ul>
+            {chapters.some((ch) => ch.status === 'not_applicable') && (
+              <p className="form-na-note">
+                Not required for this case:{' '}
+                {chapters.filter((ch) => ch.status === 'not_applicable').map((ch) => ch.name).join(', ')}.
+              </p>
+            )}
+          </div>
+
           <nav className="chapters-list" aria-label="GMP Form Structure">
-            {chapters.map((ch, idx) => {
-              const chQuestions = ch.questions
-              const answeredCount = chQuestions.filter((q) => answers[q.key] !== undefined).length
-              const totalCount = chQuestions.length
-              const isComplete = totalCount > 0 && answeredCount === totalCount
-              const pct = totalCount ? Math.round((answeredCount / totalCount) * 100) : 0
+            {chapters.map((ch) => {
+              const isComplete = ch.status === 'complete' || ch.status === 'exempt'
+              const isNa = ch.status === 'not_applicable'
               const isActive = ch.h1Id === activeChapter?.h1Id
 
               return (
                 <button
                   key={ch.h1Id}
                   type="button"
-                  className={`chapter-nav-btn ${isActive ? 'active' : ''} ${isComplete ? 'done' : ''}`}
+                  className={`chapter-nav-btn ${isActive ? 'active' : ''} ${isComplete ? 'done' : ''} ${isNa ? 'na' : ''} ${ch.status === 'incomplete' ? 'incomplete' : ''}`}
                   onClick={() => setActiveChapterId(ch.h1Id)}
                 >
                   <div className="chapter-btn-left">
                     <span className="material-symbols-outlined">
-                      {isComplete ? 'check_circle' : isActive ? 'timelapse' : 'folder'}
+                      {ch.status === 'complete' ? 'check_circle' : isNa || ch.status === 'exempt' ? 'block' : isActive ? 'timelapse' : 'folder'}
                     </span>
                     <span className="chapter-btn-text">
-                      {idx + 1}. {ch.name}
+                      {ch.name}
                     </span>
                   </div>
                   <span className="chapter-stat-badge">
-                    {pct === 100 ? '100%' : `${answeredCount}/${totalCount}`}
+                    {isNa || ch.status === 'exempt' ? 'N/A' : `${ch.answered}/${ch.required}`}
                   </span>
                 </button>
               )
@@ -1010,7 +962,9 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
               <div className="block-summary-row">
                 <span>Assessed:</span>
                 <strong>
-                  {activeChapter.questions.filter((q) => answers[q.key] !== undefined).length} de {activeChapter.questions.length}
+                  {activeChapter.status === 'not_applicable'
+                    ? 'N/A'
+                    : `${activeChapter.answered} of ${activeChapter.required}`}
                 </strong>
               </div>
               <div className="block-summary-row">
@@ -1025,7 +979,13 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
 
         {/* Lienzo de Preguntas del Capítulo Activo */}
         <div className="questions-deck">
-          {activeChapter ? (
+          {activeChapter?.status === 'not_applicable' ? (
+            <div className="empty">
+              {activeChapter.skipReason === 'outside_case_scope'
+                ? `${activeChapter.name} is not part of the form for this request type, so it is not required.`
+                : `${activeChapter.name} has no active criteria in the assigned form.`}
+            </div>
+          ) : activeChapter ? (
             activeChapter.questions.map((question) => {
               const currentVal = answers[question.key]
               const isNC = currentVal === 'NC'
@@ -1212,6 +1172,9 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
 
       {/* 6. Barra Flotante Fija Inferior (Sticky Action Bar) */}
       <div className="field-floating-bar">
+        {started && !finished && completeness.blockReason && (
+          <p className="form-block-reason" role="status">{completeness.blockReason}</p>
+        )}
         <div className="floating-bar-left">
           <button
             type="button"
@@ -1264,7 +1227,7 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
           <button
             type="button"
             className="btn-finish-inspection"
-            disabled={!started || finished || busy || liveRisk.totalAnswered === 0}
+            disabled={!started || finished || busy || !completeness.canSubmit}
             onClick={() => void finishAssessment()}
           >
             <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>

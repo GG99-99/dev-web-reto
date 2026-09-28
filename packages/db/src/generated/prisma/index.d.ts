@@ -18609,6 +18609,7 @@ export namespace Prisma {
     name: number
     active: number
     createAt: number
+    appliesTo: number
     _all: number
   }
 
@@ -18640,6 +18641,7 @@ export namespace Prisma {
     name?: true
     active?: true
     createAt?: true
+    appliesTo?: true
     _all?: true
   }
 
@@ -18734,6 +18736,7 @@ export namespace Prisma {
     name: string
     active: boolean
     createAt: Date
+    appliesTo: JsonValue | null
     _count: FormTemplateCountAggregateOutputType | null
     _avg: FormTemplateAvgAggregateOutputType | null
     _sum: FormTemplateSumAggregateOutputType | null
@@ -18760,6 +18763,7 @@ export namespace Prisma {
     name?: boolean
     active?: boolean
     createAt?: boolean
+    appliesTo?: boolean
     h1s?: boolean | FormTemplate$h1sArgs<ExtArgs>
     formResponses?: boolean | FormTemplate$formResponsesArgs<ExtArgs>
     _count?: boolean | FormTemplateCountOutputTypeDefaultArgs<ExtArgs>
@@ -18770,6 +18774,7 @@ export namespace Prisma {
     name?: boolean
     active?: boolean
     createAt?: boolean
+    appliesTo?: boolean
   }, ExtArgs["result"]["formTemplate"]>
 
   export type FormTemplateSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -18777,6 +18782,7 @@ export namespace Prisma {
     name?: boolean
     active?: boolean
     createAt?: boolean
+    appliesTo?: boolean
   }, ExtArgs["result"]["formTemplate"]>
 
   export type FormTemplateSelectScalar = {
@@ -18784,9 +18790,10 @@ export namespace Prisma {
     name?: boolean
     active?: boolean
     createAt?: boolean
+    appliesTo?: boolean
   }
 
-  export type FormTemplateOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"formTemplateId" | "name" | "active" | "createAt", ExtArgs["result"]["formTemplate"]>
+  export type FormTemplateOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"formTemplateId" | "name" | "active" | "createAt" | "appliesTo", ExtArgs["result"]["formTemplate"]>
   export type FormTemplateInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     h1s?: boolean | FormTemplate$h1sArgs<ExtArgs>
     formResponses?: boolean | FormTemplate$formResponsesArgs<ExtArgs>
@@ -18806,6 +18813,11 @@ export namespace Prisma {
       name: string
       active: boolean
       createAt: Date
+      /**
+       * Null means this form applies to every case origin and establishment type.
+       * Shape: { "origins"?: string[], "establishmentTypes"?: string[] }
+       */
+      appliesTo: Prisma.JsonValue | null
     }, ExtArgs["result"]["formTemplate"]>
     composites: {}
   }
@@ -19235,6 +19247,7 @@ export namespace Prisma {
     readonly name: FieldRef<"FormTemplate", 'String'>
     readonly active: FieldRef<"FormTemplate", 'Boolean'>
     readonly createAt: FieldRef<"FormTemplate", 'DateTime'>
+    readonly appliesTo: FieldRef<"FormTemplate", 'Json'>
   }
     
 
@@ -20998,6 +21011,7 @@ export namespace Prisma {
     name: number
     formId: number
     formTemplateId: number
+    appliesTo: number
     _all: number
   }
 
@@ -21033,6 +21047,7 @@ export namespace Prisma {
     name?: true
     formId?: true
     formTemplateId?: true
+    appliesTo?: true
     _all?: true
   }
 
@@ -21127,6 +21142,7 @@ export namespace Prisma {
     name: string
     formId: number
     formTemplateId: number
+    appliesTo: JsonValue | null
     _count: H1CountAggregateOutputType | null
     _avg: H1AvgAggregateOutputType | null
     _sum: H1SumAggregateOutputType | null
@@ -21153,6 +21169,7 @@ export namespace Prisma {
     name?: boolean
     formId?: boolean
     formTemplateId?: boolean
+    appliesTo?: boolean
     formTemplate?: boolean | FormTemplateDefaultArgs<ExtArgs>
     h1Asks?: boolean | H1$h1AsksArgs<ExtArgs>
     h2s?: boolean | H1$h2sArgs<ExtArgs>
@@ -21164,6 +21181,7 @@ export namespace Prisma {
     name?: boolean
     formId?: boolean
     formTemplateId?: boolean
+    appliesTo?: boolean
     formTemplate?: boolean | FormTemplateDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["h1"]>
 
@@ -21172,6 +21190,7 @@ export namespace Prisma {
     name?: boolean
     formId?: boolean
     formTemplateId?: boolean
+    appliesTo?: boolean
     formTemplate?: boolean | FormTemplateDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["h1"]>
 
@@ -21180,9 +21199,10 @@ export namespace Prisma {
     name?: boolean
     formId?: boolean
     formTemplateId?: boolean
+    appliesTo?: boolean
   }
 
-  export type H1Omit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"h1Id" | "name" | "formId" | "formTemplateId", ExtArgs["result"]["h1"]>
+  export type H1Omit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"h1Id" | "name" | "formId" | "formTemplateId" | "appliesTo", ExtArgs["result"]["h1"]>
   export type H1Include<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     formTemplate?: boolean | FormTemplateDefaultArgs<ExtArgs>
     h1Asks?: boolean | H1$h1AsksArgs<ExtArgs>
@@ -21208,6 +21228,11 @@ export namespace Prisma {
       name: string
       formId: number
       formTemplateId: number
+      /**
+       * Null means this chapter is required for every case that uses the template.
+       * Shape: { "origins"?: string[], "establishmentTypes"?: string[] }
+       */
+      appliesTo: Prisma.JsonValue | null
     }, ExtArgs["result"]["h1"]>
     composites: {}
   }
@@ -21638,6 +21663,7 @@ export namespace Prisma {
     readonly name: FieldRef<"H1", 'String'>
     readonly formId: FieldRef<"H1", 'Int'>
     readonly formTemplateId: FieldRef<"H1", 'Int'>
+    readonly appliesTo: FieldRef<"H1", 'Json'>
   }
     
 
@@ -53118,7 +53144,8 @@ export namespace Prisma {
     formTemplateId: 'formTemplateId',
     name: 'name',
     active: 'active',
-    createAt: 'createAt'
+    createAt: 'createAt',
+    appliesTo: 'appliesTo'
   };
 
   export type FormTemplateScalarFieldEnum = (typeof FormTemplateScalarFieldEnum)[keyof typeof FormTemplateScalarFieldEnum]
@@ -53143,7 +53170,8 @@ export namespace Prisma {
     h1Id: 'h1Id',
     name: 'name',
     formId: 'formId',
-    formTemplateId: 'formTemplateId'
+    formTemplateId: 'formTemplateId',
+    appliesTo: 'appliesTo'
   };
 
   export type H1ScalarFieldEnum = (typeof H1ScalarFieldEnum)[keyof typeof H1ScalarFieldEnum]
@@ -53481,6 +53509,14 @@ export namespace Prisma {
   };
 
   export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
+
+
+  export const NullableJsonNullValueInput: {
+    DbNull: typeof DbNull,
+    JsonNull: typeof JsonNull
+  };
+
+  export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
 
 
   export const JsonNullValueInput: {
@@ -54518,6 +54554,7 @@ export namespace Prisma {
     name?: StringFilter<"FormTemplate"> | string
     active?: BoolFilter<"FormTemplate"> | boolean
     createAt?: DateTimeFilter<"FormTemplate"> | Date | string
+    appliesTo?: JsonNullableFilter<"FormTemplate">
     h1s?: H1ListRelationFilter
     formResponses?: FormResponseListRelationFilter
   }
@@ -54527,6 +54564,7 @@ export namespace Prisma {
     name?: SortOrder
     active?: SortOrder
     createAt?: SortOrder
+    appliesTo?: SortOrderInput | SortOrder
     h1s?: H1OrderByRelationAggregateInput
     formResponses?: FormResponseOrderByRelationAggregateInput
   }
@@ -54539,6 +54577,7 @@ export namespace Prisma {
     name?: StringFilter<"FormTemplate"> | string
     active?: BoolFilter<"FormTemplate"> | boolean
     createAt?: DateTimeFilter<"FormTemplate"> | Date | string
+    appliesTo?: JsonNullableFilter<"FormTemplate">
     h1s?: H1ListRelationFilter
     formResponses?: FormResponseListRelationFilter
   }, "formTemplateId">
@@ -54548,6 +54587,7 @@ export namespace Prisma {
     name?: SortOrder
     active?: SortOrder
     createAt?: SortOrder
+    appliesTo?: SortOrderInput | SortOrder
     _count?: FormTemplateCountOrderByAggregateInput
     _avg?: FormTemplateAvgOrderByAggregateInput
     _max?: FormTemplateMaxOrderByAggregateInput
@@ -54563,6 +54603,7 @@ export namespace Prisma {
     name?: StringWithAggregatesFilter<"FormTemplate"> | string
     active?: BoolWithAggregatesFilter<"FormTemplate"> | boolean
     createAt?: DateTimeWithAggregatesFilter<"FormTemplate"> | Date | string
+    appliesTo?: JsonNullableWithAggregatesFilter<"FormTemplate">
   }
 
   export type FormResponseWhereInput = {
@@ -54668,6 +54709,7 @@ export namespace Prisma {
     name?: StringFilter<"H1"> | string
     formId?: IntFilter<"H1"> | number
     formTemplateId?: IntFilter<"H1"> | number
+    appliesTo?: JsonNullableFilter<"H1">
     formTemplate?: XOR<FormTemplateScalarRelationFilter, FormTemplateWhereInput>
     h1Asks?: H1AskListRelationFilter
     h2s?: H2ListRelationFilter
@@ -54678,6 +54720,7 @@ export namespace Prisma {
     name?: SortOrder
     formId?: SortOrder
     formTemplateId?: SortOrder
+    appliesTo?: SortOrderInput | SortOrder
     formTemplate?: FormTemplateOrderByWithRelationInput
     h1Asks?: H1AskOrderByRelationAggregateInput
     h2s?: H2OrderByRelationAggregateInput
@@ -54691,6 +54734,7 @@ export namespace Prisma {
     name?: StringFilter<"H1"> | string
     formId?: IntFilter<"H1"> | number
     formTemplateId?: IntFilter<"H1"> | number
+    appliesTo?: JsonNullableFilter<"H1">
     formTemplate?: XOR<FormTemplateScalarRelationFilter, FormTemplateWhereInput>
     h1Asks?: H1AskListRelationFilter
     h2s?: H2ListRelationFilter
@@ -54701,6 +54745,7 @@ export namespace Prisma {
     name?: SortOrder
     formId?: SortOrder
     formTemplateId?: SortOrder
+    appliesTo?: SortOrderInput | SortOrder
     _count?: H1CountOrderByAggregateInput
     _avg?: H1AvgOrderByAggregateInput
     _max?: H1MaxOrderByAggregateInput
@@ -54716,6 +54761,7 @@ export namespace Prisma {
     name?: StringWithAggregatesFilter<"H1"> | string
     formId?: IntWithAggregatesFilter<"H1"> | number
     formTemplateId?: IntWithAggregatesFilter<"H1"> | number
+    appliesTo?: JsonNullableWithAggregatesFilter<"H1">
   }
 
   export type H1AskWhereInput = {
@@ -57158,6 +57204,7 @@ export namespace Prisma {
     name: string
     active: boolean
     createAt: Date | string
+    appliesTo?: NullableJsonNullValueInput | InputJsonValue
     h1s?: H1CreateNestedManyWithoutFormTemplateInput
     formResponses?: FormResponseCreateNestedManyWithoutFormTemplateInput
   }
@@ -57167,6 +57214,7 @@ export namespace Prisma {
     name: string
     active: boolean
     createAt: Date | string
+    appliesTo?: NullableJsonNullValueInput | InputJsonValue
     h1s?: H1UncheckedCreateNestedManyWithoutFormTemplateInput
     formResponses?: FormResponseUncheckedCreateNestedManyWithoutFormTemplateInput
   }
@@ -57175,6 +57223,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     active?: BoolFieldUpdateOperationsInput | boolean
     createAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    appliesTo?: NullableJsonNullValueInput | InputJsonValue
     h1s?: H1UpdateManyWithoutFormTemplateNestedInput
     formResponses?: FormResponseUpdateManyWithoutFormTemplateNestedInput
   }
@@ -57184,6 +57233,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     active?: BoolFieldUpdateOperationsInput | boolean
     createAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    appliesTo?: NullableJsonNullValueInput | InputJsonValue
     h1s?: H1UncheckedUpdateManyWithoutFormTemplateNestedInput
     formResponses?: FormResponseUncheckedUpdateManyWithoutFormTemplateNestedInput
   }
@@ -57193,12 +57243,14 @@ export namespace Prisma {
     name: string
     active: boolean
     createAt: Date | string
+    appliesTo?: NullableJsonNullValueInput | InputJsonValue
   }
 
   export type FormTemplateUpdateManyMutationInput = {
     name?: StringFieldUpdateOperationsInput | string
     active?: BoolFieldUpdateOperationsInput | boolean
     createAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    appliesTo?: NullableJsonNullValueInput | InputJsonValue
   }
 
   export type FormTemplateUncheckedUpdateManyInput = {
@@ -57206,6 +57258,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     active?: BoolFieldUpdateOperationsInput | boolean
     createAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    appliesTo?: NullableJsonNullValueInput | InputJsonValue
   }
 
   export type FormResponseCreateInput = {
@@ -57300,6 +57353,7 @@ export namespace Prisma {
   export type H1CreateInput = {
     name: string
     formId: number
+    appliesTo?: NullableJsonNullValueInput | InputJsonValue
     formTemplate: FormTemplateCreateNestedOneWithoutH1sInput
     h1Asks?: H1AskCreateNestedManyWithoutH1Input
     h2s?: H2CreateNestedManyWithoutH1Input
@@ -57310,6 +57364,7 @@ export namespace Prisma {
     name: string
     formId: number
     formTemplateId: number
+    appliesTo?: NullableJsonNullValueInput | InputJsonValue
     h1Asks?: H1AskUncheckedCreateNestedManyWithoutH1Input
     h2s?: H2UncheckedCreateNestedManyWithoutH1Input
   }
@@ -57317,6 +57372,7 @@ export namespace Prisma {
   export type H1UpdateInput = {
     name?: StringFieldUpdateOperationsInput | string
     formId?: IntFieldUpdateOperationsInput | number
+    appliesTo?: NullableJsonNullValueInput | InputJsonValue
     formTemplate?: FormTemplateUpdateOneRequiredWithoutH1sNestedInput
     h1Asks?: H1AskUpdateManyWithoutH1NestedInput
     h2s?: H2UpdateManyWithoutH1NestedInput
@@ -57327,6 +57383,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     formId?: IntFieldUpdateOperationsInput | number
     formTemplateId?: IntFieldUpdateOperationsInput | number
+    appliesTo?: NullableJsonNullValueInput | InputJsonValue
     h1Asks?: H1AskUncheckedUpdateManyWithoutH1NestedInput
     h2s?: H2UncheckedUpdateManyWithoutH1NestedInput
   }
@@ -57336,11 +57393,13 @@ export namespace Prisma {
     name: string
     formId: number
     formTemplateId: number
+    appliesTo?: NullableJsonNullValueInput | InputJsonValue
   }
 
   export type H1UpdateManyMutationInput = {
     name?: StringFieldUpdateOperationsInput | string
     formId?: IntFieldUpdateOperationsInput | number
+    appliesTo?: NullableJsonNullValueInput | InputJsonValue
   }
 
   export type H1UncheckedUpdateManyInput = {
@@ -57348,6 +57407,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     formId?: IntFieldUpdateOperationsInput | number
     formTemplateId?: IntFieldUpdateOperationsInput | number
+    appliesTo?: NullableJsonNullValueInput | InputJsonValue
   }
 
   export type H1AskCreateInput = {
@@ -59836,6 +59896,29 @@ export namespace Prisma {
     foodId?: SortOrder
     categoryId?: SortOrder
   }
+  export type JsonNullableFilter<$PrismaModel = never> =
+    | PatchUndefined<
+        Either<Required<JsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonNullableFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>
+
+  export type JsonNullableFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+  }
 
   export type H1ListRelationFilter = {
     every?: H1WhereInput
@@ -59852,6 +59935,7 @@ export namespace Prisma {
     name?: SortOrder
     active?: SortOrder
     createAt?: SortOrder
+    appliesTo?: SortOrder
   }
 
   export type FormTemplateAvgOrderByAggregateInput = {
@@ -59874,6 +59958,32 @@ export namespace Prisma {
 
   export type FormTemplateSumOrderByAggregateInput = {
     formTemplateId?: SortOrder
+  }
+  export type JsonNullableWithAggregatesFilter<$PrismaModel = never> =
+    | PatchUndefined<
+        Either<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>
+
+  export type JsonNullableWithAggregatesFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedJsonNullableFilter<$PrismaModel>
+    _max?: NestedJsonNullableFilter<$PrismaModel>
   }
   export type JsonFilter<$PrismaModel = never> =
     | PatchUndefined<
@@ -60025,6 +60135,7 @@ export namespace Prisma {
     name?: SortOrder
     formId?: SortOrder
     formTemplateId?: SortOrder
+    appliesTo?: SortOrder
   }
 
   export type H1AvgOrderByAggregateInput = {
@@ -64944,6 +65055,29 @@ export namespace Prisma {
     _min?: NestedStringNullableFilter<$PrismaModel>
     _max?: NestedStringNullableFilter<$PrismaModel>
   }
+  export type NestedJsonNullableFilter<$PrismaModel = never> =
+    | PatchUndefined<
+        Either<Required<NestedJsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>,
+        Required<NestedJsonNullableFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>
+
+  export type NestedJsonNullableFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+  }
   export type NestedJsonFilter<$PrismaModel = never> =
     | PatchUndefined<
         Either<Required<NestedJsonFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonFilterBase<$PrismaModel>>, 'path'>>,
@@ -67675,6 +67809,7 @@ export namespace Prisma {
   export type H1CreateWithoutFormTemplateInput = {
     name: string
     formId: number
+    appliesTo?: NullableJsonNullValueInput | InputJsonValue
     h1Asks?: H1AskCreateNestedManyWithoutH1Input
     h2s?: H2CreateNestedManyWithoutH1Input
   }
@@ -67683,6 +67818,7 @@ export namespace Prisma {
     h1Id?: number
     name: string
     formId: number
+    appliesTo?: NullableJsonNullValueInput | InputJsonValue
     h1Asks?: H1AskUncheckedCreateNestedManyWithoutH1Input
     h2s?: H2UncheckedCreateNestedManyWithoutH1Input
   }
@@ -67758,6 +67894,7 @@ export namespace Prisma {
     name?: StringFilter<"H1"> | string
     formId?: IntFilter<"H1"> | number
     formTemplateId?: IntFilter<"H1"> | number
+    appliesTo?: JsonNullableFilter<"H1">
   }
 
   export type FormResponseUpsertWithWhereUniqueWithoutFormTemplateInput = {
@@ -67780,6 +67917,7 @@ export namespace Prisma {
     name: string
     active: boolean
     createAt: Date | string
+    appliesTo?: NullableJsonNullValueInput | InputJsonValue
     h1s?: H1CreateNestedManyWithoutFormTemplateInput
   }
 
@@ -67788,6 +67926,7 @@ export namespace Prisma {
     name: string
     active: boolean
     createAt: Date | string
+    appliesTo?: NullableJsonNullValueInput | InputJsonValue
     h1s?: H1UncheckedCreateNestedManyWithoutFormTemplateInput
   }
 
@@ -67988,6 +68127,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     active?: BoolFieldUpdateOperationsInput | boolean
     createAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    appliesTo?: NullableJsonNullValueInput | InputJsonValue
     h1s?: H1UpdateManyWithoutFormTemplateNestedInput
   }
 
@@ -67996,6 +68136,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     active?: BoolFieldUpdateOperationsInput | boolean
     createAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    appliesTo?: NullableJsonNullValueInput | InputJsonValue
     h1s?: H1UncheckedUpdateManyWithoutFormTemplateNestedInput
   }
 
@@ -68203,6 +68344,7 @@ export namespace Prisma {
     name: string
     active: boolean
     createAt: Date | string
+    appliesTo?: NullableJsonNullValueInput | InputJsonValue
     formResponses?: FormResponseCreateNestedManyWithoutFormTemplateInput
   }
 
@@ -68211,6 +68353,7 @@ export namespace Prisma {
     name: string
     active: boolean
     createAt: Date | string
+    appliesTo?: NullableJsonNullValueInput | InputJsonValue
     formResponses?: FormResponseUncheckedCreateNestedManyWithoutFormTemplateInput
   }
 
@@ -68278,6 +68421,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     active?: BoolFieldUpdateOperationsInput | boolean
     createAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    appliesTo?: NullableJsonNullValueInput | InputJsonValue
     formResponses?: FormResponseUpdateManyWithoutFormTemplateNestedInput
   }
 
@@ -68286,6 +68430,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     active?: BoolFieldUpdateOperationsInput | boolean
     createAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    appliesTo?: NullableJsonNullValueInput | InputJsonValue
     formResponses?: FormResponseUncheckedUpdateManyWithoutFormTemplateNestedInput
   }
 
@@ -68343,6 +68488,7 @@ export namespace Prisma {
   export type H1CreateWithoutH1AsksInput = {
     name: string
     formId: number
+    appliesTo?: NullableJsonNullValueInput | InputJsonValue
     formTemplate: FormTemplateCreateNestedOneWithoutH1sInput
     h2s?: H2CreateNestedManyWithoutH1Input
   }
@@ -68352,6 +68498,7 @@ export namespace Prisma {
     name: string
     formId: number
     formTemplateId: number
+    appliesTo?: NullableJsonNullValueInput | InputJsonValue
     h2s?: H2UncheckedCreateNestedManyWithoutH1Input
   }
 
@@ -68374,6 +68521,7 @@ export namespace Prisma {
   export type H1UpdateWithoutH1AsksInput = {
     name?: StringFieldUpdateOperationsInput | string
     formId?: IntFieldUpdateOperationsInput | number
+    appliesTo?: NullableJsonNullValueInput | InputJsonValue
     formTemplate?: FormTemplateUpdateOneRequiredWithoutH1sNestedInput
     h2s?: H2UpdateManyWithoutH1NestedInput
   }
@@ -68383,12 +68531,14 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     formId?: IntFieldUpdateOperationsInput | number
     formTemplateId?: IntFieldUpdateOperationsInput | number
+    appliesTo?: NullableJsonNullValueInput | InputJsonValue
     h2s?: H2UncheckedUpdateManyWithoutH1NestedInput
   }
 
   export type H1CreateWithoutH2sInput = {
     name: string
     formId: number
+    appliesTo?: NullableJsonNullValueInput | InputJsonValue
     formTemplate: FormTemplateCreateNestedOneWithoutH1sInput
     h1Asks?: H1AskCreateNestedManyWithoutH1Input
   }
@@ -68398,6 +68548,7 @@ export namespace Prisma {
     name: string
     formId: number
     formTemplateId: number
+    appliesTo?: NullableJsonNullValueInput | InputJsonValue
     h1Asks?: H1AskUncheckedCreateNestedManyWithoutH1Input
   }
 
@@ -68464,6 +68615,7 @@ export namespace Prisma {
   export type H1UpdateWithoutH2sInput = {
     name?: StringFieldUpdateOperationsInput | string
     formId?: IntFieldUpdateOperationsInput | number
+    appliesTo?: NullableJsonNullValueInput | InputJsonValue
     formTemplate?: FormTemplateUpdateOneRequiredWithoutH1sNestedInput
     h1Asks?: H1AskUpdateManyWithoutH1NestedInput
   }
@@ -68473,6 +68625,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     formId?: IntFieldUpdateOperationsInput | number
     formTemplateId?: IntFieldUpdateOperationsInput | number
+    appliesTo?: NullableJsonNullValueInput | InputJsonValue
     h1Asks?: H1AskUncheckedUpdateManyWithoutH1NestedInput
   }
 
@@ -73553,6 +73706,7 @@ export namespace Prisma {
     h1Id?: number
     name: string
     formId: number
+    appliesTo?: NullableJsonNullValueInput | InputJsonValue
   }
 
   export type FormResponseCreateManyFormTemplateInput = {
@@ -73569,6 +73723,7 @@ export namespace Prisma {
   export type H1UpdateWithoutFormTemplateInput = {
     name?: StringFieldUpdateOperationsInput | string
     formId?: IntFieldUpdateOperationsInput | number
+    appliesTo?: NullableJsonNullValueInput | InputJsonValue
     h1Asks?: H1AskUpdateManyWithoutH1NestedInput
     h2s?: H2UpdateManyWithoutH1NestedInput
   }
@@ -73577,6 +73732,7 @@ export namespace Prisma {
     h1Id?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     formId?: IntFieldUpdateOperationsInput | number
+    appliesTo?: NullableJsonNullValueInput | InputJsonValue
     h1Asks?: H1AskUncheckedUpdateManyWithoutH1NestedInput
     h2s?: H2UncheckedUpdateManyWithoutH1NestedInput
   }
@@ -73585,6 +73741,7 @@ export namespace Prisma {
     h1Id?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     formId?: IntFieldUpdateOperationsInput | number
+    appliesTo?: NullableJsonNullValueInput | InputJsonValue
   }
 
   export type FormResponseUpdateWithoutFormTemplateInput = {

@@ -1,4 +1,5 @@
 import prisma, { type Prisma } from '@reto/db';
+import { chooseApplicableTemplate, type FormCaseContext } from '@reto/shared';
 
 /**
  * form-templates.model.ts
@@ -29,6 +30,19 @@ export const formTemplatesModel = {
 
   getActive: async () => {
     return prisma.formTemplate.findFirst({ where: { active: true }, orderBy: { createAt: 'desc' } });
+  },
+
+  /**
+   * Picks the active template whose appliesTo scope matches the case.
+   * A universal template (appliesTo null) matches every case and loses to a
+   * more specific active template when both match.
+   */
+  resolveActiveId: async (context: FormCaseContext) => {
+    const templates = await prisma.formTemplate.findMany({
+      where: { active: true },
+      orderBy: { createAt: 'desc' },
+    });
+    return chooseApplicableTemplate(templates, context)?.formTemplateId ?? null;
   },
 
   getTreeById: async (formTemplateId: number) => {

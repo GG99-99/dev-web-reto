@@ -1,6 +1,7 @@
 import type { FinishEvaluationResponse, FormAnswers } from '@reto/shared';
-import { formExecutionModel, readAnswers } from './form-execution.model';
+import { formExecutionModel } from './form-execution.model';
 import { formTemplatesModel } from './form-templates.model';
+import { assertEvaluationFormComplete, getEvaluationFormTemplate, loadEvaluationForm } from './form-completeness';
 import { evaluationsService } from '../evaluations/evaluations.service';
 import { riskEngineService } from '../risk-engine/risk-engine.service';
 import { reportsService } from '../reports/reports.service';
@@ -31,6 +32,10 @@ export const formExecutionService = {
     return tree;
   },
 
+  getEvaluationTemplate: async (evaluationId: number, requesterId: number, role?: string | null) => {
+    return getEvaluationFormTemplate(evaluationId, requesterId, role);
+  },
+
   getExecutionDetail: async (evaluationId: number): Promise<any> => {
     const detail = await formExecutionModel.getExecutionDetail(evaluationId);
     if (!detail) throw ApiError.notFound('Evaluation not found');
@@ -46,8 +51,9 @@ export const formExecutionService = {
       throw ApiError.conflict('The evaluation is not in a state that allows it to be started');
     }
 
-    const template = await formTemplatesModel.getActive();
-    if (!template) throw ApiError.internal('No active form template is configured');
+    const form = await loadEvaluationForm(evaluationId);
+    const templateId = form?.template?.formTemplateId;
+    if (!templateId) throw ApiError.validation('No evaluation form is configured for this request type');
 
     const represent = await prisma.represent.findUnique({
       where: { representId: data.representId },
@@ -58,7 +64,7 @@ export const formExecutionService = {
     }
 
     return formExecutionModel.start(evaluationId, {
-      formTemplateId: template.formTemplateId,
+      formTemplateId: templateId,
       institutionId: evaluation.institutionId,
       representId: data.representId,
       foodId: data.foodId,
@@ -98,13 +104,9 @@ export const formExecutionService = {
       throw ApiError.conflict('The evaluation does not have a completed form session');
     }
 
-    const formResponse = await prisma.formResponse.findUniqueOrThrow({ where: { formResponseId: evaluation.formResponseId } });
-    const answers = readAnswers(formResponse.answers);
-    if (answers.length === 0) {
-      throw ApiError.validation('Cannot finalize an evaluation with no recorded answers');
-    }
+    const { answers } = await assertEvaluationFormComplete(evaluationId);
 
-    // 1) RF-14: motor de riesgo
+    // 1) RF-14: motor de riesgo, using only answers that belong to the required chapters
     const score = await riskEngineService.computeAndPersist(evaluationId, answers);
 
     // 2) transición de estado de la Evaluation

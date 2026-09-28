@@ -10,7 +10,7 @@ import prisma, { type Prisma } from '@reto/db';
  */
 
 const EVALUATION_LIST_INCLUDE = {
-  institution: { select: { institutionId: true, name: true, streetName: true } },
+  institution: { select: { institutionId: true, name: true, streetName: true, rnc: true } },
   technician: { include: { person: true } },
 } satisfies Prisma.EvaluationInclude;
 

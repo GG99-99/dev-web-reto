@@ -10,11 +10,20 @@ import { httpClient } from './httpClient';
 import type {
   ApiResponse,
   FormTemplateTree,
+  FormCaseContext,
+  FormCompleteness,
   StartEvaluationRequest,
   FormAnswersPayload,
   EvaluationExecutionDetail,
   FinishEvaluationResponse,
 } from '@reto/shared';
+
+export interface EvaluationFormTemplate {
+  formTemplateId: number;
+  context: FormCaseContext;
+  template: FormTemplateTree;
+  completeness: FormCompleteness;
+}
 
 /**
  * `GET /form-templates` — ADMIN, COORDINADOR. Lista plantillas activas.
@@ -34,6 +43,13 @@ async function listTemplates(): Promise<ApiResponse<FormTemplateTree[]>> {
  * `GET /form-templates/:id/tree` — Todos los roles operativos.
  * Árbol completo `h1 → h2 → h3 → h4` con sus `*_ask`.
  */
+async function getEvaluationTemplate(evaluationId: number): Promise<ApiResponse<EvaluationFormTemplate>> {
+  const { data } = await httpClient.get<ApiResponse<EvaluationFormTemplate>>(
+    `/evaluations/${evaluationId}/form-template`,
+  );
+  return data;
+}
+
 async function getTemplateTree(id: number): Promise<ApiResponse<FormTemplateTree>> {
   const { data } = await httpClient.get<ApiResponse<FormTemplateTree>>(
     `/form-templates/${id}/tree`,
@@ -102,6 +118,7 @@ async function finish(evaluationId: number): Promise<ApiResponse<FinishEvaluatio
 
 export const formExecutionService = {
   listTemplates,
+  getEvaluationTemplate,
   getTemplateTree,
   start,
   saveAnswers,

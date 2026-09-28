@@ -63,6 +63,7 @@ export * from './lapchAlerts';
 export * from './complaints';
 export * from './assignments';
 export * from './formExecution';
+export * from './formCompleteness';
 export * from './riskEngine';
 export * from './evidences';
 export * from './reports';
