@@ -19,10 +19,11 @@ const AskValueSchema = z.enum(['C', 'CP', 'NC', 'N/A']);
  * texto de la pregunta (se guarda para no depender de un join al mostrarla);
  * `value` es la respuesta.
  */
-const AskAnswerSchema = z.object({
+export const AskAnswerSchema = z.object({
   key: z.string().min(1),
   txt: z.string().min(1),
   value: AskValueSchema,
+  note: z.string().trim().max(4000).optional(),
 });
 
 /** Body de `PATCH /evaluations/:id/answers`. */

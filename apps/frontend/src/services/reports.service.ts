@@ -13,6 +13,8 @@ import type {
   ReviewReportRequest,
   ReportReview,
   CorrectReportRequest,
+  FormAnswers,
+  OfficialVerdictPreview,
 } from '@reto/shared';
 
 /** `GET /evaluations/:id/report` — Con acceso. Informe autogenerado al finalizar la evaluación. */
@@ -95,8 +97,25 @@ async function resend(reportId: number): Promise<ApiResponse<EvaluationReportDet
   return data;
 }
 
+/**
+ * `POST /evaluations/:id/verdict-preview`
+ * Official verdict from the evaluation as it stands. Pass the answers on screen
+ * so an inspector sees exactly what finishing or resubmitting will send.
+ */
+async function preview(
+  evaluationId: number,
+  answers?: FormAnswers,
+): Promise<ApiResponse<OfficialVerdictPreview>> {
+  const { data } = await httpClient.post<ApiResponse<OfficialVerdictPreview>>(
+    `/evaluations/${evaluationId}/verdict-preview`,
+    answers ? { answers } : {},
+  );
+  return data;
+}
+
 export const reportsService = {
   getByEvaluation,
+  preview,
   submit,
   review,
   listReviews,

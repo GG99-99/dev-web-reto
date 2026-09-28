@@ -460,7 +460,8 @@ exports.Prisma.EvaluationReportScalarFieldEnum = {
   correctionScope: 'correctionScope',
   flaggedSections: 'flaggedSections',
   correctionRequestedAt: 'correctionRequestedAt',
-  correctionSavedAt: 'correctionSavedAt'
+  correctionSavedAt: 'correctionSavedAt',
+  autoNarrative: 'autoNarrative'
 };
 
 exports.Prisma.ReportReviewScalarFieldEnum = {

@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express';
+import type { FormAnswers } from '@reto/shared';
 import { reportsService } from './reports.service';
 import { evaluationsService } from '../evaluations/evaluations.service';
 import { ok } from '@/lib/common/response';
@@ -34,6 +35,18 @@ export const reportsController = {
     const { id } = req.validated!.params; // evaluationId
     await assertAccessByEvaluationId(id, req);
     const data = await reportsService.getByEvaluationId(id);
+    return res.status(200).json(ok(data));
+  },
+
+  preview: async (req: Request, res: Response) => {
+    if (!req.user) throw ApiError.unauthorized();
+    const { id } = req.validated!.params; // evaluationId
+    const evaluation = await assertAccessByEvaluationId(id, req);
+    const answers = req.validated!.body?.answers as FormAnswers | undefined;
+    const data = await reportsService.preview(evaluation, answers, {
+      userId: req.user.userId,
+      role: req.user.role ?? '',
+    });
     return res.status(200).json(ok(data));
   },
 

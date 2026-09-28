@@ -1,6 +1,7 @@
-import type { ApiResponse, EvaluationReportDetail, ReviewReportRequest, ReportReview, CorrectReportRequest } from '@reto/shared';
+import type { ApiResponse, EvaluationReportDetail, ReviewReportRequest, ReportReview, CorrectReportRequest, FormAnswers, OfficialVerdictPreview } from '@reto/shared';
 /** `GET /evaluations/:id/report` — Con acceso. Informe autogenerado al finalizar la evaluación. */
 declare function getByEvaluation(evaluationId: number): Promise<ApiResponse<EvaluationReportDetail>>;
+declare function preview(evaluationId: number, answers?: FormAnswers): Promise<ApiResponse<OfficialVerdictPreview>>;
 /**
  * `POST /reports/:id/submit` — TECNICO_EVALUADOR.
  * Envía a revisión: `status: 'BORRADOR' → 'ENVIADO'`, `locked = true`.
@@ -37,6 +38,7 @@ declare function correct(reportId: number, body: CorrectReportRequest): Promise<
 declare function resend(reportId: number): Promise<ApiResponse<EvaluationReportDetail>>;
 export declare const reportsService: {
     getByEvaluation: typeof getByEvaluation;
+    preview: typeof preview;
     submit: typeof submit;
     review: typeof review;
     listReviews: typeof listReviews;

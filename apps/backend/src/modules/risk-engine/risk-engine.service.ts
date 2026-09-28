@@ -41,41 +41,44 @@ export interface ComputedRisk {
   frecuenciaInspeccion: InspectionFrequency;
 }
 
+async function calculateRisk(answers: FormAnswers): Promise<ComputedRisk | null> {
+  const applicable = answers.filter((a) => a.value !== 'N/A');
+  if (applicable.length === 0) return null;
+
+  const cumplimientoPromedio =
+    applicable.reduce((sum, a) => sum + COMPLIANCE[a.value as Exclude<AskValue, 'N/A'>], 0) / applicable.length;
+
+  const porcentajeCumplimiento = Number((cumplimientoPromedio * 100).toFixed(2));
+  const puntajeObtenido = Number(((1 - cumplimientoPromedio) * 10).toFixed(2));
+
+  const rule = await riskEngineModel.findMatchingRule(puntajeObtenido);
+  if (!rule) {
+    throw ApiError.internal(
+      'No RiskFrequencyRule found covering the calculated score; check the rules catalog (GET /catalogs/risk-frequency-rules)',
+    );
+  }
+
+  return {
+    puntajeObtenido,
+    porcentajeCumplimiento,
+    nivelRiesgo: rule.riskLevel,
+    frecuenciaInspeccion: rule.frequency,
+  };
+}
+
 export const riskEngineService = {
+  /** Same formula as the persisted score, without writing it. */
+  calculate: calculateRisk,
+
   /** Calcula el riesgo a partir de las respuestas y lo persiste (upsert) para la evaluación. */
   computeAndPersist: async (evaluationId: number, answers: FormAnswers): Promise<ComputedRisk> => {
-    const applicable = answers.filter((a) => a.value !== 'N/A');
-
-    if (applicable.length === 0) {
+    const score = await calculateRisk(answers);
+    if (!score) {
       throw ApiError.validation('No applicable answers (all N/A); risk cannot be calculated');
     }
 
-    const cumplimientoPromedio =
-      applicable.reduce((sum, a) => sum + COMPLIANCE[a.value as Exclude<AskValue, 'N/A'>], 0) / applicable.length;
-
-    const porcentajeCumplimiento = Number((cumplimientoPromedio * 100).toFixed(2));
-    const puntajeObtenido = Number(((1 - cumplimientoPromedio) * 10).toFixed(2));
-
-    const rule = await riskEngineModel.findMatchingRule(puntajeObtenido);
-    if (!rule) {
-      throw ApiError.internal(
-        'No RiskFrequencyRule found covering the calculated score; check the rules catalog (GET /catalogs/risk-frequency-rules)',
-      );
-    }
-
-    await riskEngineModel.upsertScore(evaluationId, {
-      puntajeObtenido,
-      porcentajeCumplimiento,
-      nivelRiesgo: rule.riskLevel,
-      frecuenciaInspeccion: rule.frequency,
-    });
-
-    return {
-      puntajeObtenido,
-      porcentajeCumplimiento,
-      nivelRiesgo: rule.riskLevel,
-      frecuenciaInspeccion: rule.frequency,
-    };
+    await riskEngineModel.upsertScore(evaluationId, score);
+    return score;
   },
 
   getByEvaluation: async (evaluationId: number) => {

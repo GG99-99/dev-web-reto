@@ -64,7 +64,14 @@ export const formExecutionModel = {
 
     const byKey = new Map(existing.map((a) => [a.key, a]));
     for (const answer of incoming) {
-      byKey.set(answer.key, answer);
+      const previous = byKey.get(answer.key);
+      const note = answer.note === undefined ? previous?.note?.trim() : answer.note.trim();
+      byKey.set(answer.key, {
+        key: answer.key,
+        txt: answer.txt,
+        value: answer.value,
+        ...(note ? { note } : {}),
+      });
     }
     const result: FormAnswers = Array.from(byKey.values());
 

@@ -166,9 +166,7 @@ function App() {
   const [activeEvaluationId, setActiveEvaluationId] = useState<number | null>(
     null,
   );
-  const [activeReportEvalId, setActiveReportEvalId] = useState<number | null>(
-    null,
-  );
+  const [activeReport, setActiveReport] = useState(null);
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadNotifCount, setUnreadNotifCount] = useState(0);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -590,7 +588,7 @@ function App() {
             <CompanyPortal
               role={session.role}
               notify={setNotice}
-              onOpenOfficialReport={(id) => setActiveReportEvalId(id)}
+              onOpenOfficialReport={(id) => setActiveReport({ evaluationId: id })}
             />
           )}
           {view === "calendar" && (
@@ -612,7 +610,7 @@ function App() {
             <OperationsWorkbench
               role={session.role}
               initial="cases"
-              onOpenOfficialReport={(id) => setActiveReportEvalId(id)}
+              onOpenOfficialReport={(id) => setActiveReport({ evaluationId: id })}
             />
           )}
           {view === "field" && session.role === "TECNICO_EVALUADOR" && (
@@ -625,7 +623,7 @@ function App() {
               }
               live
               inform={setNotice}
-              onViewReport={(id) => setActiveReportEvalId(id)}
+              onViewReport={(id, answers) => setActiveReport({ evaluationId: id, answers })}
               onEvaluationUpdated={(evaluationId, patch) => {
                 setEvaluations((current) => {
                   const next = current.map((entry) =>
@@ -643,7 +641,7 @@ function App() {
             <OperationsWorkbench
               role={session.role}
               initial="reports"
-              onOpenOfficialReport={(id) => setActiveReportEvalId(id)}
+              onOpenOfficialReport={(id) => setActiveReport({ evaluationId: id })}
               onOpenField={
                 session.role === "TECNICO_EVALUADOR"
                   ? (id) => {
@@ -658,16 +656,17 @@ function App() {
             <OperationsWorkbench
               role={session.role}
               initial="cases"
-              onOpenOfficialReport={(id) => setActiveReportEvalId(id)}
+              onOpenOfficialReport={(id) => setActiveReport({ evaluationId: id })}
             />
           )}
           {view === "governance" && <AdminGovernancePanel notify={setNotice} />}
         </div>
-        {activeReportEvalId !== null && (
+        {activeReport !== null && (
           <InspectionReportModal
-            evaluationId={activeReportEvalId}
+            evaluationId={activeReport.evaluationId}
+            answers={activeReport.answers}
             role={session.role}
-            onClose={() => setActiveReportEvalId(null)}
+            onClose={() => setActiveReport(null)}
             notify={setNotice}
           />
         )}{" "}

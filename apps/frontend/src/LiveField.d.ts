@@ -6,7 +6,7 @@ type LiveFieldProps = {
     item?: Evaluation;
     live: boolean;
     inform: (message: string) => void;
-    onViewReport?: (evaluationId: number) => void;
+    onViewReport?: (evaluationId: number, answers?: import('@reto/shared').FormAnswers) => void;
     onEvaluationUpdated?: (evaluationId: number, patch: Partial<Evaluation>) => void;
 };
 export interface StructuredQuestion {

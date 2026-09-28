@@ -1,7 +1,7 @@
 import { Router, type Router as ExpressRouter } from 'express';
 import { validateJwt, validateReq, validateRole } from '#backend/middlewares';
 import { reportsController } from './reports.controller';
-import { ReviewReportSchema, CorrectReportSchema, IdParamSchema } from './reports.schemas';
+import { ReviewReportSchema, CorrectReportSchema, IdParamSchema, VerdictPreviewSchema } from './reports.schemas';
 
 /**
  * reports.router.ts
@@ -16,6 +16,12 @@ reportsRouter
   .use('/evaluations', validateJwt)
   .use('/reports', validateJwt)
   .get('/evaluations/:id/report', validateReq(IdParamSchema, 'params'), reportsController.getByEvaluation)
+  .post(
+    '/evaluations/:id/verdict-preview',
+    validateReq(IdParamSchema, 'params'),
+    validateReq(VerdictPreviewSchema, 'body'),
+    reportsController.preview,
+  )
   .post(
     '/reports/:id/submit',
     validateRole('TECNICO_EVALUADOR'),

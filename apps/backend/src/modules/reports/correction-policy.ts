@@ -97,14 +97,17 @@ export async function assertAnswerEdit(
 
   const loaded = await loadEvaluationForm(evaluation.evaluationId);
   const existing = readAnswers(loaded?.evaluation.formResponse?.answers);
-  const existingByKey = new Map(existing.map((answer) => [answer.key, answer.value]));
+  const existingByKey = new Map(existing.map((answer) => [answer.key, answer]));
   const flagged = new Set(readFlaggedSections(report.flaggedSections));
   const partial = isPartial(report);
   const questions = await questionIndex(evaluation.evaluationId);
   let changed = false;
 
   for (const answer of incoming) {
-    if (existingByKey.get(answer.key) === answer.value) continue;
+    const previous = existingByKey.get(answer.key);
+    const sameValue = previous?.value === answer.value;
+    const sameNote = answer.note === undefined || (previous?.note ?? '').trim() === answer.note.trim();
+    if (sameValue && sameNote) continue;
     if (partial) {
       const question = questions.get(answer.key);
       const chapterId = question ? `chapter:${question.h1Id}` : null;

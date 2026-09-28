@@ -809,6 +809,10 @@ model EvaluationReport {
   correctionRequestedAt DateTime?        @map("correction_requested_at")
   correctionSavedAt     DateTime?        @map("correction_saved_at")
 
+  /// Last narrative produced from the answers. Matching fields stay in sync
+  /// with the field record; a hand-edited field is left as the inspector saved it.
+  autoNarrative Json? @map("auto_narrative")
+
   evaluation  Evaluation     @relation(fields: [evaluationId], references: [evaluationId])
   attachments Attachment[]
   reviews     ReportReview[]

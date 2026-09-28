@@ -1,64 +1,61 @@
-import { useState, useEffect } from 'react';
-import { reportsService, evaluationsService, riskEngineService } from './services';
-import type { EvaluationReportDetail, EvaluationListItem, EvaluationScore } from '@reto/shared';
+import { useState, useEffect, Fragment } from 'react';
+import { reportsService, evaluationsService } from './services';
+import type { EvaluationListItem, FormAnswers, OfficialVerdictPreview } from '@reto/shared';
 import './InspectionReportModal.css';
 
 interface InspectionReportModalProps {
   evaluationId: number;
   role?: string;
+  answers?: FormAnswers;
   onClose: () => void;
   notify?: (msg: string) => void;
 }
 
+const VALUE_LABEL: Record<string, string> = {
+  C: 'Compliant',
+  CP: 'Partial',
+  NC: 'Non-compliant',
+  'N/A': 'Not applicable',
+};
+
 export default function InspectionReportModal({
   evaluationId,
   role,
+  answers,
   onClose,
   notify,
 }: InspectionReportModalProps) {
-  const [report, setReport] = useState<EvaluationReportDetail | null>(null);
+  const [verdict, setVerdict] = useState<OfficialVerdictPreview | null>(null);
   const [evaluation, setEvaluation] = useState<EvaluationListItem | null>(null);
-  const [score, setScore] = useState<EvaluationScore | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [reportUnavailable, setReportUnavailable] = useState(false);
 
-  // Loading report data, evaluation and real risk engine score (RF-14)
+  // The verdict is rebuilt from the evaluation as it stands, including the
+  // answers currently on the inspector's screen when those were passed in.
   const loadReportData = async () => {
     setLoading(true);
     setReportUnavailable(false);
-    setReport(null);
+    setVerdict(null);
     setEvaluation(null);
-    setScore(null);
     try {
       const evalRes = await evaluationsService.getById(evaluationId).catch(() => null);
-      const evaluationStatus = evalRes?.valid ? evalRes.data.status : null;
-
       if (evalRes?.valid && evalRes.data) {
         setEvaluation(evalRes.data);
       }
-
-      if (evaluationStatus !== 'FINALIZADA' && evaluationStatus !== 'EN_CORRECCION') {
-        setReportUnavailable(true);
+      if (evalRes?.valid && evalRes.data.status === 'CANCELADA') {
         return;
       }
 
-      const [repRes, scoreRes] = await Promise.all([
-        reportsService.getByEvaluation(evaluationId).catch(() => null),
-        riskEngineService.getScore(evaluationId).catch(() => null),
-      ]);
-
-      if (repRes?.valid && repRes.data) {
-        setReport(repRes.data);
-      }
-      if (scoreRes?.valid && scoreRes.data) {
-        setScore(scoreRes.data);
-      }
-      if (!repRes?.valid || !repRes.data) {
+      const previewRes = await reportsService.preview(evaluationId, answers);
+      if (previewRes.valid && previewRes.data) {
+        setVerdict(previewRes.data);
+      } else {
         setReportUnavailable(true);
       }
     } catch (err: unknown) {
       console.error('Error loading inspection report:', err);
+      setReportUnavailable(true);
       notify?.('Could not load the official evaluation report.');
     } finally {
       setLoading(false);
@@ -67,7 +64,7 @@ export default function InspectionReportModal({
 
   useEffect(() => {
     void loadReportData();
-  }, [evaluationId]);
+  }, [evaluationId, answers]);
 
   // Print or Save Official PDF
   const handlePrint = () => {
@@ -86,10 +83,10 @@ export default function InspectionReportModal({
 
   // Submit report for review (Evaluator Technician)
   const handleSubmitReport = async () => {
-    if (!report) return;
+    if (!verdict?.reportId) return;
     setBusy(true);
     try {
-      const result = await reportsService.submit(report.reportId);
+      const result = await reportsService.submit(verdict.reportId);
       if (result.valid) {
         notify?.('✅ Report submitted to the Coordinator for official review.');
         await loadReportData();
@@ -104,10 +101,10 @@ export default function InspectionReportModal({
 
   // Approve report (Coordinator / Admin)
   const handleApproveReport = async () => {
-    if (!report) return;
+    if (!verdict?.reportId) return;
     setBusy(true);
     try {
-      const result = await reportsService.review(report.reportId, {
+      const result = await reportsService.review(verdict.reportId, {
         action: 'APROBAR',
         comments: 'Technical report approved in accordance with current GMP regulations.',
       });
@@ -123,33 +120,32 @@ export default function InspectionReportModal({
     }
   };
 
-  const establishmentName = evaluation?.institution?.name ?? 'Not available';
-  const address = evaluation?.institution?.streetName ?? 'Not available';
-  const technicianName = evaluation?.technician?.person?.name ?? 'Not available';
-  const technicianCedula = evaluation?.technician?.person?.cedula ?? 'Not available';
-  const dateString = evaluation?.scheduledDate
-    ? new Date(evaluation.scheduledDate).toLocaleDateString('en-US', {
+  const establishmentName = verdict?.establishment.name || evaluation?.institution?.name || 'Not available';
+  const address = verdict?.establishment.address || evaluation?.institution?.streetName || 'Not available';
+  const technicianName = verdict?.inspector.name || evaluation?.technician?.person?.name || 'Not available';
+  const technicianCedula = verdict?.inspector.cedula || evaluation?.technician?.person?.cedula || 'Not available';
+  const scheduledSource = verdict?.scheduledDate || evaluation?.scheduledDate;
+  const dateString = scheduledSource
+    ? new Date(scheduledSource).toLocaleDateString('en-US', {
         dateStyle: 'long',
       })
     : 'Not available';
 
-  const executiveSummary = report?.resumenEjecutivo ?? '';
+  const executiveSummary = verdict?.narrative.resumenEjecutivo ?? '';
 
-  const findings = report?.hallazgos ?? '';
+  const findings = verdict?.narrative.hallazgos ?? '';
 
-  const nonConformities = report?.noConformidades ?? '';
+  const nonConformities = verdict?.narrative.noConformidades ?? '';
 
-  const recommendations = report?.recomendaciones ?? '';
+  const recommendations = verdict?.narrative.recomendaciones ?? '';
 
-  const reportStatus = report?.status;
-  const reportVersion = report?.version;
+  const reportStatus = verdict?.reportStatus ?? undefined;
+  const reportVersion = verdict?.reportVersion ?? undefined;
+  const score = verdict?.score ?? null;
 
-  // Datos reales del motor de riesgo (RF-14). Si aún no se ha calculado
-  // (evaluación no finalizada), se muestra un estado pendiente en vez de
-  // inventar un porcentaje o nivel de riesgo.
   const hasScore = score !== null;
-  const compliancePct = hasScore ? `${score!.porcentajeCumplimiento.toFixed(1)}%` : 'Pending';
-  const riskIndex = hasScore ? `${score!.puntajeObtenido.toFixed(1)} / 10.0` : 'Pending';
+  const compliancePct = hasScore ? `${score.porcentajeCumplimiento.toFixed(1)}%` : 'Pending';
+  const riskIndex = hasScore ? `${score.puntajeObtenido.toFixed(1)} / 10.0` : 'Pending';
   const riskLevel = score?.nivelRiesgo ?? null;
   const riskLevelLabel = riskLevel === 'ALTO' ? 'HIGH RISK' : riskLevel === 'MEDIO' ? 'MEDIUM RISK' : riskLevel === 'BAJO' ? 'LOW RISK' : 'PENDING';
   const frequencyLabel = score?.frecuenciaInspeccion
@@ -167,7 +163,7 @@ export default function InspectionReportModal({
           </div>
 
           <div className="irm-action-buttons">
-            <button className="irm-btn irm-btn-print" onClick={handlePrint} title="Print or save as PDF" disabled={loading || !report}>
+            <button className="irm-btn irm-btn-print" onClick={handlePrint} title="Print or save as PDF" disabled={loading || !verdict}>
               <span className="material-symbols-outlined" style={{ fontSize: '1.1rem' }}>print</span>
               Print / PDF
             </button>
@@ -227,10 +223,10 @@ export default function InspectionReportModal({
                 </div>
               )}
             </div>
-          ) : !report ? (
+          ) : !verdict ? (
             <div className="empty" role="status" style={{ margin: '2rem' }}>
-              <p>{reportUnavailable ? 'This evaluation is not ready for an official report yet.' : 'No official inspection report has been generated for this assessment yet.'}</p>
-              <small>Complete and finalize the field assessment before opening the official report.</small>
+              <p>{reportUnavailable ? 'The official verdict could not be prepared from this evaluation.' : 'No official inspection report has been generated for this assessment yet.'}</p>
+              <small>Open it again after the assessment answers are available.</small>
             </div>
           ) : (
             <article className="irm-paper">
@@ -330,18 +326,59 @@ export default function InspectionReportModal({
                   </div>
                   <div className="irm-folio-item">
                     <span className="irm-folio-lbl">Version:</span>
-                    <span>v{reportVersion ?? 1} (Official)</span>
+                    <span>{reportVersion ? `v${reportVersion}` : 'Working draft'}</span>
                   </div>
                   <div className="irm-folio-item">
                     <span className="irm-folio-lbl">Inspection Date:</span>
                     <span>{dateString}</span>
                   </div>
                   <div className="irm-folio-item irm-folio-status">
-                    <span className="irm-status-pill approved">
-                      <span className="material-symbols-outlined" style={{ fontSize: '0.9rem' }}>verified</span>
-                      VALID OFFICIAL REPORT
+                    <span className={`irm-status-pill ${verdict.delivery === 'approved' ? 'approved' : verdict.delivery === 'with_coordinator' ? 'review' : verdict.delivery === 'ready_to_send' ? 'ready' : 'draft'}`}>
+                      <span className="material-symbols-outlined" style={{ fontSize: '0.9rem' }}>
+                        {verdict.delivery === 'approved' ? 'verified' : verdict.delivery === 'working' ? 'edit_note' : 'schedule_send'}
+                      </span>
+                      {verdict.delivery === 'approved'
+                        ? 'APPROVED OFFICIAL REPORT'
+                        : verdict.delivery === 'with_coordinator'
+                          ? 'SUBMITTED TO COORDINATOR'
+                          : verdict.delivery === 'ready_to_send'
+                            ? 'READY TO SEND'
+                            : 'WORKING DRAFT'}
                     </span>
                   </div>
+                </div>
+                <div className={`irm-state-banner ${verdict.delivery}`}>
+                  <strong>
+                    {verdict.answeredQuestions} of {verdict.requiredQuestions} required criteria answered
+                    {hasScore ? ` · ${compliancePct} compliance` : ''}
+                  </strong>
+                  {verdict.delivery === 'working' && (
+                    <span>This draft follows the assessment as it stands now. Finish the required chapters before it can be sent to the coordinator.</span>
+                  )}
+                  {verdict.delivery === 'ready_to_send' && reportStatus == null && (
+                    <span>This is the verdict that will be issued when you finish the assessment and send it to the coordinator.</span>
+                  )}
+                  {verdict.delivery === 'ready_to_send' && reportStatus === 'BORRADOR' && (
+                    <span>This is the exact verdict that will be sent when you submit it to the coordinator.</span>
+                  )}
+                  {verdict.delivery === 'ready_to_send' && (reportStatus === 'EN_CORRECCION' || reportStatus === 'DEVUELTO') && (
+                    <span>This is the exact verdict that will be sent when you resubmit this evaluation to the coordinator.</span>
+                  )}
+                  {verdict.delivery === 'with_coordinator' && (
+                    <span>The coordinator already has this verdict. The field record stays as it was submitted.</span>
+                  )}
+                  {verdict.delivery === 'approved' && (
+                    <span>This approved verdict is the official record of the evaluation.</span>
+                  )}
+                  {verdict.pendingLocalChanges && (
+                    <span> It includes answers that are still only on this screen. Resubmit from Field Assessment to send them.</span>
+                  )}
+                  {verdict.correctionReady === false && (
+                    <span> Save the requested correction before this evaluation can be resubmitted.</span>
+                  )}
+                  {verdict.editedSections.length > 0 && (
+                    <span> Edited by hand and sent as written: {verdict.editedSections.join(', ')}.</span>
+                  )}
                 </div>
               </div>
 
@@ -358,7 +395,7 @@ export default function InspectionReportModal({
                   </div>
                   <div className="irm-field">
                     <span className="irm-label">RNC / Tax Registry</span>
-                    <span className="irm-val">{evaluation?.institution?.rnc || 'Not available'}</span>
+                    <span className="irm-val">{verdict?.establishment.rnc || evaluation?.institution?.rnc || 'Not available'}</span>
                   </div>
                   <div className="irm-field">
                     <span className="irm-label">Location and Physical Address</span>
@@ -366,7 +403,7 @@ export default function InspectionReportModal({
                   </div>
                   <div className="irm-field">
                     <span className="irm-label">Municipality / Province</span>
-                    <span className="irm-val">{(evaluation?.institution as any)?.municipality?.name ?? evaluation?.institution?.streetName ?? 'Not available'}</span>
+                    <span className="irm-val">{verdict?.establishment.address || (evaluation?.institution as any)?.municipality?.name || evaluation?.institution?.streetName || 'Not available'}</span>
                   </div>
                   <div className="irm-field" style={{ gridColumn: 'span 2' }}>
                     <span className="irm-label">Regulated Economic Activity</span>
@@ -472,6 +509,71 @@ export default function InspectionReportModal({
                 </div>
                 <div className="irm-text-block">{recommendations}</div>
               </section>
+
+              <section className="irm-section">
+                <div className="irm-section-title">
+                  <span className="material-symbols-outlined" style={{ fontSize: '1.05rem' }}>fact_check</span>
+                  7. Criteria Record Used for This Verdict
+                </div>
+                <table className="irm-criteria">
+                  <thead>
+                    <tr>
+                      <th>Code</th>
+                      <th>Criterion</th>
+                      <th>Result</th>
+                      <th>Assessor note</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {verdict.entries.map((entry, index) => {
+                      const previous = verdict.entries[index - 1];
+                      const showChapter = !previous || previous.chapter !== entry.chapter;
+                      const mark = entry.value ?? 'pending';
+                      return (
+                        <Fragment key={entry.key}>
+                          {showChapter && (
+                            <tr className="chapter">
+                              <td colSpan={4}>{entry.chapter}</td>
+                            </tr>
+                          )}
+                          <tr>
+                            <td>{entry.code}</td>
+                            <td>{entry.text}</td>
+                            <td><span className={`irm-mark ${mark === 'N/A' ? 'na' : mark}`}>{entry.value ? VALUE_LABEL[entry.value] : 'Not answered'}</span></td>
+                            <td>{entry.note || '—'}</td>
+                          </tr>
+                        </Fragment>
+                      );
+                    })}
+                    {verdict.entries.length === 0 && (
+                      <tr>
+                        <td colSpan={4}>No criteria have been answered yet.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </section>
+
+              {verdict.evidences.length > 0 && (
+                <section className="irm-section">
+                  <div className="irm-section-title">
+                    <span className="material-symbols-outlined" style={{ fontSize: '1.05rem' }}>photo_camera</span>
+                    8. Evidence Attached to This Evaluation
+                  </div>
+                  <ul className="irm-evidence-list">
+                    {verdict.evidences.map((evidence) => (
+                      <li key={evidence.evidenceId}>
+                        <strong>{evidence.type}</strong>
+                        {evidence.fileName ? ` · ${evidence.fileName}` : ''}
+                        {evidence.comment ? ` — ${evidence.comment}` : ''}
+                        {evidence.latitude != null && evidence.longitude != null
+                          ? ` · GPS ${evidence.latitude.toFixed(3)}°, ${evidence.longitude.toFixed(3)}°`
+                          : ''}
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
 
               {/* 7. Marco Legal y Validez Regulatoria */}
               <section className="irm-section irm-legal-notice">

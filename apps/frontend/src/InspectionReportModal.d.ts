@@ -2,6 +2,7 @@ import './InspectionReportModal.css';
 interface InspectionReportModalProps {
     evaluationId: number;
     role?: string;
+    answers?: import('@reto/shared').FormAnswers;
     onClose: () => void;
     notify?: (msg: string) => void;
 }

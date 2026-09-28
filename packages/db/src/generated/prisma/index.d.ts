@@ -49625,6 +49625,7 @@ export namespace Prisma {
     flaggedSections: number
     correctionRequestedAt: number
     correctionSavedAt: number
+    autoNarrative: number
     _all: number
   }
 
@@ -49688,6 +49689,7 @@ export namespace Prisma {
     flaggedSections?: true
     correctionRequestedAt?: true
     correctionSavedAt?: true
+    autoNarrative?: true
     _all?: true
   }
 
@@ -49792,6 +49794,7 @@ export namespace Prisma {
     flaggedSections: JsonValue | null
     correctionRequestedAt: Date | null
     correctionSavedAt: Date | null
+    autoNarrative: JsonValue | null
     _count: EvaluationReportCountAggregateOutputType | null
     _avg: EvaluationReportAvgAggregateOutputType | null
     _sum: EvaluationReportSumAggregateOutputType | null
@@ -49828,6 +49831,7 @@ export namespace Prisma {
     flaggedSections?: boolean
     correctionRequestedAt?: boolean
     correctionSavedAt?: boolean
+    autoNarrative?: boolean
     evaluation?: boolean | EvaluationDefaultArgs<ExtArgs>
     attachments?: boolean | EvaluationReport$attachmentsArgs<ExtArgs>
     reviews?: boolean | EvaluationReport$reviewsArgs<ExtArgs>
@@ -49849,6 +49853,7 @@ export namespace Prisma {
     flaggedSections?: boolean
     correctionRequestedAt?: boolean
     correctionSavedAt?: boolean
+    autoNarrative?: boolean
     evaluation?: boolean | EvaluationDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["evaluationReport"]>
 
@@ -49867,6 +49872,7 @@ export namespace Prisma {
     flaggedSections?: boolean
     correctionRequestedAt?: boolean
     correctionSavedAt?: boolean
+    autoNarrative?: boolean
     evaluation?: boolean | EvaluationDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["evaluationReport"]>
 
@@ -49885,9 +49891,10 @@ export namespace Prisma {
     flaggedSections?: boolean
     correctionRequestedAt?: boolean
     correctionSavedAt?: boolean
+    autoNarrative?: boolean
   }
 
-  export type EvaluationReportOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"reportId" | "evaluationId" | "resumenEjecutivo" | "hallazgos" | "noConformidades" | "recomendaciones" | "status" | "version" | "locked" | "generatedAt" | "correctionScope" | "flaggedSections" | "correctionRequestedAt" | "correctionSavedAt", ExtArgs["result"]["evaluationReport"]>
+  export type EvaluationReportOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"reportId" | "evaluationId" | "resumenEjecutivo" | "hallazgos" | "noConformidades" | "recomendaciones" | "status" | "version" | "locked" | "generatedAt" | "correctionScope" | "flaggedSections" | "correctionRequestedAt" | "correctionSavedAt" | "autoNarrative", ExtArgs["result"]["evaluationReport"]>
   export type EvaluationReportInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     evaluation?: boolean | EvaluationDefaultArgs<ExtArgs>
     attachments?: boolean | EvaluationReport$attachmentsArgs<ExtArgs>
@@ -49926,6 +49933,11 @@ export namespace Prisma {
       flaggedSections: Prisma.JsonValue | null
       correctionRequestedAt: Date | null
       correctionSavedAt: Date | null
+      /**
+       * Last narrative produced from the answers. Matching fields stay in sync
+       * with the field record; a hand-edited field is left as the inspector saved it.
+       */
+      autoNarrative: Prisma.JsonValue | null
     }, ExtArgs["result"]["evaluationReport"]>
     composites: {}
   }
@@ -50366,6 +50378,7 @@ export namespace Prisma {
     readonly flaggedSections: FieldRef<"EvaluationReport", 'Json'>
     readonly correctionRequestedAt: FieldRef<"EvaluationReport", 'DateTime'>
     readonly correctionSavedAt: FieldRef<"EvaluationReport", 'DateTime'>
+    readonly autoNarrative: FieldRef<"EvaluationReport", 'Json'>
   }
     
 
@@ -53563,7 +53576,8 @@ export namespace Prisma {
     correctionScope: 'correctionScope',
     flaggedSections: 'flaggedSections',
     correctionRequestedAt: 'correctionRequestedAt',
-    correctionSavedAt: 'correctionSavedAt'
+    correctionSavedAt: 'correctionSavedAt',
+    autoNarrative: 'autoNarrative'
   };
 
   export type EvaluationReportScalarFieldEnum = (typeof EvaluationReportScalarFieldEnum)[keyof typeof EvaluationReportScalarFieldEnum]
@@ -56450,6 +56464,7 @@ export namespace Prisma {
     flaggedSections?: JsonNullableFilter<"EvaluationReport">
     correctionRequestedAt?: DateTimeNullableFilter<"EvaluationReport"> | Date | string | null
     correctionSavedAt?: DateTimeNullableFilter<"EvaluationReport"> | Date | string | null
+    autoNarrative?: JsonNullableFilter<"EvaluationReport">
     evaluation?: XOR<EvaluationScalarRelationFilter, EvaluationWhereInput>
     attachments?: AttachmentListRelationFilter
     reviews?: ReportReviewListRelationFilter
@@ -56470,6 +56485,7 @@ export namespace Prisma {
     flaggedSections?: SortOrderInput | SortOrder
     correctionRequestedAt?: SortOrderInput | SortOrder
     correctionSavedAt?: SortOrderInput | SortOrder
+    autoNarrative?: SortOrderInput | SortOrder
     evaluation?: EvaluationOrderByWithRelationInput
     attachments?: AttachmentOrderByRelationAggregateInput
     reviews?: ReportReviewOrderByRelationAggregateInput
@@ -56493,6 +56509,7 @@ export namespace Prisma {
     flaggedSections?: JsonNullableFilter<"EvaluationReport">
     correctionRequestedAt?: DateTimeNullableFilter<"EvaluationReport"> | Date | string | null
     correctionSavedAt?: DateTimeNullableFilter<"EvaluationReport"> | Date | string | null
+    autoNarrative?: JsonNullableFilter<"EvaluationReport">
     evaluation?: XOR<EvaluationScalarRelationFilter, EvaluationWhereInput>
     attachments?: AttachmentListRelationFilter
     reviews?: ReportReviewListRelationFilter
@@ -56513,6 +56530,7 @@ export namespace Prisma {
     flaggedSections?: SortOrderInput | SortOrder
     correctionRequestedAt?: SortOrderInput | SortOrder
     correctionSavedAt?: SortOrderInput | SortOrder
+    autoNarrative?: SortOrderInput | SortOrder
     _count?: EvaluationReportCountOrderByAggregateInput
     _avg?: EvaluationReportAvgOrderByAggregateInput
     _max?: EvaluationReportMaxOrderByAggregateInput
@@ -56538,6 +56556,7 @@ export namespace Prisma {
     flaggedSections?: JsonNullableWithAggregatesFilter<"EvaluationReport">
     correctionRequestedAt?: DateTimeNullableWithAggregatesFilter<"EvaluationReport"> | Date | string | null
     correctionSavedAt?: DateTimeNullableWithAggregatesFilter<"EvaluationReport"> | Date | string | null
+    autoNarrative?: JsonNullableWithAggregatesFilter<"EvaluationReport">
   }
 
   export type ReportReviewWhereInput = {
@@ -59029,6 +59048,7 @@ export namespace Prisma {
     flaggedSections?: NullableJsonNullValueInput | InputJsonValue
     correctionRequestedAt?: Date | string | null
     correctionSavedAt?: Date | string | null
+    autoNarrative?: NullableJsonNullValueInput | InputJsonValue
     evaluation: EvaluationCreateNestedOneWithoutReportInput
     attachments?: AttachmentCreateNestedManyWithoutEvaluationReportInput
     reviews?: ReportReviewCreateNestedManyWithoutReportInput
@@ -59049,6 +59069,7 @@ export namespace Prisma {
     flaggedSections?: NullableJsonNullValueInput | InputJsonValue
     correctionRequestedAt?: Date | string | null
     correctionSavedAt?: Date | string | null
+    autoNarrative?: NullableJsonNullValueInput | InputJsonValue
     attachments?: AttachmentUncheckedCreateNestedManyWithoutEvaluationReportInput
     reviews?: ReportReviewUncheckedCreateNestedManyWithoutReportInput
   }
@@ -59066,6 +59087,7 @@ export namespace Prisma {
     flaggedSections?: NullableJsonNullValueInput | InputJsonValue
     correctionRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     correctionSavedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    autoNarrative?: NullableJsonNullValueInput | InputJsonValue
     evaluation?: EvaluationUpdateOneRequiredWithoutReportNestedInput
     attachments?: AttachmentUpdateManyWithoutEvaluationReportNestedInput
     reviews?: ReportReviewUpdateManyWithoutReportNestedInput
@@ -59086,6 +59108,7 @@ export namespace Prisma {
     flaggedSections?: NullableJsonNullValueInput | InputJsonValue
     correctionRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     correctionSavedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    autoNarrative?: NullableJsonNullValueInput | InputJsonValue
     attachments?: AttachmentUncheckedUpdateManyWithoutEvaluationReportNestedInput
     reviews?: ReportReviewUncheckedUpdateManyWithoutReportNestedInput
   }
@@ -59105,6 +59128,7 @@ export namespace Prisma {
     flaggedSections?: NullableJsonNullValueInput | InputJsonValue
     correctionRequestedAt?: Date | string | null
     correctionSavedAt?: Date | string | null
+    autoNarrative?: NullableJsonNullValueInput | InputJsonValue
   }
 
   export type EvaluationReportUpdateManyMutationInput = {
@@ -59120,6 +59144,7 @@ export namespace Prisma {
     flaggedSections?: NullableJsonNullValueInput | InputJsonValue
     correctionRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     correctionSavedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    autoNarrative?: NullableJsonNullValueInput | InputJsonValue
   }
 
   export type EvaluationReportUncheckedUpdateManyInput = {
@@ -59137,6 +59162,7 @@ export namespace Prisma {
     flaggedSections?: NullableJsonNullValueInput | InputJsonValue
     correctionRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     correctionSavedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    autoNarrative?: NullableJsonNullValueInput | InputJsonValue
   }
 
   export type ReportReviewCreateInput = {
@@ -61709,6 +61735,7 @@ export namespace Prisma {
     flaggedSections?: SortOrder
     correctionRequestedAt?: SortOrder
     correctionSavedAt?: SortOrder
+    autoNarrative?: SortOrder
   }
 
   export type EvaluationReportAvgOrderByAggregateInput = {
@@ -69766,6 +69793,7 @@ export namespace Prisma {
     flaggedSections?: NullableJsonNullValueInput | InputJsonValue
     correctionRequestedAt?: Date | string | null
     correctionSavedAt?: Date | string | null
+    autoNarrative?: NullableJsonNullValueInput | InputJsonValue
     evaluation: EvaluationCreateNestedOneWithoutReportInput
     reviews?: ReportReviewCreateNestedManyWithoutReportInput
   }
@@ -69785,6 +69813,7 @@ export namespace Prisma {
     flaggedSections?: NullableJsonNullValueInput | InputJsonValue
     correctionRequestedAt?: Date | string | null
     correctionSavedAt?: Date | string | null
+    autoNarrative?: NullableJsonNullValueInput | InputJsonValue
     reviews?: ReportReviewUncheckedCreateNestedManyWithoutReportInput
   }
 
@@ -69945,6 +69974,7 @@ export namespace Prisma {
     flaggedSections?: NullableJsonNullValueInput | InputJsonValue
     correctionRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     correctionSavedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    autoNarrative?: NullableJsonNullValueInput | InputJsonValue
     evaluation?: EvaluationUpdateOneRequiredWithoutReportNestedInput
     reviews?: ReportReviewUpdateManyWithoutReportNestedInput
   }
@@ -69964,6 +69994,7 @@ export namespace Prisma {
     flaggedSections?: NullableJsonNullValueInput | InputJsonValue
     correctionRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     correctionSavedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    autoNarrative?: NullableJsonNullValueInput | InputJsonValue
     reviews?: ReportReviewUncheckedUpdateManyWithoutReportNestedInput
   }
 
@@ -71932,6 +71963,7 @@ export namespace Prisma {
     flaggedSections?: NullableJsonNullValueInput | InputJsonValue
     correctionRequestedAt?: Date | string | null
     correctionSavedAt?: Date | string | null
+    autoNarrative?: NullableJsonNullValueInput | InputJsonValue
     attachments?: AttachmentCreateNestedManyWithoutEvaluationReportInput
     reviews?: ReportReviewCreateNestedManyWithoutReportInput
   }
@@ -71950,6 +71982,7 @@ export namespace Prisma {
     flaggedSections?: NullableJsonNullValueInput | InputJsonValue
     correctionRequestedAt?: Date | string | null
     correctionSavedAt?: Date | string | null
+    autoNarrative?: NullableJsonNullValueInput | InputJsonValue
     attachments?: AttachmentUncheckedCreateNestedManyWithoutEvaluationReportInput
     reviews?: ReportReviewUncheckedCreateNestedManyWithoutReportInput
   }
@@ -72232,6 +72265,7 @@ export namespace Prisma {
     flaggedSections?: NullableJsonNullValueInput | InputJsonValue
     correctionRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     correctionSavedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    autoNarrative?: NullableJsonNullValueInput | InputJsonValue
     attachments?: AttachmentUpdateManyWithoutEvaluationReportNestedInput
     reviews?: ReportReviewUpdateManyWithoutReportNestedInput
   }
@@ -72250,6 +72284,7 @@ export namespace Prisma {
     flaggedSections?: NullableJsonNullValueInput | InputJsonValue
     correctionRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     correctionSavedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    autoNarrative?: NullableJsonNullValueInput | InputJsonValue
     attachments?: AttachmentUncheckedUpdateManyWithoutEvaluationReportNestedInput
     reviews?: ReportReviewUncheckedUpdateManyWithoutReportNestedInput
   }
@@ -72621,6 +72656,7 @@ export namespace Prisma {
     flaggedSections?: NullableJsonNullValueInput | InputJsonValue
     correctionRequestedAt?: Date | string | null
     correctionSavedAt?: Date | string | null
+    autoNarrative?: NullableJsonNullValueInput | InputJsonValue
     evaluation: EvaluationCreateNestedOneWithoutReportInput
     attachments?: AttachmentCreateNestedManyWithoutEvaluationReportInput
   }
@@ -72640,6 +72676,7 @@ export namespace Prisma {
     flaggedSections?: NullableJsonNullValueInput | InputJsonValue
     correctionRequestedAt?: Date | string | null
     correctionSavedAt?: Date | string | null
+    autoNarrative?: NullableJsonNullValueInput | InputJsonValue
     attachments?: AttachmentUncheckedCreateNestedManyWithoutEvaluationReportInput
   }
 
@@ -72716,6 +72753,7 @@ export namespace Prisma {
     flaggedSections?: NullableJsonNullValueInput | InputJsonValue
     correctionRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     correctionSavedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    autoNarrative?: NullableJsonNullValueInput | InputJsonValue
     evaluation?: EvaluationUpdateOneRequiredWithoutReportNestedInput
     attachments?: AttachmentUpdateManyWithoutEvaluationReportNestedInput
   }
@@ -72735,6 +72773,7 @@ export namespace Prisma {
     flaggedSections?: NullableJsonNullValueInput | InputJsonValue
     correctionRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     correctionSavedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    autoNarrative?: NullableJsonNullValueInput | InputJsonValue
     attachments?: AttachmentUncheckedUpdateManyWithoutEvaluationReportNestedInput
   }
 

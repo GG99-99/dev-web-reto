@@ -1,5 +1,10 @@
 import { z } from 'zod';
 import { IdParamSchema } from '@/lib/common/schemas';
+import { AskAnswerSchema } from '../form-execution/form-execution.schemas';
+
+export const VerdictPreviewSchema = z.object({
+  answers: z.array(AskAnswerSchema).max(800).optional(),
+});
 
 export const ReviewReportSchema = z.object({
   action: z.enum(['APROBAR', 'DEVOLVER', 'SOLICITAR_CORRECCION']),

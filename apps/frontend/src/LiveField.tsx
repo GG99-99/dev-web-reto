@@ -27,7 +27,7 @@ type LiveFieldProps = {
   item?: Evaluation
   live: boolean
   inform: (message: string) => void
-  onViewReport?: (evaluationId: number) => void
+  onViewReport?: (evaluationId: number, answers?: FormAnswers) => void
   onEvaluationUpdated?: (evaluationId: number, patch: Partial<Evaluation>) => void
 }
 
@@ -120,6 +120,17 @@ function calculateLiveRisk(answers: AnswerMap): LiveRiskScore {
 
 function apiMessage(err: any, fallback: string) {
   return err?.response?.data?.error?.message || err?.response?.data?.message || fallback
+}
+
+function notesFromAnswers(list: any): NotesMap {
+  const collected: NotesMap = {}
+  if (!Array.isArray(list)) return collected
+  for (const answer of list) {
+    if (answer?.key && typeof answer.note === 'string' && answer.note.trim()) {
+      collected[answer.key] = answer.note.trim()
+    }
+  }
+  return collected
 }
 
 export default function LiveField({ items = [], item, live, inform, onViewReport, onEvaluationUpdated }: LiveFieldProps) {
@@ -344,7 +355,7 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
             answerObj[a.key] = a.value
           })
           setAnswers((current) => ({ ...answerObj, ...current }))
-          setNotes((current) => ({ ...(localDraft.notes || {}), ...current }))
+          setNotes((current) => ({ ...notesFromAnswers(localDraft.answers), ...(localDraft.notes || {}), ...current }))
           if (localDraft.updatedAt) {
             setLastSavedTime(new Date(localDraft.updatedAt).toLocaleTimeString())
           }
@@ -357,7 +368,10 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
               if (ans?.key && ans.value) official[ans.key] = ans.value
             })
             setAnswers(official)
-            setNotes(localDraft?.notes || {})
+            setNotes({
+              ...notesFromAnswers(serverDetail.formResponse.answers),
+              ...(localDraft?.notes || {}),
+            })
           } else {
             setAnswers((current) => {
               const merged = { ...current }
@@ -368,6 +382,7 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
               })
               return merged
             })
+            setNotes((current) => ({ ...notesFromAnswers(serverDetail.formResponse.answers), ...current }))
           }
         }
         if (Array.isArray(serverDetail?.evidences)) {
@@ -433,6 +448,16 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
     return chapters.filter((c) => c.status !== 'not_applicable').flatMap((c) => c.questions)
   }, [chapters])
 
+  const packAnswers = useCallback((answerMap: AnswerMap = answers, noteMap: NotesMap = notes): FormAnswers => {
+    return allQuestions
+      .filter((question) => answerMap[question.key] !== undefined)
+      .map((question) => {
+        const note = (noteMap[question.key] || '').trim()
+        const row = { key: question.key, txt: question.txt, value: answerMap[question.key] }
+        return note ? { ...row, note } : row
+      })
+  }, [allQuestions, answers, notes])
+
   // Motor de Riesgo Dinámico en vivo, solo con criterios que aplican a este caso
   const liveRisk = useMemo(() => {
     const applicable = new Set(completeness.applicableKeys)
@@ -453,15 +478,12 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
 
       // Guardar inmediatamente en almacenamiento local (IndexedDB + localStorage)
       if (activeItem) {
-        const answersList: FormAnswers = Object.entries(updatedAnswers).map(([k, v]) => {
-          const qObj = allQuestions.find((q) => q.key === k)
-          return { key: k, txt: qObj?.txt || '', value: v }
-        })
+        const answersList = packAnswers(updatedAnswers, notes)
         void offlineStorage.saveLocalDraft(activeItem.evaluationId, answersList, notes, { started: true })
         setLastSavedTime(new Date().toLocaleTimeString())
       }
     },
-    [started, finished, busy, answers, activeItem, allQuestions, notes, correction, recordStatus]
+    [started, finished, busy, answers, activeItem, notes, correction, recordStatus, packAnswers]
   )
 
   // Manejador para cambiar nota técnica de un criterio
@@ -471,14 +493,11 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
       setNotes(updatedNotes)
 
       if (activeItem) {
-        const answersList: FormAnswers = Object.entries(answers).map(([k, v]) => {
-          const qObj = allQuestions.find((q) => q.key === k)
-          return { key: k, txt: qObj?.txt || '', value: v }
-        })
+        const answersList = packAnswers(answers, updatedNotes)
         void offlineStorage.saveLocalDraft(activeItem.evaluationId, answersList, updatedNotes, { started: true })
       }
     },
-    [notes, activeItem, answers, allQuestions]
+    [notes, activeItem, answers, packAnswers]
   )
 
   // Guardar borrador en el backend (o encolar si offline)
@@ -486,13 +505,7 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
     if (!activeItem) return
     setBusy(true)
 
-    const answersList: FormAnswers = allQuestions
-      .filter((q) => answers[q.key] !== undefined)
-      .map((q) => ({
-        key: q.key,
-        txt: q.txt,
-        value: answers[q.key],
-      }))
+    const answersList = packAnswers()
 
     try {
       // Guardar siempre en local primero
@@ -600,9 +613,7 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
     if (!activeItem || !correction?.reportId) return
     setBusy(true)
     try {
-      const answersList: FormAnswers = allQuestions
-        .filter((q) => answers[q.key] !== undefined)
-        .map((q) => ({ key: q.key, txt: q.txt, value: answers[q.key] }))
+      const answersList = packAnswers()
       if (isOnline) {
         await formExecutionService.saveAnswers(activeItem.evaluationId, { answers: answersList })
       }
@@ -658,9 +669,7 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
       }
       startedLocally.current.add(activeItem.evaluationId)
       setStarted(true)
-      const answersList: FormAnswers = allQuestions
-        .filter((q) => answers[q.key] !== undefined)
-        .map((q) => ({ key: q.key, txt: q.txt, value: answers[q.key] }))
+      const answersList = packAnswers()
       await offlineStorage.saveLocalDraft(activeItem.evaluationId, answersList, notes, { started: true })
       onEvaluationUpdated?.(activeItem.evaluationId, { status: 'EN_PROCESO' })
       inform('Assessment officially started. You can begin rating the criteria.')
@@ -747,9 +756,7 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
     setBusy(true)
     try {
       // Guardar últimas respuestas primero
-      const answersList: FormAnswers = allQuestions
-        .filter((q) => answers[q.key] !== undefined)
-        .map((q) => ({ key: q.key, txt: q.txt, value: answers[q.key] }))
+      const answersList = packAnswers()
 
       await formExecutionService.saveAnswers(activeItem.evaluationId, { answers: answersList })
 
@@ -1334,7 +1341,14 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
               type="button"
               className="btn-finish-inspection"
               style={{ background: '#0d3894', color: '#fff' }}
-              onClick={() => onViewReport(activeItem.evaluationId)}
+              title={
+                recordStatus === 'EN_CORRECCION'
+                  ? 'Preview the verdict that resubmitting will send to the coordinator'
+                  : finished
+                    ? 'View the verdict currently on record for the coordinator'
+                    : 'Preview the verdict from the answers currently on this assessment'
+              }
+              onClick={() => onViewReport(activeItem.evaluationId, packAnswers())}
             >
               <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
                 description

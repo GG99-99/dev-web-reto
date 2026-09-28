@@ -133,6 +133,68 @@ export interface CorrectReportRequest {
 }
 
 /**
+ * How the official verdict relates to the coordinator.
+ * Built from the evaluation as it stands, including unsaved field answers
+ * when the assigned inspector requests the preview.
+ */
+export type VerdictDelivery = 'working' | 'ready_to_send' | 'with_coordinator' | 'approved';
+
+export interface OfficialVerdictPreview {
+  delivery: VerdictDelivery;
+  /** True when the preview used answers still only on the inspector's screen. */
+  pendingLocalChanges: boolean;
+  /** False while a returned evaluation has no saved correction yet. */
+  correctionReady: boolean | null;
+  evaluationStatus: string;
+  scheduledDate: string | null;
+  establishment: {
+    name: string;
+    rnc: string | null;
+    address: string | null;
+  };
+  inspector: {
+    name: string | null;
+    cedula: string | null;
+  };
+  reportId: number | null;
+  reportStatus: string | null;
+  reportVersion: number | null;
+  answeredQuestions: number;
+  requiredQuestions: number;
+  narrative: {
+    resumenEjecutivo: string;
+    hallazgos: string;
+    noConformidades: string;
+    recomendaciones: string;
+  };
+  /** Narrative sections kept because the inspector edited them by hand. */
+  editedSections: string[];
+  score: {
+    porcentajeCumplimiento: number;
+    puntajeObtenido: number;
+    nivelRiesgo: 'BAJO' | 'MEDIO' | 'ALTO';
+    frecuenciaInspeccion: 'ANUAL' | 'SEMESTRAL' | 'TRIMESTRAL';
+  } | null;
+  entries: Array<{
+    key: string;
+    chapter: string;
+    code: string;
+    text: string;
+    value: 'C' | 'CP' | 'NC' | 'N/A' | null;
+    note: string | null;
+  }>;
+  evidences: Array<{
+    evidenceId: number;
+    type: string;
+    comment: string | null;
+    fileName: string | null;
+    latitude: number | null;
+    longitude: number | null;
+    askKey: string | null;
+  }>;
+}
+
+/**
  * Restricción de negocio (RF-17): el backend debe rechazar (`403`, código
  * `FORBIDDEN`) cualquier `PATCH /evaluations/:id/answers` sobre una
  * evaluación cuyo `EvaluationReport.locked` sea `true`.

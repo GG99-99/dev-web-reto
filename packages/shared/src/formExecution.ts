@@ -77,6 +77,8 @@ export interface AskAnswer {
   /** Texto exacto de la pregunta, tal como aparece en el árbol de `GET /form-templates/:id/tree`. */
   txt: string;
   value: AskValue;
+  /** Assessor note for this criterion. Included in the official verdict. */
+  note?: string;
 }
 
 /** Lista de respuestas de una ficha diligenciada. Así se guarda `FormResponse.answers`. */

@@ -367,6 +367,83 @@
   border: 1px solid #86efac;
 }
 
+.irm-status-pill.draft {
+  background: #e0f2fe;
+  color: #075985;
+  border: 1px solid #7dd3fc;
+}
+
+.irm-status-pill.ready {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+}
+
+.irm-status-pill.review {
+  background: #e0e7ff;
+  color: #3730a3;
+  border: 1px solid #a5b4fc;
+}
+
+.irm-state-banner {
+  margin: 0.85rem 0 0.2rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #334155;
+}
+
+.irm-state-banner strong {
+  display: block;
+  margin-bottom: 0.15rem;
+  color: #0f172a;
+}
+
+.irm-criteria {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+
+.irm-criteria th {
+  text-align: left;
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #64748b;
+  border-bottom: 1px solid #cbd5e1;
+  padding: 0.35rem 0.4rem;
+}
+
+.irm-criteria td {
+  border-bottom: 1px solid #e2e8f0;
+  padding: 0.4rem;
+  vertical-align: top;
+}
+
+.irm-criteria tr.chapter td {
+  background: #f1f5f9;
+  font-weight: 800;
+  color: #00236f;
+}
+
+.irm-mark.NC { color: #b91c1c; font-weight: 800; }
+.irm-mark.CP { color: #b45309; font-weight: 800; }
+.irm-mark.C { color: #15803d; font-weight: 800; }
+.irm-mark.na,
+.irm-mark.pending { color: #64748b; font-weight: 700; }
+
+.irm-evidence-list {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: #334155;
+}
+
 /* Sections */
 .irm-section {
   position: relative;

@@ -35,7 +35,27 @@ export const reportsModel = {
     evaluationId: number,
     data: Pick<Prisma.EvaluationReportUncheckedCreateInput, 'resumenEjecutivo' | 'hallazgos' | 'noConformidades' | 'recomendaciones'>,
   ) => {
-    return prisma.evaluationReport.create({ data: { evaluationId, ...data }, include: DETAIL_INCLUDE });
+    return prisma.evaluationReport.create({
+      data: {
+        evaluationId,
+        ...data,
+        autoNarrative: data,
+      },
+      include: DETAIL_INCLUDE,
+    });
+  },
+
+  /** Writes the verdict text that the next submission will send. Does not bump the version. */
+  syncNarrative: async (
+    reportId: number,
+    narrative: Pick<Prisma.EvaluationReportUncheckedUpdateInput, 'resumenEjecutivo' | 'hallazgos' | 'noConformidades' | 'recomendaciones'>,
+    autoNarrative: Prisma.InputJsonValue,
+  ) => {
+    return prisma.evaluationReport.update({
+      where: { reportId },
+      data: { ...narrative, autoNarrative },
+      include: DETAIL_INCLUDE,
+    });
   },
 
   updateStatus: async (reportId: number, status: ReportStatus, locked: boolean) => {
