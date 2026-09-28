@@ -38,7 +38,7 @@ export default function InspectionReportModal({
         setEvaluation(evalRes.data);
       }
 
-      if (evaluationStatus !== 'FINALIZADA') {
+      if (evaluationStatus !== 'FINALIZADA' && evaluationStatus !== 'EN_CORRECCION') {
         setReportUnavailable(true);
         return;
       }

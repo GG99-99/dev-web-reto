@@ -81,7 +81,10 @@ export const evaluationsModel = {
   }) => {
     return prisma.$transaction(async (tx) => {
       const evaluation = await tx.evaluation.create({ data, include: LIST_INCLUDE });
-      await tx.case.update({ where: { caseId: data.caseId }, data: { status: 'EN_EVALUACION' } });
+      const current = await tx.case.findUnique({ where: { caseId: data.caseId }, select: { status: true } });
+      if (current && (current.status === 'ABIERTO' || current.status === 'ASIGNADO')) {
+        await tx.case.update({ where: { caseId: data.caseId }, data: { status: 'EN_EVALUACION' } });
+      }
       return evaluation;
     });
   },

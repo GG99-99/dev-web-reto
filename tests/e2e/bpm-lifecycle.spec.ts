@@ -235,8 +235,8 @@ test.describe('BPM request through final closure', () => {
         await technician!.page.getByRole('button', { name: /save changes/i }).click();
         await expectNotice(technician!.page, /correction saved/i);
         await expect(technician!.page.getByRole('button', { name: /submit for review/i })).toBeDisabled();
-        await expect(technician!.page.getByRole('button', { name: /resubmit correction/i })).toBeEnabled();
-        await technician!.page.getByRole('button', { name: /resubmit correction/i }).click();
+        await expect(technician!.page.getByRole('button', { name: /resubmit evaluation/i })).toBeEnabled();
+        await technician!.page.getByRole('button', { name: /resubmit evaluation/i }).click();
         await expectNotice(technician!.page, /corrected report resubmitted/i);
       });
 

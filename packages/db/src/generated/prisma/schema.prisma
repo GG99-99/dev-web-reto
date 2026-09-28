@@ -662,6 +662,7 @@ enum EvaluationStatus {
   REPROGRAMADA
   CANCELADA
   EN_PROCESO
+  EN_CORRECCION
   FINALIZADA
 }
 
@@ -784,6 +785,11 @@ enum ReportStatus {
   EN_CORRECCION
 }
 
+enum CorrectionScope {
+  PARCIAL
+  COMPLETA
+}
+
 /// RF-16 - Informe generado automáticamente a partir de la evaluación
 model EvaluationReport {
   reportId         Int          @id @default(autoincrement()) @map("report_id")
@@ -796,6 +802,12 @@ model EvaluationReport {
   version          Int          @default(1) // se incrementa en cada corrección (RF-18)
   locked           Boolean      @default(false) // RF-17: se bloquea tras enviarse
   generatedAt      DateTime     @default(now()) @map("generated_at")
+
+  /// Open correction request. Cleared when the same report is resubmitted.
+  correctionScope       CorrectionScope? @map("correction_scope")
+  flaggedSections       Json?            @map("flagged_sections")
+  correctionRequestedAt DateTime?        @map("correction_requested_at")
+  correctionSavedAt     DateTime?        @map("correction_saved_at")
 
   evaluation  Evaluation     @relation(fields: [evaluationId], references: [evaluationId])
   attachments Attachment[]
@@ -813,12 +825,14 @@ enum ReviewAction {
 /// RF-17/RF-18 - Cada acción del coordinador sobre un informe (y su posterior
 /// corrección/reenvío por parte del técnico)
 model ReportReview {
-  reviewId      Int          @id @default(autoincrement()) @map("review_id")
-  reportId      Int          @map("report_id")
-  coordinatorId Int          @map("coordinator_id")
-  action        ReviewAction
-  comments      String?
-  reviewedAt    DateTime     @default(now()) @map("reviewed_at")
+  reviewId        Int              @id @default(autoincrement()) @map("review_id")
+  reportId        Int              @map("report_id")
+  coordinatorId   Int              @map("coordinator_id")
+  action          ReviewAction
+  comments        String?
+  correctionScope CorrectionScope? @map("correction_scope")
+  flaggedSections Json?            @map("flagged_sections")
+  reviewedAt      DateTime         @default(now()) @map("reviewed_at")
 
   report      EvaluationReport @relation(fields: [reportId], references: [reportId])
   coordinator User             @relation(fields: [coordinatorId], references: [userId])

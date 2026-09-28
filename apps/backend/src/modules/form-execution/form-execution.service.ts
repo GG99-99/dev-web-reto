@@ -3,6 +3,7 @@ import { formExecutionModel } from './form-execution.model';
 import { formTemplatesModel } from './form-templates.model';
 import { assertEvaluationFormComplete, getEvaluationFormTemplate, loadEvaluationForm } from './form-completeness';
 import { evaluationsService } from '../evaluations/evaluations.service';
+import { assertAnswerEdit, markCorrectionProgress } from '../reports/correction-policy';
 import { riskEngineService } from '../risk-engine/risk-engine.service';
 import { reportsService } from '../reports/reports.service';
 import { ApiError } from '@/lib/common/ApiError';
@@ -47,6 +48,9 @@ export const formExecutionService = {
     if (role !== 'ADMIN' && evaluation.technicianId !== requesterId) {
       throw ApiError.forbidden('Only the assigned technician can start this evaluation');
     }
+    if (evaluation.formResponseId) {
+      throw ApiError.conflict('This evaluation already has a working record. Continue that record instead of starting over.');
+    }
     if (evaluation.status !== 'PROGRAMADA' && evaluation.status !== 'REPROGRAMADA') {
       throw ApiError.conflict('The evaluation is not in a state that allows it to be started');
     }
@@ -77,8 +81,12 @@ export const formExecutionService = {
     if (role !== 'ADMIN' && evaluation.technicianId !== requesterId) {
       throw ApiError.forbidden('Only the assigned technician can edit this evaluation');
     }
-    if (evaluation.status !== 'EN_PROCESO') {
-      throw ApiError.conflict('The evaluation must be in progress (started) to record answers');
+    if (evaluation.status !== 'EN_PROCESO' && evaluation.status !== 'EN_CORRECCION') {
+      throw ApiError.conflict(
+        evaluation.status === 'FINALIZADA'
+          ? 'This evaluation is locked. Answers can be edited again only after the coordinator returns it for correction.'
+          : 'The evaluation must be in progress (started) to record answers',
+      );
     }
     if (!evaluation.formResponseId) {
       throw ApiError.conflict('The evaluation does not have an active form session (POST /evaluations/:id/start first)');
@@ -89,13 +97,19 @@ export const formExecutionService = {
       throw ApiError.forbidden('This evaluation report is locked; answers cannot be edited');
     }
 
-    return formExecutionModel.upsertAnswers(evaluation.formResponseId, answers);
+    const edit = await assertAnswerEdit(evaluation, answers);
+    const saved = await formExecutionModel.upsertAnswers(evaluation.formResponseId, answers);
+    if (edit.changed) await markCorrectionProgress(evaluationId);
+    return saved;
   },
 
   finish: async (evaluationId: number, requesterId: number, role?: string | null): Promise<FinishEvaluationResponse> => {
     const evaluation = await evaluationsService.getById(evaluationId);
     if (role !== 'ADMIN' && evaluation.technicianId !== requesterId) {
       throw ApiError.forbidden('Only the assigned technician can finalize this evaluation');
+    }
+    if (evaluation.status === 'EN_CORRECCION') {
+      throw ApiError.conflict('This evaluation was returned for correction. Save the requested changes and resubmit the same report.');
     }
     if (evaluation.status !== 'EN_PROCESO') {
       throw ApiError.conflict('The evaluation must be in progress to be finalized');

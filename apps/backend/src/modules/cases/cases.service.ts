@@ -96,6 +96,9 @@ export const casesService = {
   close: async (caseId: number, requesterId: number, resultadoFinal: string, emitirInforme: boolean): Promise<CloseCaseResponse> => {
     const existing = await casesService.getById(caseId);
     if (existing.status === 'CERRADO') throw ApiError.conflict('This case is already closed');
+    if (await casesModel.hasUnapprovedReport(caseId)) {
+      throw ApiError.conflict('Approve the evaluation report before closing this case');
+    }
 
     const closed = await casesModel.close(caseId, resultadoFinal);
 

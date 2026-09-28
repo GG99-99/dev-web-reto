@@ -3,6 +3,7 @@ import path from 'node:path';
 import type { CreateEvidenceRequest } from '@reto/shared';
 import { evidencesModel } from './evidences.model';
 import { evaluationsService } from '../evaluations/evaluations.service';
+import { assertEvidenceEdit, markCorrectionProgress } from '../reports/correction-policy';
 import { ApiError } from '@/lib/common/ApiError';
 import { UPLOADS_DIR } from '@/lib/upload/upload';
 
@@ -37,8 +38,9 @@ export const evidencesService = {
     if (evaluation.status === 'FINALIZADA' || evaluation.status === 'CANCELADA') {
       throw ApiError.conflict('Evidence cannot be uploaded to a completed or cancelled evaluation');
     }
+    await assertEvidenceEdit(evaluation, data);
 
-    return evidencesModel.create({
+    const created = await evidencesModel.create({
       evaluationId,
       type: data.type,
       fileUrl: `/uploads/${file.filename}`,
@@ -50,6 +52,8 @@ export const evidencesService = {
       h3AskId: data.h3AskId,
       h4AskId: data.h4AskId,
     });
+    if (evaluation.status === 'EN_CORRECCION') await markCorrectionProgress(evaluationId);
+    return created;
   },
 
   remove: async (evidenceId: number, requesterId: number, role: string | null) => {
@@ -60,8 +64,10 @@ export const evidencesService = {
     if (role !== 'ADMIN' && evaluation.technicianId !== requesterId) {
       throw ApiError.forbidden('Only the assigned technician or an ADMIN can delete this evidence');
     }
+    await assertEvidenceEdit(evaluation, evidence);
 
     await evidencesModel.delete(evidenceId);
+    if (evaluation.status === 'EN_CORRECCION') await markCorrectionProgress(evaluation.evaluationId);
     await fs.unlink(path.join(UPLOADS_DIR, path.basename(evidence.fileUrl))).catch(() => undefined);
     return evidence;
   },

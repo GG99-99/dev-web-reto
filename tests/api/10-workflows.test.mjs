@@ -283,13 +283,45 @@ describe('BPM inspection workflow', () => {
     const reportId = reportData.reportId;
 
     const submittedReport = await request('POST', `/reports/${reportId}/submit`, { token: tokens.technician });
-    assertOk(submittedReport, 200);
+    const submittedData = assertOk(submittedReport, 200);
+    assert.strictEqual(submittedData.status, 'ENVIADO');
+    assert.strictEqual(submittedData.locked, true);
+    const caseInReview = assertOk(await request('GET', `/cases/${caseId}`, { token: tokens.coordinator }), 200);
+    assert.strictEqual(caseInReview.status, 'EN_REVISION');
 
     const returned = await request('POST', `/reports/${reportId}/review`, {
       token: tokens.coordinator,
       body: { action: 'SOLICITAR_CORRECCION', comments: 'Clarify non-conformity 3' },
     });
-    assertOk(returned, 200);
+    const returnedData = assertOk(returned, 200);
+    assert.strictEqual(returnedData.status, 'EN_CORRECCION');
+    assert.strictEqual(returnedData.locked, false);
+    assert.ok(returnedData.flaggedSections?.includes('report:recomendaciones'));
+
+    const openRecord = assertOk(await request('GET', `/evaluations/${evaluationId}`, { token: tokens.technician }), 200);
+    assert.strictEqual(openRecord.status, 'EN_CORRECCION');
+    assert.equal(typeof openRecord.formResponseId, 'number');
+    assert.ok(Array.isArray(openRecord.formResponse?.answers) && openRecord.formResponse.answers.length >= completeAnswers.length);
+
+    const caseBack = assertOk(await request('GET', `/cases/${caseId}`, { token: tokens.coordinator }), 200);
+    assert.strictEqual(caseBack.status, 'EN_EVALUACION');
+
+    const premature = await request('POST', `/reports/${reportId}/resend`, { token: tokens.technician });
+    assertConflict(premature);
+
+    const outside = await request('PATCH', `/evaluations/${evaluationId}/answers`, {
+      token: tokens.technician,
+      body: {
+        answers: [{ ...completeAnswers[0], value: completeAnswers[0].value === 'NC' ? 'C' : 'NC' }],
+      },
+    });
+    assertValidationError(outside);
+
+    const restart = await request('POST', `/evaluations/${evaluationId}/start`, {
+      token: tokens.technician,
+      body: { representId, foodId: food.foodId },
+    });
+    assertConflict(restart);
 
     const corrected = await request('POST', `/reports/${reportId}/correct`, {
       token: tokens.technician,
@@ -298,7 +330,14 @@ describe('BPM inspection workflow', () => {
     assertOk(corrected, 200);
 
     const resent = await request('POST', `/reports/${reportId}/resend`, { token: tokens.technician });
-    assertOk(resent, 200);
+    const resentData = assertOk(resent, 200);
+    assert.strictEqual(resentData.status, 'ENVIADO');
+    assert.strictEqual(resentData.locked, true);
+    const afterResubmit = assertOk(await request('GET', `/evaluations/${evaluationId}`, { token: tokens.technician }), 200);
+    assert.strictEqual(afterResubmit.status, 'FINALIZADA');
+    assert.ok(afterResubmit.formResponse?.answers?.length >= completeAnswers.length);
+    const caseReviewAgain = assertOk(await request('GET', `/cases/${caseId}`, { token: tokens.coordinator }), 200);
+    assert.strictEqual(caseReviewAgain.status, 'EN_REVISION');
 
     const approved = await request('POST', `/reports/${reportId}/review`, {
       token: tokens.coordinator,

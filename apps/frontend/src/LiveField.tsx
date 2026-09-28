@@ -14,6 +14,7 @@ import {
   formExecutionService,
   institutionsService,
   evaluationsService,
+  reportsService,
   offlineStorage,
 } from './services'
 import type { Evaluation } from './App'
@@ -54,7 +55,8 @@ type NotesMap = Record<string, string>
 const isActionableAssessment = (evaluation?: Evaluation) =>
   evaluation?.status === 'PROGRAMADA' ||
   evaluation?.status === 'REPROGRAMADA' ||
-  evaluation?.status === 'EN_PROCESO'
+  evaluation?.status === 'EN_PROCESO' ||
+  evaluation?.status === 'EN_CORRECCION'
 
 interface LiveRiskScore {
   percent: number
@@ -166,6 +168,8 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
   // Estados de estado de ejecución
   const [started, setStarted] = useState(false)
   const [finished, setFinished] = useState(false)
+  const [recordStatus, setRecordStatus] = useState('')
+  const [correction, setCorrection] = useState<any>(null)
   const [busy, setBusy] = useState(false)
   const [lastSavedTime, setLastSavedTime] = useState<string>('')
   const [finishSummary, setFinishSummary] = useState<any | null>(null)
@@ -265,9 +269,12 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
       setAnswers({})
       setNotes({})
       setEvidences([])
+      setRecordStatus(activeItem.status)
+      setCorrection(null)
       setFinished(activeItem.status === 'FINALIZADA')
       setStarted(
         activeItem.status === 'EN_PROCESO' ||
+        activeItem.status === 'EN_CORRECCION' ||
         activeItem.status === 'FINALIZADA' ||
         startedLocally.current.has(evalId),
       )
@@ -303,20 +310,33 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
         const localDraft = await offlineStorage.getLocalDraft(evalId)
         if (cancelled) return
 
+        const statusNow = serverDetail?.status ?? activeItem.status
+        setRecordStatus(statusNow)
+        if (serverDetail?.status && serverDetail.status !== activeItem.status) {
+          onEvaluationUpdated?.(evalId, { status: serverDetail.status })
+        }
+        const correcting = statusNow === 'EN_CORRECCION'
         const startedNow =
-          activeItem.status === 'EN_PROCESO' ||
-          activeItem.status === 'FINALIZADA' ||
-          serverDetail?.status === 'EN_PROCESO' ||
-          serverDetail?.status === 'FINALIZADA' ||
+          correcting ||
+          statusNow === 'EN_PROCESO' ||
+          statusNow === 'FINALIZADA' ||
           Boolean(localDraft?.started) ||
           startedLocally.current.has(evalId)
-        const finishedNow =
-          activeItem.status === 'FINALIZADA' ||
-          serverDetail?.status === 'FINALIZADA' ||
-          Boolean(localDraft?.finished)
+        const finishedNow = !correcting && (
+          statusNow === 'FINALIZADA' ||
+          (!serverDetail && Boolean(localDraft?.finished) && activeItem.status === 'FINALIZADA')
+        )
         setStarted(startedNow)
         setFinished(finishedNow)
         if (startedNow) startedLocally.current.add(evalId)
+        if (correcting) {
+          await offlineStorage.saveLocalDraft(
+            evalId,
+            Array.isArray(serverDetail?.formResponse?.answers) ? serverDetail.formResponse.answers : (localDraft?.answers ?? []),
+            localDraft?.notes ?? {},
+            { started: true, finished: false },
+          )
+        }
 
         if (localDraft) {
           const answerObj: AnswerMap = {}
@@ -331,15 +351,24 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
         }
 
         if (serverDetail?.formResponse?.answers && Array.isArray(serverDetail.formResponse.answers)) {
-          setAnswers((current) => {
-            const merged = { ...current }
+          if (correcting) {
+            const official: AnswerMap = {}
             serverDetail.formResponse.answers.forEach((ans: any) => {
-              if (ans && ans.key && ans.value && merged[ans.key] === undefined) {
-                merged[ans.key] = ans.value
-              }
+              if (ans?.key && ans.value) official[ans.key] = ans.value
             })
-            return merged
-          })
+            setAnswers(official)
+            setNotes(localDraft?.notes || {})
+          } else {
+            setAnswers((current) => {
+              const merged = { ...current }
+              serverDetail.formResponse.answers.forEach((ans: any) => {
+                if (ans && ans.key && ans.value && merged[ans.key] === undefined) {
+                  merged[ans.key] = ans.value
+                }
+              })
+              return merged
+            })
+          }
         }
         if (Array.isArray(serverDetail?.evidences)) {
           setEvidences(serverDetail.evidences)
@@ -417,7 +446,7 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
   // Manejador para responder un criterio
   const handleAnswerChange = useCallback(
     (question: StructuredQuestion, value: AskValue) => {
-      if (!started || finished || busy) return
+      if (!started || finished || busy || !questionIsEditable(question)) return
 
       const updatedAnswers: AnswerMap = { ...answers, [question.key]: value }
       setAnswers(updatedAnswers)
@@ -432,7 +461,7 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
         setLastSavedTime(new Date().toLocaleTimeString())
       }
     },
-    [started, finished, busy, answers, activeItem, allQuestions, notes]
+    [started, finished, busy, answers, activeItem, allQuestions, notes, correction, recordStatus]
   )
 
   // Manejador para cambiar nota técnica de un criterio
@@ -524,6 +553,73 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
     setBusy(false)
     if (synced > 0) {
       inform(`PWA sync completed: ${synced} assessment(s) updated.`)
+    }
+  }
+
+  useEffect(() => {
+    if (!activeItem || recordStatus !== 'EN_CORRECCION' || !isOnline) {
+      if (recordStatus !== 'EN_CORRECCION') setCorrection(null)
+      return
+    }
+    let cancelled = false
+    const evalId = activeItem.evaluationId
+    reportsService.getByEvaluation(evalId).then((res) => {
+      if (cancelled || !res.valid) return
+      const report = res.data
+      const reviews = [...(report.reviews ?? [])].sort(
+        (a, b) => new Date(b.reviewedAt).getTime() - new Date(a.reviewedAt).getTime(),
+      )
+      const latest = reviews.find((item) => item.action === 'DEVOLVER' || item.action === 'SOLICITAR_CORRECCION')
+      const flagged = Array.isArray(report.flaggedSections) ? report.flaggedSections.map(String) : []
+      setCorrection({
+        reportId: report.reportId,
+        status: report.status,
+        scope: report.correctionScope,
+        flagged,
+        comments: latest?.comments || '',
+        ready: Boolean(
+          report.correctionSavedAt &&
+          report.correctionRequestedAt &&
+          new Date(report.correctionSavedAt).getTime() >= new Date(report.correctionRequestedAt).getTime(),
+        ),
+      })
+      const firstChapter = flagged.find((id) => id.startsWith('chapter:'))
+      if (firstChapter) setActiveChapterId(Number(firstChapter.slice('chapter:'.length)))
+    }).catch(() => {})
+    return () => { cancelled = true }
+  }, [activeItem, recordStatus, isOnline])
+
+  const questionIsEditable = (question: StructuredQuestion) => {
+    if (recordStatus !== 'EN_CORRECCION') return true
+    if (!correction) return false
+    if (correction.scope === 'COMPLETA' || correction.status === 'DEVUELTO') return true
+    return correction.flagged.includes(`chapter:${question.h1Id}`)
+  }
+
+  async function resubmitCorrection() {
+    if (!activeItem || !correction?.reportId) return
+    setBusy(true)
+    try {
+      const answersList: FormAnswers = allQuestions
+        .filter((q) => answers[q.key] !== undefined)
+        .map((q) => ({ key: q.key, txt: q.txt, value: answers[q.key] }))
+      if (isOnline) {
+        await formExecutionService.saveAnswers(activeItem.evaluationId, { answers: answersList })
+      }
+      const res = await reportsService.resend(correction.reportId)
+      if (!res.valid) {
+        inform(res.error.message)
+        return
+      }
+      setFinished(true)
+      setRecordStatus('FINALIZADA')
+      setCorrection(null)
+      onEvaluationUpdated?.(activeItem.evaluationId, { status: 'FINALIZADA' })
+      inform('Corrected evaluation resubmitted for review.')
+    } catch (err: any) {
+      inform(apiMessage(err, 'Save the requested correction before resubmitting this evaluation.'))
+    } finally {
+      setBusy(false)
     }
   }
 
@@ -721,7 +817,7 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
         <div>
           <div className="hero-meta-strip">
             <span className={`hero-badge ${started ? 'active' : 'case'}`}>
-              {finished ? 'Finished Assessment' : started ? 'Inspection in Progress' : 'Scheduled'}
+              {recordStatus === 'EN_CORRECCION' ? 'Returned for correction' : finished ? 'Finished Assessment' : started ? 'Inspection in Progress' : 'Scheduled'}
             </span>
             <span className="hero-badge case">Record #{activeItem.evaluationId}</span>
             <span className="hero-badge version">{template?.name || 'Official GMP form'}</span>
@@ -755,6 +851,24 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
             </span>
           </div>
         </div>
+
+        {recordStatus === 'EN_CORRECCION' && (
+          <div className="correction-banner" role="status">
+            <h2>1. Review feedback</h2>
+            <p>
+              {correction?.scope === 'COMPLETA' || correction?.status === 'DEVUELTO'
+                ? 'The coordinator returned this same evaluation for a full resubmission. Your answers, evidence, and notes are still here.'
+                : 'The coordinator returned this same evaluation. Edit only the flagged sections. The rest stays as submitted.'}
+            </p>
+            {correction?.comments && (
+              <ol>
+                {String(correction.comments).split(/\n+/).filter((line) => line.trim()).map((line) => (
+                  <li key={line}>{line.trim()}</li>
+                ))}
+              </ol>
+            )}
+          </div>
+        )}
 
         {/* 3. Live Dynamic Risk Engine Widget (RF-14) */}
         <div className="field-risk-widget">
@@ -997,11 +1111,13 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
                 if (question.askType === 'h4') return e.h4AskId === question.askId
                 return false
               })
+              const editable = questionIsEditable(question)
+              const readOnly = !started || finished || busy || !editable
 
               return (
                 <article
                   key={question.key}
-                  className={`criteria-card ${isNC ? 'has-nc' : isCP ? 'has-cp' : ''}`}
+                  className={`criteria-card ${isNC ? 'has-nc' : isCP ? 'has-cp' : ''} ${editable ? '' : 'is-locked'}`}
                 >
                   <div className="criteria-head">
                     <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -1019,13 +1135,16 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
                   </div>
 
                   <p className="criteria-question-text">{question.txt}</p>
+                  {!editable && recordStatus === 'EN_CORRECCION' && (
+                    <p className="ops-help">This section was not flagged. It stays as submitted.</p>
+                  )}
 
                   {/* Segmented Decision Buttons */}
                   <div className="decision-buttons-grid">
                     <button
                       type="button"
                       className={`decision-btn c ${currentVal === 'C' ? 'active' : ''}`}
-                      disabled={!started || finished || busy}
+                      disabled={readOnly}
                       onClick={() => handleAnswerChange(question, 'C')}
                     >
                       <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
@@ -1037,7 +1156,7 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
                     <button
                       type="button"
                       className={`decision-btn cp ${currentVal === 'CP' ? 'active' : ''}`}
-                      disabled={!started || finished || busy}
+                      disabled={readOnly}
                       onClick={() => handleAnswerChange(question, 'CP')}
                     >
                       <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
@@ -1049,7 +1168,7 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
                     <button
                       type="button"
                       className={`decision-btn nc ${currentVal === 'NC' ? 'active' : ''}`}
-                      disabled={!started || finished || busy}
+                      disabled={readOnly}
                       onClick={() => handleAnswerChange(question, 'NC')}
                     >
                       <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
@@ -1061,7 +1180,7 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
                     <button
                       type="button"
                       className={`decision-btn na ${currentVal === 'N/A' ? 'active' : ''}`}
-                      disabled={!started || finished || busy}
+                      disabled={readOnly}
                       onClick={() => handleAnswerChange(question, 'N/A')}
                     >
                       [ N/A ] Exempt
@@ -1085,7 +1204,7 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
                         className="criteria-obs-textarea"
                         placeholder="Document the technical evidence or finding observed on-site..."
                         value={notes[question.key] || ''}
-                        disabled={!started || finished || busy}
+                        disabled={readOnly}
                         onChange={(e) => handleNoteChange(question.key, e.target.value)}
                       />
                     </div>
@@ -1122,7 +1241,7 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
                               </span>
                             )}
                           </div>
-                          {!finished && (
+                          {editable && !finished && (
                             <button
                               type="button"
                               className="evidence-del-btn"
@@ -1138,7 +1257,7 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
                       ))}
 
                       {/* Botón de captura con input de archivo oculto */}
-                      {!finished && (
+                      {editable && !finished && (
                         <label className="evidence-upload-btn-label">
                           <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
                             add_a_photo
@@ -1147,7 +1266,7 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
                           <input
                             type="file"
                             accept="image/*,video/*,.pdf,.doc,.docx"
-                            disabled={!started || finished || busy}
+                            disabled={readOnly}
                             ref={(el) => (uploadInputRefs.current[question.key] = el)}
                             onChange={(e) => {
                               const file = e.target.files?.[0]
@@ -1224,17 +1343,31 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
             </button>
           )}
 
-          <button
-            type="button"
-            className="btn-finish-inspection"
-            disabled={!started || finished || busy || !completeness.canSubmit}
-            onClick={() => void finishAssessment()}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
-              calculate
-            </span>
-            Finish and Calculate Final Risk (RF-14 / RF-16)
-          </button>
+          {recordStatus === 'EN_CORRECCION' ? (
+            <button
+              type="button"
+              className="btn-finish-inspection"
+              disabled={busy}
+              onClick={() => void resubmitCorrection()}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+                send
+              </span>
+              Resubmit evaluation
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="btn-finish-inspection"
+              disabled={!started || finished || busy || !completeness.canSubmit}
+              onClick={() => void finishAssessment()}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+                calculate
+              </span>
+              Finish and Calculate Final Risk (RF-14 / RF-16)
+            </button>
+          )}
         </div>
       </div>
     </section>

@@ -4,6 +4,8 @@ import { IdParamSchema } from '@/lib/common/schemas';
 export const ReviewReportSchema = z.object({
   action: z.enum(['APROBAR', 'DEVOLVER', 'SOLICITAR_CORRECCION']),
   comments: z.string().optional(),
+  fullResubmission: z.boolean().optional(),
+  flaggedSections: z.array(z.string().trim().min(1)).max(40).optional(),
 });
 
 export const CorrectReportSchema = z.object({

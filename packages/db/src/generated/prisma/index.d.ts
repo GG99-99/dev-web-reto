@@ -320,6 +320,7 @@ export const EvaluationStatus: {
   REPROGRAMADA: 'REPROGRAMADA',
   CANCELADA: 'CANCELADA',
   EN_PROCESO: 'EN_PROCESO',
+  EN_CORRECCION: 'EN_CORRECCION',
   FINALIZADA: 'FINALIZADA'
 };
 
@@ -362,6 +363,14 @@ export const ReportStatus: {
 };
 
 export type ReportStatus = (typeof ReportStatus)[keyof typeof ReportStatus]
+
+
+export const CorrectionScope: {
+  PARCIAL: 'PARCIAL',
+  COMPLETA: 'COMPLETA'
+};
+
+export type CorrectionScope = (typeof CorrectionScope)[keyof typeof CorrectionScope]
 
 
 export const ReviewAction: {
@@ -434,6 +443,10 @@ export const EvidenceType: typeof $Enums.EvidenceType
 export type ReportStatus = $Enums.ReportStatus
 
 export const ReportStatus: typeof $Enums.ReportStatus
+
+export type CorrectionScope = $Enums.CorrectionScope
+
+export const CorrectionScope: typeof $Enums.CorrectionScope
 
 export type ReviewAction = $Enums.ReviewAction
 
@@ -49576,6 +49589,9 @@ export namespace Prisma {
     version: number | null
     locked: boolean | null
     generatedAt: Date | null
+    correctionScope: $Enums.CorrectionScope | null
+    correctionRequestedAt: Date | null
+    correctionSavedAt: Date | null
   }
 
   export type EvaluationReportMaxAggregateOutputType = {
@@ -49589,6 +49605,9 @@ export namespace Prisma {
     version: number | null
     locked: boolean | null
     generatedAt: Date | null
+    correctionScope: $Enums.CorrectionScope | null
+    correctionRequestedAt: Date | null
+    correctionSavedAt: Date | null
   }
 
   export type EvaluationReportCountAggregateOutputType = {
@@ -49602,6 +49621,10 @@ export namespace Prisma {
     version: number
     locked: number
     generatedAt: number
+    correctionScope: number
+    flaggedSections: number
+    correctionRequestedAt: number
+    correctionSavedAt: number
     _all: number
   }
 
@@ -49629,6 +49652,9 @@ export namespace Prisma {
     version?: true
     locked?: true
     generatedAt?: true
+    correctionScope?: true
+    correctionRequestedAt?: true
+    correctionSavedAt?: true
   }
 
   export type EvaluationReportMaxAggregateInputType = {
@@ -49642,6 +49668,9 @@ export namespace Prisma {
     version?: true
     locked?: true
     generatedAt?: true
+    correctionScope?: true
+    correctionRequestedAt?: true
+    correctionSavedAt?: true
   }
 
   export type EvaluationReportCountAggregateInputType = {
@@ -49655,6 +49684,10 @@ export namespace Prisma {
     version?: true
     locked?: true
     generatedAt?: true
+    correctionScope?: true
+    flaggedSections?: true
+    correctionRequestedAt?: true
+    correctionSavedAt?: true
     _all?: true
   }
 
@@ -49755,6 +49788,10 @@ export namespace Prisma {
     version: number
     locked: boolean
     generatedAt: Date
+    correctionScope: $Enums.CorrectionScope | null
+    flaggedSections: JsonValue | null
+    correctionRequestedAt: Date | null
+    correctionSavedAt: Date | null
     _count: EvaluationReportCountAggregateOutputType | null
     _avg: EvaluationReportAvgAggregateOutputType | null
     _sum: EvaluationReportSumAggregateOutputType | null
@@ -49787,6 +49824,10 @@ export namespace Prisma {
     version?: boolean
     locked?: boolean
     generatedAt?: boolean
+    correctionScope?: boolean
+    flaggedSections?: boolean
+    correctionRequestedAt?: boolean
+    correctionSavedAt?: boolean
     evaluation?: boolean | EvaluationDefaultArgs<ExtArgs>
     attachments?: boolean | EvaluationReport$attachmentsArgs<ExtArgs>
     reviews?: boolean | EvaluationReport$reviewsArgs<ExtArgs>
@@ -49804,6 +49845,10 @@ export namespace Prisma {
     version?: boolean
     locked?: boolean
     generatedAt?: boolean
+    correctionScope?: boolean
+    flaggedSections?: boolean
+    correctionRequestedAt?: boolean
+    correctionSavedAt?: boolean
     evaluation?: boolean | EvaluationDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["evaluationReport"]>
 
@@ -49818,6 +49863,10 @@ export namespace Prisma {
     version?: boolean
     locked?: boolean
     generatedAt?: boolean
+    correctionScope?: boolean
+    flaggedSections?: boolean
+    correctionRequestedAt?: boolean
+    correctionSavedAt?: boolean
     evaluation?: boolean | EvaluationDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["evaluationReport"]>
 
@@ -49832,9 +49881,13 @@ export namespace Prisma {
     version?: boolean
     locked?: boolean
     generatedAt?: boolean
+    correctionScope?: boolean
+    flaggedSections?: boolean
+    correctionRequestedAt?: boolean
+    correctionSavedAt?: boolean
   }
 
-  export type EvaluationReportOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"reportId" | "evaluationId" | "resumenEjecutivo" | "hallazgos" | "noConformidades" | "recomendaciones" | "status" | "version" | "locked" | "generatedAt", ExtArgs["result"]["evaluationReport"]>
+  export type EvaluationReportOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"reportId" | "evaluationId" | "resumenEjecutivo" | "hallazgos" | "noConformidades" | "recomendaciones" | "status" | "version" | "locked" | "generatedAt" | "correctionScope" | "flaggedSections" | "correctionRequestedAt" | "correctionSavedAt", ExtArgs["result"]["evaluationReport"]>
   export type EvaluationReportInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     evaluation?: boolean | EvaluationDefaultArgs<ExtArgs>
     attachments?: boolean | EvaluationReport$attachmentsArgs<ExtArgs>
@@ -49866,6 +49919,13 @@ export namespace Prisma {
       version: number
       locked: boolean
       generatedAt: Date
+      /**
+       * Open correction request. Cleared when the same report is resubmitted.
+       */
+      correctionScope: $Enums.CorrectionScope | null
+      flaggedSections: Prisma.JsonValue | null
+      correctionRequestedAt: Date | null
+      correctionSavedAt: Date | null
     }, ExtArgs["result"]["evaluationReport"]>
     composites: {}
   }
@@ -50302,6 +50362,10 @@ export namespace Prisma {
     readonly version: FieldRef<"EvaluationReport", 'Int'>
     readonly locked: FieldRef<"EvaluationReport", 'Boolean'>
     readonly generatedAt: FieldRef<"EvaluationReport", 'DateTime'>
+    readonly correctionScope: FieldRef<"EvaluationReport", 'CorrectionScope'>
+    readonly flaggedSections: FieldRef<"EvaluationReport", 'Json'>
+    readonly correctionRequestedAt: FieldRef<"EvaluationReport", 'DateTime'>
+    readonly correctionSavedAt: FieldRef<"EvaluationReport", 'DateTime'>
   }
     
 
@@ -50799,6 +50863,7 @@ export namespace Prisma {
     coordinatorId: number | null
     action: $Enums.ReviewAction | null
     comments: string | null
+    correctionScope: $Enums.CorrectionScope | null
     reviewedAt: Date | null
   }
 
@@ -50808,6 +50873,7 @@ export namespace Prisma {
     coordinatorId: number | null
     action: $Enums.ReviewAction | null
     comments: string | null
+    correctionScope: $Enums.CorrectionScope | null
     reviewedAt: Date | null
   }
 
@@ -50817,6 +50883,8 @@ export namespace Prisma {
     coordinatorId: number
     action: number
     comments: number
+    correctionScope: number
+    flaggedSections: number
     reviewedAt: number
     _all: number
   }
@@ -50840,6 +50908,7 @@ export namespace Prisma {
     coordinatorId?: true
     action?: true
     comments?: true
+    correctionScope?: true
     reviewedAt?: true
   }
 
@@ -50849,6 +50918,7 @@ export namespace Prisma {
     coordinatorId?: true
     action?: true
     comments?: true
+    correctionScope?: true
     reviewedAt?: true
   }
 
@@ -50858,6 +50928,8 @@ export namespace Prisma {
     coordinatorId?: true
     action?: true
     comments?: true
+    correctionScope?: true
+    flaggedSections?: true
     reviewedAt?: true
     _all?: true
   }
@@ -50954,6 +51026,8 @@ export namespace Prisma {
     coordinatorId: number
     action: $Enums.ReviewAction
     comments: string | null
+    correctionScope: $Enums.CorrectionScope | null
+    flaggedSections: JsonValue | null
     reviewedAt: Date
     _count: ReportReviewCountAggregateOutputType | null
     _avg: ReportReviewAvgAggregateOutputType | null
@@ -50982,6 +51056,8 @@ export namespace Prisma {
     coordinatorId?: boolean
     action?: boolean
     comments?: boolean
+    correctionScope?: boolean
+    flaggedSections?: boolean
     reviewedAt?: boolean
     report?: boolean | EvaluationReportDefaultArgs<ExtArgs>
     coordinator?: boolean | UserDefaultArgs<ExtArgs>
@@ -50993,6 +51069,8 @@ export namespace Prisma {
     coordinatorId?: boolean
     action?: boolean
     comments?: boolean
+    correctionScope?: boolean
+    flaggedSections?: boolean
     reviewedAt?: boolean
     report?: boolean | EvaluationReportDefaultArgs<ExtArgs>
     coordinator?: boolean | UserDefaultArgs<ExtArgs>
@@ -51004,6 +51082,8 @@ export namespace Prisma {
     coordinatorId?: boolean
     action?: boolean
     comments?: boolean
+    correctionScope?: boolean
+    flaggedSections?: boolean
     reviewedAt?: boolean
     report?: boolean | EvaluationReportDefaultArgs<ExtArgs>
     coordinator?: boolean | UserDefaultArgs<ExtArgs>
@@ -51015,10 +51095,12 @@ export namespace Prisma {
     coordinatorId?: boolean
     action?: boolean
     comments?: boolean
+    correctionScope?: boolean
+    flaggedSections?: boolean
     reviewedAt?: boolean
   }
 
-  export type ReportReviewOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"reviewId" | "reportId" | "coordinatorId" | "action" | "comments" | "reviewedAt", ExtArgs["result"]["reportReview"]>
+  export type ReportReviewOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"reviewId" | "reportId" | "coordinatorId" | "action" | "comments" | "correctionScope" | "flaggedSections" | "reviewedAt", ExtArgs["result"]["reportReview"]>
   export type ReportReviewInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     report?: boolean | EvaluationReportDefaultArgs<ExtArgs>
     coordinator?: boolean | UserDefaultArgs<ExtArgs>
@@ -51044,6 +51126,8 @@ export namespace Prisma {
       coordinatorId: number
       action: $Enums.ReviewAction
       comments: string | null
+      correctionScope: $Enums.CorrectionScope | null
+      flaggedSections: Prisma.JsonValue | null
       reviewedAt: Date
     }, ExtArgs["result"]["reportReview"]>
     composites: {}
@@ -51475,6 +51559,8 @@ export namespace Prisma {
     readonly coordinatorId: FieldRef<"ReportReview", 'Int'>
     readonly action: FieldRef<"ReportReview", 'ReviewAction'>
     readonly comments: FieldRef<"ReportReview", 'String'>
+    readonly correctionScope: FieldRef<"ReportReview", 'CorrectionScope'>
+    readonly flaggedSections: FieldRef<"ReportReview", 'Json'>
     readonly reviewedAt: FieldRef<"ReportReview", 'DateTime'>
   }
     
@@ -53473,7 +53559,11 @@ export namespace Prisma {
     status: 'status',
     version: 'version',
     locked: 'locked',
-    generatedAt: 'generatedAt'
+    generatedAt: 'generatedAt',
+    correctionScope: 'correctionScope',
+    flaggedSections: 'flaggedSections',
+    correctionRequestedAt: 'correctionRequestedAt',
+    correctionSavedAt: 'correctionSavedAt'
   };
 
   export type EvaluationReportScalarFieldEnum = (typeof EvaluationReportScalarFieldEnum)[keyof typeof EvaluationReportScalarFieldEnum]
@@ -53485,6 +53575,8 @@ export namespace Prisma {
     coordinatorId: 'coordinatorId',
     action: 'action',
     comments: 'comments',
+    correctionScope: 'correctionScope',
+    flaggedSections: 'flaggedSections',
     reviewedAt: 'reviewedAt'
   };
 
@@ -53826,6 +53918,20 @@ export namespace Prisma {
    * Reference to a field of type 'ReportStatus[]'
    */
   export type ListEnumReportStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ReportStatus[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'CorrectionScope'
+   */
+  export type EnumCorrectionScopeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CorrectionScope'>
+    
+
+
+  /**
+   * Reference to a field of type 'CorrectionScope[]'
+   */
+  export type ListEnumCorrectionScopeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CorrectionScope[]'>
     
 
 
@@ -56340,6 +56446,10 @@ export namespace Prisma {
     version?: IntFilter<"EvaluationReport"> | number
     locked?: BoolFilter<"EvaluationReport"> | boolean
     generatedAt?: DateTimeFilter<"EvaluationReport"> | Date | string
+    correctionScope?: EnumCorrectionScopeNullableFilter<"EvaluationReport"> | $Enums.CorrectionScope | null
+    flaggedSections?: JsonNullableFilter<"EvaluationReport">
+    correctionRequestedAt?: DateTimeNullableFilter<"EvaluationReport"> | Date | string | null
+    correctionSavedAt?: DateTimeNullableFilter<"EvaluationReport"> | Date | string | null
     evaluation?: XOR<EvaluationScalarRelationFilter, EvaluationWhereInput>
     attachments?: AttachmentListRelationFilter
     reviews?: ReportReviewListRelationFilter
@@ -56356,6 +56466,10 @@ export namespace Prisma {
     version?: SortOrder
     locked?: SortOrder
     generatedAt?: SortOrder
+    correctionScope?: SortOrderInput | SortOrder
+    flaggedSections?: SortOrderInput | SortOrder
+    correctionRequestedAt?: SortOrderInput | SortOrder
+    correctionSavedAt?: SortOrderInput | SortOrder
     evaluation?: EvaluationOrderByWithRelationInput
     attachments?: AttachmentOrderByRelationAggregateInput
     reviews?: ReportReviewOrderByRelationAggregateInput
@@ -56375,6 +56489,10 @@ export namespace Prisma {
     version?: IntFilter<"EvaluationReport"> | number
     locked?: BoolFilter<"EvaluationReport"> | boolean
     generatedAt?: DateTimeFilter<"EvaluationReport"> | Date | string
+    correctionScope?: EnumCorrectionScopeNullableFilter<"EvaluationReport"> | $Enums.CorrectionScope | null
+    flaggedSections?: JsonNullableFilter<"EvaluationReport">
+    correctionRequestedAt?: DateTimeNullableFilter<"EvaluationReport"> | Date | string | null
+    correctionSavedAt?: DateTimeNullableFilter<"EvaluationReport"> | Date | string | null
     evaluation?: XOR<EvaluationScalarRelationFilter, EvaluationWhereInput>
     attachments?: AttachmentListRelationFilter
     reviews?: ReportReviewListRelationFilter
@@ -56391,6 +56509,10 @@ export namespace Prisma {
     version?: SortOrder
     locked?: SortOrder
     generatedAt?: SortOrder
+    correctionScope?: SortOrderInput | SortOrder
+    flaggedSections?: SortOrderInput | SortOrder
+    correctionRequestedAt?: SortOrderInput | SortOrder
+    correctionSavedAt?: SortOrderInput | SortOrder
     _count?: EvaluationReportCountOrderByAggregateInput
     _avg?: EvaluationReportAvgOrderByAggregateInput
     _max?: EvaluationReportMaxOrderByAggregateInput
@@ -56412,6 +56534,10 @@ export namespace Prisma {
     version?: IntWithAggregatesFilter<"EvaluationReport"> | number
     locked?: BoolWithAggregatesFilter<"EvaluationReport"> | boolean
     generatedAt?: DateTimeWithAggregatesFilter<"EvaluationReport"> | Date | string
+    correctionScope?: EnumCorrectionScopeNullableWithAggregatesFilter<"EvaluationReport"> | $Enums.CorrectionScope | null
+    flaggedSections?: JsonNullableWithAggregatesFilter<"EvaluationReport">
+    correctionRequestedAt?: DateTimeNullableWithAggregatesFilter<"EvaluationReport"> | Date | string | null
+    correctionSavedAt?: DateTimeNullableWithAggregatesFilter<"EvaluationReport"> | Date | string | null
   }
 
   export type ReportReviewWhereInput = {
@@ -56423,6 +56549,8 @@ export namespace Prisma {
     coordinatorId?: IntFilter<"ReportReview"> | number
     action?: EnumReviewActionFilter<"ReportReview"> | $Enums.ReviewAction
     comments?: StringNullableFilter<"ReportReview"> | string | null
+    correctionScope?: EnumCorrectionScopeNullableFilter<"ReportReview"> | $Enums.CorrectionScope | null
+    flaggedSections?: JsonNullableFilter<"ReportReview">
     reviewedAt?: DateTimeFilter<"ReportReview"> | Date | string
     report?: XOR<EvaluationReportScalarRelationFilter, EvaluationReportWhereInput>
     coordinator?: XOR<UserScalarRelationFilter, UserWhereInput>
@@ -56434,6 +56562,8 @@ export namespace Prisma {
     coordinatorId?: SortOrder
     action?: SortOrder
     comments?: SortOrderInput | SortOrder
+    correctionScope?: SortOrderInput | SortOrder
+    flaggedSections?: SortOrderInput | SortOrder
     reviewedAt?: SortOrder
     report?: EvaluationReportOrderByWithRelationInput
     coordinator?: UserOrderByWithRelationInput
@@ -56448,6 +56578,8 @@ export namespace Prisma {
     coordinatorId?: IntFilter<"ReportReview"> | number
     action?: EnumReviewActionFilter<"ReportReview"> | $Enums.ReviewAction
     comments?: StringNullableFilter<"ReportReview"> | string | null
+    correctionScope?: EnumCorrectionScopeNullableFilter<"ReportReview"> | $Enums.CorrectionScope | null
+    flaggedSections?: JsonNullableFilter<"ReportReview">
     reviewedAt?: DateTimeFilter<"ReportReview"> | Date | string
     report?: XOR<EvaluationReportScalarRelationFilter, EvaluationReportWhereInput>
     coordinator?: XOR<UserScalarRelationFilter, UserWhereInput>
@@ -56459,6 +56591,8 @@ export namespace Prisma {
     coordinatorId?: SortOrder
     action?: SortOrder
     comments?: SortOrderInput | SortOrder
+    correctionScope?: SortOrderInput | SortOrder
+    flaggedSections?: SortOrderInput | SortOrder
     reviewedAt?: SortOrder
     _count?: ReportReviewCountOrderByAggregateInput
     _avg?: ReportReviewAvgOrderByAggregateInput
@@ -56476,6 +56610,8 @@ export namespace Prisma {
     coordinatorId?: IntWithAggregatesFilter<"ReportReview"> | number
     action?: EnumReviewActionWithAggregatesFilter<"ReportReview"> | $Enums.ReviewAction
     comments?: StringNullableWithAggregatesFilter<"ReportReview"> | string | null
+    correctionScope?: EnumCorrectionScopeNullableWithAggregatesFilter<"ReportReview"> | $Enums.CorrectionScope | null
+    flaggedSections?: JsonNullableWithAggregatesFilter<"ReportReview">
     reviewedAt?: DateTimeWithAggregatesFilter<"ReportReview"> | Date | string
   }
 
@@ -58889,6 +59025,10 @@ export namespace Prisma {
     version?: number
     locked?: boolean
     generatedAt?: Date | string
+    correctionScope?: $Enums.CorrectionScope | null
+    flaggedSections?: NullableJsonNullValueInput | InputJsonValue
+    correctionRequestedAt?: Date | string | null
+    correctionSavedAt?: Date | string | null
     evaluation: EvaluationCreateNestedOneWithoutReportInput
     attachments?: AttachmentCreateNestedManyWithoutEvaluationReportInput
     reviews?: ReportReviewCreateNestedManyWithoutReportInput
@@ -58905,6 +59045,10 @@ export namespace Prisma {
     version?: number
     locked?: boolean
     generatedAt?: Date | string
+    correctionScope?: $Enums.CorrectionScope | null
+    flaggedSections?: NullableJsonNullValueInput | InputJsonValue
+    correctionRequestedAt?: Date | string | null
+    correctionSavedAt?: Date | string | null
     attachments?: AttachmentUncheckedCreateNestedManyWithoutEvaluationReportInput
     reviews?: ReportReviewUncheckedCreateNestedManyWithoutReportInput
   }
@@ -58918,6 +59062,10 @@ export namespace Prisma {
     version?: IntFieldUpdateOperationsInput | number
     locked?: BoolFieldUpdateOperationsInput | boolean
     generatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    correctionScope?: NullableEnumCorrectionScopeFieldUpdateOperationsInput | $Enums.CorrectionScope | null
+    flaggedSections?: NullableJsonNullValueInput | InputJsonValue
+    correctionRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    correctionSavedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     evaluation?: EvaluationUpdateOneRequiredWithoutReportNestedInput
     attachments?: AttachmentUpdateManyWithoutEvaluationReportNestedInput
     reviews?: ReportReviewUpdateManyWithoutReportNestedInput
@@ -58934,6 +59082,10 @@ export namespace Prisma {
     version?: IntFieldUpdateOperationsInput | number
     locked?: BoolFieldUpdateOperationsInput | boolean
     generatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    correctionScope?: NullableEnumCorrectionScopeFieldUpdateOperationsInput | $Enums.CorrectionScope | null
+    flaggedSections?: NullableJsonNullValueInput | InputJsonValue
+    correctionRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    correctionSavedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     attachments?: AttachmentUncheckedUpdateManyWithoutEvaluationReportNestedInput
     reviews?: ReportReviewUncheckedUpdateManyWithoutReportNestedInput
   }
@@ -58949,6 +59101,10 @@ export namespace Prisma {
     version?: number
     locked?: boolean
     generatedAt?: Date | string
+    correctionScope?: $Enums.CorrectionScope | null
+    flaggedSections?: NullableJsonNullValueInput | InputJsonValue
+    correctionRequestedAt?: Date | string | null
+    correctionSavedAt?: Date | string | null
   }
 
   export type EvaluationReportUpdateManyMutationInput = {
@@ -58960,6 +59116,10 @@ export namespace Prisma {
     version?: IntFieldUpdateOperationsInput | number
     locked?: BoolFieldUpdateOperationsInput | boolean
     generatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    correctionScope?: NullableEnumCorrectionScopeFieldUpdateOperationsInput | $Enums.CorrectionScope | null
+    flaggedSections?: NullableJsonNullValueInput | InputJsonValue
+    correctionRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    correctionSavedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type EvaluationReportUncheckedUpdateManyInput = {
@@ -58973,11 +59133,17 @@ export namespace Prisma {
     version?: IntFieldUpdateOperationsInput | number
     locked?: BoolFieldUpdateOperationsInput | boolean
     generatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    correctionScope?: NullableEnumCorrectionScopeFieldUpdateOperationsInput | $Enums.CorrectionScope | null
+    flaggedSections?: NullableJsonNullValueInput | InputJsonValue
+    correctionRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    correctionSavedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type ReportReviewCreateInput = {
     action: $Enums.ReviewAction
     comments?: string | null
+    correctionScope?: $Enums.CorrectionScope | null
+    flaggedSections?: NullableJsonNullValueInput | InputJsonValue
     reviewedAt?: Date | string
     report: EvaluationReportCreateNestedOneWithoutReviewsInput
     coordinator: UserCreateNestedOneWithoutReviewsDoneInput
@@ -58989,12 +59155,16 @@ export namespace Prisma {
     coordinatorId: number
     action: $Enums.ReviewAction
     comments?: string | null
+    correctionScope?: $Enums.CorrectionScope | null
+    flaggedSections?: NullableJsonNullValueInput | InputJsonValue
     reviewedAt?: Date | string
   }
 
   export type ReportReviewUpdateInput = {
     action?: EnumReviewActionFieldUpdateOperationsInput | $Enums.ReviewAction
     comments?: NullableStringFieldUpdateOperationsInput | string | null
+    correctionScope?: NullableEnumCorrectionScopeFieldUpdateOperationsInput | $Enums.CorrectionScope | null
+    flaggedSections?: NullableJsonNullValueInput | InputJsonValue
     reviewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     report?: EvaluationReportUpdateOneRequiredWithoutReviewsNestedInput
     coordinator?: UserUpdateOneRequiredWithoutReviewsDoneNestedInput
@@ -59006,6 +59176,8 @@ export namespace Prisma {
     coordinatorId?: IntFieldUpdateOperationsInput | number
     action?: EnumReviewActionFieldUpdateOperationsInput | $Enums.ReviewAction
     comments?: NullableStringFieldUpdateOperationsInput | string | null
+    correctionScope?: NullableEnumCorrectionScopeFieldUpdateOperationsInput | $Enums.CorrectionScope | null
+    flaggedSections?: NullableJsonNullValueInput | InputJsonValue
     reviewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -59015,12 +59187,16 @@ export namespace Prisma {
     coordinatorId: number
     action: $Enums.ReviewAction
     comments?: string | null
+    correctionScope?: $Enums.CorrectionScope | null
+    flaggedSections?: NullableJsonNullValueInput | InputJsonValue
     reviewedAt?: Date | string
   }
 
   export type ReportReviewUpdateManyMutationInput = {
     action?: EnumReviewActionFieldUpdateOperationsInput | $Enums.ReviewAction
     comments?: NullableStringFieldUpdateOperationsInput | string | null
+    correctionScope?: NullableEnumCorrectionScopeFieldUpdateOperationsInput | $Enums.CorrectionScope | null
+    flaggedSections?: NullableJsonNullValueInput | InputJsonValue
     reviewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -59030,6 +59206,8 @@ export namespace Prisma {
     coordinatorId?: IntFieldUpdateOperationsInput | number
     action?: EnumReviewActionFieldUpdateOperationsInput | $Enums.ReviewAction
     comments?: NullableStringFieldUpdateOperationsInput | string | null
+    correctionScope?: NullableEnumCorrectionScopeFieldUpdateOperationsInput | $Enums.CorrectionScope | null
+    flaggedSections?: NullableJsonNullValueInput | InputJsonValue
     reviewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -61509,6 +61687,13 @@ export namespace Prisma {
     not?: NestedEnumReportStatusFilter<$PrismaModel> | $Enums.ReportStatus
   }
 
+  export type EnumCorrectionScopeNullableFilter<$PrismaModel = never> = {
+    equals?: $Enums.CorrectionScope | EnumCorrectionScopeFieldRefInput<$PrismaModel> | null
+    in?: $Enums.CorrectionScope[] | ListEnumCorrectionScopeFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.CorrectionScope[] | ListEnumCorrectionScopeFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumCorrectionScopeNullableFilter<$PrismaModel> | $Enums.CorrectionScope | null
+  }
+
   export type EvaluationReportCountOrderByAggregateInput = {
     reportId?: SortOrder
     evaluationId?: SortOrder
@@ -61520,6 +61705,10 @@ export namespace Prisma {
     version?: SortOrder
     locked?: SortOrder
     generatedAt?: SortOrder
+    correctionScope?: SortOrder
+    flaggedSections?: SortOrder
+    correctionRequestedAt?: SortOrder
+    correctionSavedAt?: SortOrder
   }
 
   export type EvaluationReportAvgOrderByAggregateInput = {
@@ -61539,6 +61728,9 @@ export namespace Prisma {
     version?: SortOrder
     locked?: SortOrder
     generatedAt?: SortOrder
+    correctionScope?: SortOrder
+    correctionRequestedAt?: SortOrder
+    correctionSavedAt?: SortOrder
   }
 
   export type EvaluationReportMinOrderByAggregateInput = {
@@ -61552,6 +61744,9 @@ export namespace Prisma {
     version?: SortOrder
     locked?: SortOrder
     generatedAt?: SortOrder
+    correctionScope?: SortOrder
+    correctionRequestedAt?: SortOrder
+    correctionSavedAt?: SortOrder
   }
 
   export type EvaluationReportSumOrderByAggregateInput = {
@@ -61568,6 +61763,16 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumReportStatusFilter<$PrismaModel>
     _max?: NestedEnumReportStatusFilter<$PrismaModel>
+  }
+
+  export type EnumCorrectionScopeNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.CorrectionScope | EnumCorrectionScopeFieldRefInput<$PrismaModel> | null
+    in?: $Enums.CorrectionScope[] | ListEnumCorrectionScopeFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.CorrectionScope[] | ListEnumCorrectionScopeFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumCorrectionScopeNullableWithAggregatesFilter<$PrismaModel> | $Enums.CorrectionScope | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedEnumCorrectionScopeNullableFilter<$PrismaModel>
+    _max?: NestedEnumCorrectionScopeNullableFilter<$PrismaModel>
   }
 
   export type EnumReviewActionFilter<$PrismaModel = never> = {
@@ -61588,6 +61793,8 @@ export namespace Prisma {
     coordinatorId?: SortOrder
     action?: SortOrder
     comments?: SortOrder
+    correctionScope?: SortOrder
+    flaggedSections?: SortOrder
     reviewedAt?: SortOrder
   }
 
@@ -61603,6 +61810,7 @@ export namespace Prisma {
     coordinatorId?: SortOrder
     action?: SortOrder
     comments?: SortOrder
+    correctionScope?: SortOrder
     reviewedAt?: SortOrder
   }
 
@@ -61612,6 +61820,7 @@ export namespace Prisma {
     coordinatorId?: SortOrder
     action?: SortOrder
     comments?: SortOrder
+    correctionScope?: SortOrder
     reviewedAt?: SortOrder
   }
 
@@ -64736,6 +64945,10 @@ export namespace Prisma {
     set?: $Enums.ReportStatus
   }
 
+  export type NullableEnumCorrectionScopeFieldUpdateOperationsInput = {
+    set?: $Enums.CorrectionScope | null
+  }
+
   export type EvaluationUpdateOneRequiredWithoutReportNestedInput = {
     create?: XOR<EvaluationCreateWithoutReportInput, EvaluationUncheckedCreateWithoutReportInput>
     connectOrCreate?: EvaluationCreateOrConnectWithoutReportInput
@@ -65353,6 +65566,13 @@ export namespace Prisma {
     not?: NestedEnumReportStatusFilter<$PrismaModel> | $Enums.ReportStatus
   }
 
+  export type NestedEnumCorrectionScopeNullableFilter<$PrismaModel = never> = {
+    equals?: $Enums.CorrectionScope | EnumCorrectionScopeFieldRefInput<$PrismaModel> | null
+    in?: $Enums.CorrectionScope[] | ListEnumCorrectionScopeFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.CorrectionScope[] | ListEnumCorrectionScopeFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumCorrectionScopeNullableFilter<$PrismaModel> | $Enums.CorrectionScope | null
+  }
+
   export type NestedEnumReportStatusWithAggregatesFilter<$PrismaModel = never> = {
     equals?: $Enums.ReportStatus | EnumReportStatusFieldRefInput<$PrismaModel>
     in?: $Enums.ReportStatus[] | ListEnumReportStatusFieldRefInput<$PrismaModel>
@@ -65361,6 +65581,16 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumReportStatusFilter<$PrismaModel>
     _max?: NestedEnumReportStatusFilter<$PrismaModel>
+  }
+
+  export type NestedEnumCorrectionScopeNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.CorrectionScope | EnumCorrectionScopeFieldRefInput<$PrismaModel> | null
+    in?: $Enums.CorrectionScope[] | ListEnumCorrectionScopeFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.CorrectionScope[] | ListEnumCorrectionScopeFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumCorrectionScopeNullableWithAggregatesFilter<$PrismaModel> | $Enums.CorrectionScope | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedEnumCorrectionScopeNullableFilter<$PrismaModel>
+    _max?: NestedEnumCorrectionScopeNullableFilter<$PrismaModel>
   }
 
   export type NestedEnumReviewActionFilter<$PrismaModel = never> = {
@@ -65854,6 +66084,8 @@ export namespace Prisma {
   export type ReportReviewCreateWithoutCoordinatorInput = {
     action: $Enums.ReviewAction
     comments?: string | null
+    correctionScope?: $Enums.CorrectionScope | null
+    flaggedSections?: NullableJsonNullValueInput | InputJsonValue
     reviewedAt?: Date | string
     report: EvaluationReportCreateNestedOneWithoutReviewsInput
   }
@@ -65863,6 +66095,8 @@ export namespace Prisma {
     reportId: number
     action: $Enums.ReviewAction
     comments?: string | null
+    correctionScope?: $Enums.CorrectionScope | null
+    flaggedSections?: NullableJsonNullValueInput | InputJsonValue
     reviewedAt?: Date | string
   }
 
@@ -66233,6 +66467,8 @@ export namespace Prisma {
     coordinatorId?: IntFilter<"ReportReview"> | number
     action?: EnumReviewActionFilter<"ReportReview"> | $Enums.ReviewAction
     comments?: StringNullableFilter<"ReportReview"> | string | null
+    correctionScope?: EnumCorrectionScopeNullableFilter<"ReportReview"> | $Enums.CorrectionScope | null
+    flaggedSections?: JsonNullableFilter<"ReportReview">
     reviewedAt?: DateTimeFilter<"ReportReview"> | Date | string
   }
 
@@ -69526,6 +69762,10 @@ export namespace Prisma {
     version?: number
     locked?: boolean
     generatedAt?: Date | string
+    correctionScope?: $Enums.CorrectionScope | null
+    flaggedSections?: NullableJsonNullValueInput | InputJsonValue
+    correctionRequestedAt?: Date | string | null
+    correctionSavedAt?: Date | string | null
     evaluation: EvaluationCreateNestedOneWithoutReportInput
     reviews?: ReportReviewCreateNestedManyWithoutReportInput
   }
@@ -69541,6 +69781,10 @@ export namespace Prisma {
     version?: number
     locked?: boolean
     generatedAt?: Date | string
+    correctionScope?: $Enums.CorrectionScope | null
+    flaggedSections?: NullableJsonNullValueInput | InputJsonValue
+    correctionRequestedAt?: Date | string | null
+    correctionSavedAt?: Date | string | null
     reviews?: ReportReviewUncheckedCreateNestedManyWithoutReportInput
   }
 
@@ -69697,6 +69941,10 @@ export namespace Prisma {
     version?: IntFieldUpdateOperationsInput | number
     locked?: BoolFieldUpdateOperationsInput | boolean
     generatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    correctionScope?: NullableEnumCorrectionScopeFieldUpdateOperationsInput | $Enums.CorrectionScope | null
+    flaggedSections?: NullableJsonNullValueInput | InputJsonValue
+    correctionRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    correctionSavedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     evaluation?: EvaluationUpdateOneRequiredWithoutReportNestedInput
     reviews?: ReportReviewUpdateManyWithoutReportNestedInput
   }
@@ -69712,6 +69960,10 @@ export namespace Prisma {
     version?: IntFieldUpdateOperationsInput | number
     locked?: BoolFieldUpdateOperationsInput | boolean
     generatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    correctionScope?: NullableEnumCorrectionScopeFieldUpdateOperationsInput | $Enums.CorrectionScope | null
+    flaggedSections?: NullableJsonNullValueInput | InputJsonValue
+    correctionRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    correctionSavedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     reviews?: ReportReviewUncheckedUpdateManyWithoutReportNestedInput
   }
 
@@ -71676,6 +71928,10 @@ export namespace Prisma {
     version?: number
     locked?: boolean
     generatedAt?: Date | string
+    correctionScope?: $Enums.CorrectionScope | null
+    flaggedSections?: NullableJsonNullValueInput | InputJsonValue
+    correctionRequestedAt?: Date | string | null
+    correctionSavedAt?: Date | string | null
     attachments?: AttachmentCreateNestedManyWithoutEvaluationReportInput
     reviews?: ReportReviewCreateNestedManyWithoutReportInput
   }
@@ -71690,6 +71946,10 @@ export namespace Prisma {
     version?: number
     locked?: boolean
     generatedAt?: Date | string
+    correctionScope?: $Enums.CorrectionScope | null
+    flaggedSections?: NullableJsonNullValueInput | InputJsonValue
+    correctionRequestedAt?: Date | string | null
+    correctionSavedAt?: Date | string | null
     attachments?: AttachmentUncheckedCreateNestedManyWithoutEvaluationReportInput
     reviews?: ReportReviewUncheckedCreateNestedManyWithoutReportInput
   }
@@ -71968,6 +72228,10 @@ export namespace Prisma {
     version?: IntFieldUpdateOperationsInput | number
     locked?: BoolFieldUpdateOperationsInput | boolean
     generatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    correctionScope?: NullableEnumCorrectionScopeFieldUpdateOperationsInput | $Enums.CorrectionScope | null
+    flaggedSections?: NullableJsonNullValueInput | InputJsonValue
+    correctionRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    correctionSavedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     attachments?: AttachmentUpdateManyWithoutEvaluationReportNestedInput
     reviews?: ReportReviewUpdateManyWithoutReportNestedInput
   }
@@ -71982,6 +72246,10 @@ export namespace Prisma {
     version?: IntFieldUpdateOperationsInput | number
     locked?: BoolFieldUpdateOperationsInput | boolean
     generatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    correctionScope?: NullableEnumCorrectionScopeFieldUpdateOperationsInput | $Enums.CorrectionScope | null
+    flaggedSections?: NullableJsonNullValueInput | InputJsonValue
+    correctionRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    correctionSavedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     attachments?: AttachmentUncheckedUpdateManyWithoutEvaluationReportNestedInput
     reviews?: ReportReviewUncheckedUpdateManyWithoutReportNestedInput
   }
@@ -72236,6 +72504,8 @@ export namespace Prisma {
   export type ReportReviewCreateWithoutReportInput = {
     action: $Enums.ReviewAction
     comments?: string | null
+    correctionScope?: $Enums.CorrectionScope | null
+    flaggedSections?: NullableJsonNullValueInput | InputJsonValue
     reviewedAt?: Date | string
     coordinator: UserCreateNestedOneWithoutReviewsDoneInput
   }
@@ -72245,6 +72515,8 @@ export namespace Prisma {
     coordinatorId: number
     action: $Enums.ReviewAction
     comments?: string | null
+    correctionScope?: $Enums.CorrectionScope | null
+    flaggedSections?: NullableJsonNullValueInput | InputJsonValue
     reviewedAt?: Date | string
   }
 
@@ -72345,6 +72617,10 @@ export namespace Prisma {
     version?: number
     locked?: boolean
     generatedAt?: Date | string
+    correctionScope?: $Enums.CorrectionScope | null
+    flaggedSections?: NullableJsonNullValueInput | InputJsonValue
+    correctionRequestedAt?: Date | string | null
+    correctionSavedAt?: Date | string | null
     evaluation: EvaluationCreateNestedOneWithoutReportInput
     attachments?: AttachmentCreateNestedManyWithoutEvaluationReportInput
   }
@@ -72360,6 +72636,10 @@ export namespace Prisma {
     version?: number
     locked?: boolean
     generatedAt?: Date | string
+    correctionScope?: $Enums.CorrectionScope | null
+    flaggedSections?: NullableJsonNullValueInput | InputJsonValue
+    correctionRequestedAt?: Date | string | null
+    correctionSavedAt?: Date | string | null
     attachments?: AttachmentUncheckedCreateNestedManyWithoutEvaluationReportInput
   }
 
@@ -72432,6 +72712,10 @@ export namespace Prisma {
     version?: IntFieldUpdateOperationsInput | number
     locked?: BoolFieldUpdateOperationsInput | boolean
     generatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    correctionScope?: NullableEnumCorrectionScopeFieldUpdateOperationsInput | $Enums.CorrectionScope | null
+    flaggedSections?: NullableJsonNullValueInput | InputJsonValue
+    correctionRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    correctionSavedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     evaluation?: EvaluationUpdateOneRequiredWithoutReportNestedInput
     attachments?: AttachmentUpdateManyWithoutEvaluationReportNestedInput
   }
@@ -72447,6 +72731,10 @@ export namespace Prisma {
     version?: IntFieldUpdateOperationsInput | number
     locked?: BoolFieldUpdateOperationsInput | boolean
     generatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    correctionScope?: NullableEnumCorrectionScopeFieldUpdateOperationsInput | $Enums.CorrectionScope | null
+    flaggedSections?: NullableJsonNullValueInput | InputJsonValue
+    correctionRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    correctionSavedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     attachments?: AttachmentUncheckedUpdateManyWithoutEvaluationReportNestedInput
   }
 
@@ -72703,6 +72991,8 @@ export namespace Prisma {
     reportId: number
     action: $Enums.ReviewAction
     comments?: string | null
+    correctionScope?: $Enums.CorrectionScope | null
+    flaggedSections?: NullableJsonNullValueInput | InputJsonValue
     reviewedAt?: Date | string
   }
 
@@ -72982,6 +73272,8 @@ export namespace Prisma {
   export type ReportReviewUpdateWithoutCoordinatorInput = {
     action?: EnumReviewActionFieldUpdateOperationsInput | $Enums.ReviewAction
     comments?: NullableStringFieldUpdateOperationsInput | string | null
+    correctionScope?: NullableEnumCorrectionScopeFieldUpdateOperationsInput | $Enums.CorrectionScope | null
+    flaggedSections?: NullableJsonNullValueInput | InputJsonValue
     reviewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     report?: EvaluationReportUpdateOneRequiredWithoutReviewsNestedInput
   }
@@ -72991,6 +73283,8 @@ export namespace Prisma {
     reportId?: IntFieldUpdateOperationsInput | number
     action?: EnumReviewActionFieldUpdateOperationsInput | $Enums.ReviewAction
     comments?: NullableStringFieldUpdateOperationsInput | string | null
+    correctionScope?: NullableEnumCorrectionScopeFieldUpdateOperationsInput | $Enums.CorrectionScope | null
+    flaggedSections?: NullableJsonNullValueInput | InputJsonValue
     reviewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -72999,6 +73293,8 @@ export namespace Prisma {
     reportId?: IntFieldUpdateOperationsInput | number
     action?: EnumReviewActionFieldUpdateOperationsInput | $Enums.ReviewAction
     comments?: NullableStringFieldUpdateOperationsInput | string | null
+    correctionScope?: NullableEnumCorrectionScopeFieldUpdateOperationsInput | $Enums.CorrectionScope | null
+    flaggedSections?: NullableJsonNullValueInput | InputJsonValue
     reviewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -74390,6 +74686,8 @@ export namespace Prisma {
     coordinatorId: number
     action: $Enums.ReviewAction
     comments?: string | null
+    correctionScope?: $Enums.CorrectionScope | null
+    flaggedSections?: NullableJsonNullValueInput | InputJsonValue
     reviewedAt?: Date | string
   }
 
@@ -74434,6 +74732,8 @@ export namespace Prisma {
   export type ReportReviewUpdateWithoutReportInput = {
     action?: EnumReviewActionFieldUpdateOperationsInput | $Enums.ReviewAction
     comments?: NullableStringFieldUpdateOperationsInput | string | null
+    correctionScope?: NullableEnumCorrectionScopeFieldUpdateOperationsInput | $Enums.CorrectionScope | null
+    flaggedSections?: NullableJsonNullValueInput | InputJsonValue
     reviewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     coordinator?: UserUpdateOneRequiredWithoutReviewsDoneNestedInput
   }
@@ -74443,6 +74743,8 @@ export namespace Prisma {
     coordinatorId?: IntFieldUpdateOperationsInput | number
     action?: EnumReviewActionFieldUpdateOperationsInput | $Enums.ReviewAction
     comments?: NullableStringFieldUpdateOperationsInput | string | null
+    correctionScope?: NullableEnumCorrectionScopeFieldUpdateOperationsInput | $Enums.CorrectionScope | null
+    flaggedSections?: NullableJsonNullValueInput | InputJsonValue
     reviewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -74451,6 +74753,8 @@ export namespace Prisma {
     coordinatorId?: IntFieldUpdateOperationsInput | number
     action?: EnumReviewActionFieldUpdateOperationsInput | $Enums.ReviewAction
     comments?: NullableStringFieldUpdateOperationsInput | string | null
+    correctionScope?: NullableEnumCorrectionScopeFieldUpdateOperationsInput | $Enums.CorrectionScope | null
+    flaggedSections?: NullableJsonNullValueInput | InputJsonValue
     reviewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 

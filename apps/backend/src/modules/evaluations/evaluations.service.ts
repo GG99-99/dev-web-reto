@@ -4,6 +4,7 @@ import { evaluationsModel, type EvaluationsFilter } from './evaluations.model';
 import { casesService } from '../cases/cases.service';
 import { institutionsService } from '../institutions/institutions.service';
 import { dashboardModel } from '../dashboard/dashboard.model';
+import { reopenStaleCorrection } from '../reports/correction-policy';
 import { ApiError } from '@/lib/common/ApiError';
 import { normalizePagination, paginate, type NormalizedPagination } from '@/lib/common/response';
 
@@ -49,6 +50,7 @@ export const evaluationsService = {
   },
 
   getById: async (evaluationId: number) => {
+    await reopenStaleCorrection(evaluationId);
     const evaluation = await evaluationsModel.getById(evaluationId);
     if (!evaluation) throw ApiError.notFound('Evaluation not found');
     return evaluation;
@@ -75,6 +77,9 @@ export const evaluationsService = {
     if (data.technicianId !== caseDetail.technicianId) {
       throw ApiError.conflict('Only the evaluator currently assigned to this case can be scheduled');
     }
+    if (caseDetail.status === 'CERRADO') {
+      throw ApiError.conflict('A closed case cannot be reopened by scheduling a new evaluation');
+    }
     return evaluationsModel.create({
       caseId: data.caseId,
       institutionId: caseDetail.institutionId,
@@ -88,7 +93,7 @@ export const evaluationsService = {
 
   reschedule: async (evaluationId: number, data: RescheduleEvaluationRequest) => {
     const evaluation = await evaluationsService.getById(evaluationId);
-    if (evaluation.status === 'CANCELADA' || evaluation.status === 'FINALIZADA') {
+    if (evaluation.status === 'CANCELADA' || evaluation.status === 'FINALIZADA' || evaluation.status === 'EN_CORRECCION') {
       throw ApiError.conflict('This evaluation can no longer be rescheduled');
     }
     return evaluationsModel.reschedule(evaluationId, new Date(data.scheduledDate), data.observations);
@@ -96,7 +101,7 @@ export const evaluationsService = {
 
   cancel: async (evaluationId: number) => {
     const evaluation = await evaluationsService.getById(evaluationId);
-    if (evaluation.status === 'FINALIZADA') {
+    if (evaluation.status === 'FINALIZADA' || evaluation.status === 'EN_CORRECCION') {
       throw ApiError.conflict('A completed evaluation cannot be cancelled');
     }
     if (evaluation.status === 'CANCELADA') {

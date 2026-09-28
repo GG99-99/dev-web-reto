@@ -18,6 +18,9 @@ export const assignmentsService = {
 
   assign: async (caseId: number, assignedById: number, data: AssignTechnicianRequest) => {
     const existing = await casesService.getById(caseId);
+    if (existing.status === 'CERRADO') {
+      throw ApiError.conflict('A closed case cannot be assigned');
+    }
     if (existing.technicianId) {
       throw ApiError.conflict('This case already has an assigned technician; use /reassign');
     }
@@ -28,6 +31,9 @@ export const assignmentsService = {
 
   reassign: async (caseId: number, assignedById: number, data: AssignTechnicianRequest) => {
     const existing = await casesService.getById(caseId);
+    if (existing.status === 'CERRADO') {
+      throw ApiError.conflict('A closed case cannot be reassigned');
+    }
     if (existing.technicianId === data.technicianId) {
       throw ApiError.conflict('This case already has that evaluator. Choose a different person to replace them.');
     }

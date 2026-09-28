@@ -58,7 +58,7 @@ describe('Evaluations', () => {
     });
 
     test('evaluation statuses are valid enum values', async () => {
-      const validStatuses = ['PROGRAMADA', 'REPROGRAMADA', 'CANCELADA', 'EN_PROCESO', 'FINALIZADA'];
+      const validStatuses = ['PROGRAMADA', 'REPROGRAMADA', 'CANCELADA', 'EN_PROCESO', 'EN_CORRECCION', 'FINALIZADA'];
       const res = await request('GET', '/evaluations?page=1&pageSize=20');
       const data = assertOk(res, 200);
       for (const ev of data.items) {

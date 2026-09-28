@@ -1,9 +1,19 @@
 import type { FormAnswers } from '@reto/shared';
 import type { ReviewReportRequest, CorrectReportRequest } from '@reto/shared';
+import prisma from '@reto/db';
 import type { ComputedRisk } from '../risk-engine/risk-engine.service';
+import { riskEngineService } from '../risk-engine/risk-engine.service';
 import { reportsModel } from './reports.model';
 import { assertEvaluationFormComplete } from '../form-execution/form-completeness';
+import { notificationsService } from '../notifications/notifications.service';
 import { ApiError } from '@/lib/common/ApiError';
+import {
+  DEFAULT_PARTIAL_SECTIONS,
+  correctionWasSaved,
+  narrativeChanges,
+  normalizeSectionId,
+  reopenStaleCorrection,
+} from './correction-policy';
 
 /**
  * reports.service.ts
@@ -62,6 +72,7 @@ export const reportsService = {
   },
 
   getByEvaluationId: async (evaluationId: number) => {
+    await reopenStaleCorrection(evaluationId);
     const report = await reportsModel.getByEvaluationId(evaluationId);
     if (!report) throw ApiError.notFound('This evaluation does not yet have a generated report');
     return report;
@@ -75,28 +86,72 @@ export const reportsService = {
 
   submit: async (reportId: number) => {
     const report = await reportsService.getById(reportId);
-    if (report.status !== 'BORRADOR' && report.status !== 'EN_CORRECCION') {
-      throw ApiError.conflict('The report is not in a state that allows submission');
+    if (report.status !== 'BORRADOR') {
+      throw ApiError.conflict(
+        report.status === 'EN_CORRECCION' || report.status === 'DEVUELTO'
+          ? 'This evaluation was returned for correction. Resubmit it after saving the requested changes.'
+          : 'The report is not in a state that allows submission',
+      );
     }
     await assertEvaluationFormComplete(report.evaluationId);
-    return reportsModel.updateStatus(reportId, 'ENVIADO', true);
+    const evaluation = await evaluationContext(report.evaluationId);
+    return reportsModel.publish(reportId, evaluation.evaluationId, evaluation.caseId, { closeCorrection: false });
   },
 
-  review: async (reportId: number, coordinatorId: number, { action, comments }: ReviewReportRequest) => {
+  review: async (reportId: number, coordinatorId: number, body: ReviewReportRequest) => {
     const report = await reportsService.getById(reportId);
     if (report.status !== 'ENVIADO') {
-      throw ApiError.conflict('Only reports in SUBMITTED status can be reviewed');
+      throw ApiError.conflict('Only reports awaiting review can be approved or returned');
     }
 
-    await reportsModel.addReview(reportId, coordinatorId, action, comments);
+    const evaluation = await evaluationContext(report.evaluationId);
+    const { action, comments } = body;
 
     if (action === 'APROBAR') {
-      return reportsModel.updateStatus(reportId, 'APROBADO', true);
+      return reportsModel.approve(reportId, evaluation.evaluationId, evaluation.caseId, coordinatorId, comments);
     }
-    if (action === 'DEVOLVER') {
-      return reportsModel.updateStatus(reportId, 'DEVUELTO', false);
+
+    const feedback = comments?.trim() ?? '';
+    if (feedback.length < 3) {
+      throw ApiError.validation('Explain what the evaluator must correct');
     }
-    return reportsModel.updateStatus(reportId, 'EN_CORRECCION', false);
+
+    const full = action === 'DEVOLVER' || body.fullResubmission === true;
+    let flaggedSections: string[] | null = null;
+    if (!full) {
+      if (body.flaggedSections && body.flaggedSections.length > 0) {
+        const normalized = body.flaggedSections.map(normalizeSectionId);
+        if (normalized.some((section) => !section)) {
+          throw ApiError.validation('One or more flagged sections are not recognized');
+        }
+        flaggedSections = [...new Set(normalized as string[])];
+      } else {
+        flaggedSections = [...DEFAULT_PARTIAL_SECTIONS];
+      }
+    }
+
+    const updated = await reportsModel.returnForCorrection(reportId, evaluation.evaluationId, evaluation.caseId, {
+      coordinatorId,
+      action,
+      comments: feedback,
+      correctionScope: full ? 'COMPLETA' : 'PARCIAL',
+      flaggedSections,
+    });
+
+    const scopeText = full
+      ? 'The same evaluation is open for a full resubmission. Previous answers, evidence, and notes are still there.'
+      : 'Correct only the flagged sections. The rest of the assessment stays as submitted.';
+    try {
+      await notificationsService.notify(
+        evaluation.technicianId,
+        `Evaluation #${evaluation.evaluationId} returned for correction`,
+        `${feedback} ${scopeText}`,
+      );
+    } catch {
+      // The return itself already succeeded. A notification failure must not roll it back.
+    }
+
+    return updated;
   },
 
   getReviews: async (reportId: number) => {
@@ -106,10 +161,27 @@ export const reportsService = {
 
   correct: async (reportId: number, data: CorrectReportRequest) => {
     const report = await reportsService.getById(reportId);
-    if (report.locked) {
-      throw ApiError.forbidden('This report is locked; it can only be corrected after a coordinator rejection');
+    if (report.locked || report.status === 'ENVIADO' || report.status === 'APROBADO') {
+      throw ApiError.forbidden('This report is locked. It can be edited again only after the coordinator returns it for correction.');
     }
-    return reportsModel.correct(reportId, data);
+    if (report.status !== 'BORRADOR' && report.status !== 'EN_CORRECCION' && report.status !== 'DEVUELTO') {
+      throw ApiError.conflict('The report is not open for editing');
+    }
+
+    const changes = narrativeChanges(report, data);
+    if (Object.keys(changes).length === 0) {
+      throw ApiError.validation(
+        report.status === 'BORRADOR'
+          ? 'Change the report text before saving.'
+          : 'Update at least one flagged section before saving the correction.',
+      );
+    }
+
+    const returned = report.status === 'EN_CORRECCION' || report.status === 'DEVUELTO';
+    return reportsModel.correct(reportId, changes, {
+      incrementVersion: true,
+      markSaved: returned,
+    });
   },
 
   resend: async (reportId: number) => {
@@ -117,7 +189,21 @@ export const reportsService = {
     if (report.status !== 'EN_CORRECCION' && report.status !== 'DEVUELTO') {
       throw ApiError.conflict('The report is not in correction status');
     }
-    await assertEvaluationFormComplete(report.evaluationId);
-    return reportsModel.updateStatus(reportId, 'ENVIADO', true);
+    if (!correctionWasSaved(report)) {
+      throw ApiError.conflict('Save the requested correction before resubmitting this evaluation.');
+    }
+    const { answers } = await assertEvaluationFormComplete(report.evaluationId);
+    await riskEngineService.computeAndPersist(report.evaluationId, answers);
+    const evaluation = await evaluationContext(report.evaluationId);
+    return reportsModel.publish(reportId, evaluation.evaluationId, evaluation.caseId, { closeCorrection: true });
   },
 };
+
+async function evaluationContext(evaluationId: number) {
+  const evaluation = await prisma.evaluation.findUnique({
+    where: { evaluationId },
+    select: { evaluationId: true, caseId: true, technicianId: true, formResponseId: true },
+  });
+  if (!evaluation) throw ApiError.notFound('Evaluation not found');
+  return evaluation;
+}

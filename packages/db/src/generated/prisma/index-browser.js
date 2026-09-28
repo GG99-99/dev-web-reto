@@ -456,7 +456,11 @@ exports.Prisma.EvaluationReportScalarFieldEnum = {
   status: 'status',
   version: 'version',
   locked: 'locked',
-  generatedAt: 'generatedAt'
+  generatedAt: 'generatedAt',
+  correctionScope: 'correctionScope',
+  flaggedSections: 'flaggedSections',
+  correctionRequestedAt: 'correctionRequestedAt',
+  correctionSavedAt: 'correctionSavedAt'
 };
 
 exports.Prisma.ReportReviewScalarFieldEnum = {
@@ -465,6 +469,8 @@ exports.Prisma.ReportReviewScalarFieldEnum = {
   coordinatorId: 'coordinatorId',
   action: 'action',
   comments: 'comments',
+  correctionScope: 'correctionScope',
+  flaggedSections: 'flaggedSections',
   reviewedAt: 'reviewedAt'
 };
 
@@ -574,6 +580,7 @@ exports.EvaluationStatus = exports.$Enums.EvaluationStatus = {
   REPROGRAMADA: 'REPROGRAMADA',
   CANCELADA: 'CANCELADA',
   EN_PROCESO: 'EN_PROCESO',
+  EN_CORRECCION: 'EN_CORRECCION',
   FINALIZADA: 'FINALIZADA'
 };
 
@@ -601,6 +608,11 @@ exports.ReportStatus = exports.$Enums.ReportStatus = {
   APROBADO: 'APROBADO',
   DEVUELTO: 'DEVUELTO',
   EN_CORRECCION: 'EN_CORRECCION'
+};
+
+exports.CorrectionScope = exports.$Enums.CorrectionScope = {
+  PARCIAL: 'PARCIAL',
+  COMPLETA: 'COMPLETA'
 };
 
 exports.ReviewAction = exports.$Enums.ReviewAction = {

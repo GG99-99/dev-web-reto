@@ -36,7 +36,71 @@ export type EvaluationReportDetail = Prisma.EvaluationReportGetPayload<{
  */
 export interface ReviewReportRequest {
   action: 'APROBAR' | 'DEVOLVER' | 'SOLICITAR_CORRECCION';
+  /** Required when the coordinator returns the evaluation. */
   comments?: string;
+  /**
+   * DEVOLVER always reopens the whole record.
+   * SOLICITAR_CORRECCION does the same only when this is true.
+   */
+  fullResubmission?: boolean;
+  /**
+   * Sections the evaluator may change on a partial return.
+   * `report:<field>` or `chapter:<h1Id>`. Omitted partial returns
+   * default to the four report narrative fields.
+   */
+  flaggedSections?: string[];
+}
+
+export const REPORT_NARRATIVE_SECTIONS = [
+  { id: 'report:resumenEjecutivo', field: 'resumenEjecutivo', label: 'Executive summary' },
+  { id: 'report:hallazgos', field: 'hallazgos', label: 'Findings' },
+  { id: 'report:noConformidades', field: 'noConformidades', label: 'Non-conformities' },
+  { id: 'report:recomendaciones', field: 'recomendaciones', label: 'Recommendations' },
+] as const;
+
+export type ReportNarrativeField = (typeof REPORT_NARRATIVE_SECTIONS)[number]['field'];
+
+export function chapterSectionId(h1Id: number): string {
+  return `chapter:${h1Id}`;
+}
+
+export type ReportWorkflowPhase =
+  | 'draft'
+  | 'awaiting_review'
+  | 'returned_for_correction'
+  | 'resubmitted'
+  | 'approved';
+
+/** User-facing phase of one evaluation report. Resubmission is the same report sent again. */
+export function reportWorkflowPhase(report: {
+  status?: string | null;
+  reviews?: Array<{ action?: string | null }> | null;
+}): ReportWorkflowPhase {
+  const status = report.status;
+  if (status === 'APROBADO') return 'approved';
+  if (status === 'EN_CORRECCION' || status === 'DEVUELTO') return 'returned_for_correction';
+  if (status === 'ENVIADO') {
+    const returned = (report.reviews ?? []).some(
+      (review) => review.action === 'DEVOLVER' || review.action === 'SOLICITAR_CORRECCION',
+    );
+    return returned ? 'resubmitted' : 'awaiting_review';
+  }
+  return 'draft';
+}
+
+export function reportWorkflowLabel(phase: ReportWorkflowPhase): string {
+  switch (phase) {
+    case 'awaiting_review':
+      return 'Submitted, awaiting review';
+    case 'returned_for_correction':
+      return 'Returned for correction';
+    case 'resubmitted':
+      return 'Resubmitted after correction';
+    case 'approved':
+      return 'Approved and closed';
+    default:
+      return 'Draft';
+  }
 }
 
 /**

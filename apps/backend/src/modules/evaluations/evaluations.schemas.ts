@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { PaginationQuerySchema, IdParamSchema, CasePrioritySchema } from '@/lib/common/schemas';
 
 export const GetEvaluationsQuerySchema = PaginationQuerySchema.extend({
-  status: z.enum(['PROGRAMADA', 'REPROGRAMADA', 'CANCELADA', 'EN_PROCESO', 'FINALIZADA']).optional(),
+  status: z.enum(['PROGRAMADA', 'REPROGRAMADA', 'CANCELADA', 'EN_PROCESO', 'EN_CORRECCION', 'FINALIZADA']).optional(),
   technicianId: z.coerce.number().int().positive().optional(),
   institutionId: z.coerce.number().int().positive().optional(),
   from: z.coerce.date().optional(),

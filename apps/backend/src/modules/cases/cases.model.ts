@@ -88,6 +88,14 @@ export const casesModel = {
     return prisma.case.update({ where: { caseId }, data: { priority } });
   },
 
+  hasUnapprovedReport: async (caseId: number) => {
+    const report = await prisma.evaluationReport.findFirst({
+      where: { evaluation: { caseId }, status: { not: 'APROBADO' } },
+      select: { reportId: true },
+    });
+    return Boolean(report);
+  },
+
   close: async (caseId: number, resultadoFinal: string) => {
     return prisma.case.update({
       where: { caseId },

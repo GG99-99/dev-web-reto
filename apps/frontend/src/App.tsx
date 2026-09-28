@@ -644,6 +644,14 @@ function App() {
               role={session.role}
               initial="reports"
               onOpenOfficialReport={(id) => setActiveReportEvalId(id)}
+              onOpenField={
+                session.role === "TECNICO_EVALUADOR"
+                  ? (id) => {
+                      setActiveEvaluationId(id);
+                      setView("field");
+                    }
+                  : undefined
+              }
             />
           )}
           {view === "operations" && (

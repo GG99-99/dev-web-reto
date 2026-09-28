@@ -22,15 +22,19 @@ export const assignmentsModel = {
         include: INCLUDE,
       });
 
+      const current = await tx.case.findUnique({ where: { caseId }, select: { status: true } });
       await tx.case.update({
         where: { caseId },
-        data: { technicianId, status: 'ASIGNADO' },
+        data: {
+          technicianId,
+          status: current?.status === 'ABIERTO' ? 'ASIGNADO' : current?.status,
+        },
       });
 
       await tx.evaluation.updateMany({
         where: {
           caseId,
-          status: { in: ['PROGRAMADA', 'REPROGRAMADA', 'EN_PROCESO'] },
+          status: { in: ['PROGRAMADA', 'REPROGRAMADA', 'EN_PROCESO', 'EN_CORRECCION'] },
         },
         data: { technicianId },
       });

@@ -4,9 +4,10 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react'
 import {
   assignmentsService, bpmRequestsService, casesService, complaintsService,
-  evaluationsService, historyService, institutionsService, lapchAlertsService,
+  evaluationsService, formExecutionService, historyService, institutionsService, lapchAlertsService,
   reportsService, usersService,
 } from './services'
+import { REPORT_NARRATIVE_SECTIONS, reportWorkflowLabel, reportWorkflowPhase } from '@reto/shared'
 import HistoricalDossierModal from './HistoricalDossierModal'
 import { statusLabel } from './statusLabels'
 import './OperationsWorkbench.css'
@@ -14,6 +15,24 @@ import './OperationsWorkbench.css'
 type Role = 'ADMIN' | 'ADMIN_EMPRESA' | 'USUARIO_DELEGADO' | 'COORDINADOR' | 'TECNICO_EVALUADOR'
 type Tab = 'cases' | 'reports' | 'bpm' | 'intake' | 'history'
 const label = (value?: string) => statusLabel(value)
+
+function sectionLabel(id: string, chapters: { h1Id: number; name: string }[] = []) {
+  const narrative = REPORT_NARRATIVE_SECTIONS.find((section) => section.id === id)
+  if (narrative) return narrative.label
+  if (id === 'evidences') return 'Evidence'
+  if (id.startsWith('chapter:')) {
+    const h1Id = Number(id.slice('chapter:'.length))
+    return chapters.find((chapter) => chapter.h1Id === h1Id)?.name || `Chapter ${h1Id}`
+  }
+  return id
+}
+
+function correctionReady(report: { status?: string; correctionRequestedAt?: string | null; correctionSavedAt?: string | null }) {
+  if (report?.status !== 'EN_CORRECCION' && report?.status !== 'DEVUELTO') return false
+  if (!report.correctionRequestedAt) return true
+  if (!report.correctionSavedAt) return false
+  return new Date(report.correctionSavedAt).getTime() >= new Date(report.correctionRequestedAt).getTime()
+}
 // The backend always replies with { valid:false, error: { code, message } } on
 // failure (see ApiErrorResponse in API_CONTRACTS.md §0.1), so the message
 // lives at error.response.data.error.message, not .error itself (that's an
@@ -26,7 +45,7 @@ const apiError = (error: any): string => {
   return 'The action could not be completed. Please try again.'
 }
 
-export default function OperationsWorkbench({ role, initial, onOpenOfficialReport }: { role: Role; initial: Tab; onOpenOfficialReport?: (evaluationId: number) => void }) {
+export default function OperationsWorkbench({ role, initial, onOpenOfficialReport, onOpenField }: { role: Role; initial: Tab; onOpenOfficialReport?: (evaluationId: number) => void; onOpenField?: (evaluationId: number) => void }) {
   const [tab, setTab] = useState<Tab>(initial)
   const [message, setMessage] = useState('')
   const [dossierTarget, setDossierTarget] = useState<{ entityType: string; id: number } | null>(null)
@@ -53,7 +72,7 @@ export default function OperationsWorkbench({ role, initial, onOpenOfficialRepor
     {message && <div className="ops-message" role="status">ⓘ {message}</div>}
 
     {tab === 'cases' && <CasesPanel notify={setMessage} onOpenDossier={(entityType, id) => setDossierTarget({ entityType, id })} onOpenOfficialReport={onOpenOfficialReport} />}
-    {tab === 'reports' && <ReportsPanel role={role} notify={setMessage} onOpenOfficialReport={onOpenOfficialReport} />}
+    {tab === 'reports' && <ReportsPanel role={role} notify={setMessage} onOpenOfficialReport={onOpenOfficialReport} onOpenField={onOpenField} />}
     {tab === 'bpm' && <BpmPanel role={role} notify={setMessage} />}
     {tab === 'intake' && <IntakePanel notify={setMessage} />}
     {tab === 'history' && <HistoryPanel notify={setMessage} onOpenDossier={(entityType, id) => setDossierTarget({ entityType, id })} />}
@@ -418,11 +437,13 @@ function CaseLifecycle({ caseItem, currentEvaluator, notify, refreshed }: any) {
   </section>
 }
 
-function ReportsPanel({ role, notify, onOpenOfficialReport }: any) {
+function ReportsPanel({ role, notify, onOpenOfficialReport, onOpenField }: any) {
   const [evaluations, setEvaluations] = useState<any[]>([])
   const [selectedEval, setSelectedEval] = useState<any>()
   const [report, setReport] = useState<any>()
   const [reviews, setReviews] = useState<any[]>([])
+  const [chapters, setChapters] = useState<{ h1Id: number; name: string }[]>([])
+  const [decisionAction, setDecisionAction] = useState('APROBAR')
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
@@ -438,6 +459,8 @@ function ReportsPanel({ role, notify, onOpenOfficialReport }: any) {
   const select = async (id: string) => {
     setReport(undefined)
     setReviews([])
+    setChapters([])
+    setDecisionAction('APROBAR')
     if (!id) {
       setSelectedEval(undefined)
       return
@@ -458,6 +481,23 @@ function ReportsPanel({ role, notify, onOpenOfficialReport }: any) {
         setReport(result.data)
         const history = await reportsService.listReviews(result.data.reportId)
         if (history.valid) setReviews(history.data)
+        const nextStatus = result.data.status === 'EN_CORRECCION' || result.data.status === 'DEVUELTO'
+          ? 'EN_CORRECCION'
+          : 'FINALIZADA'
+        setEvaluations((current) => current.map((item) => String(item.evaluationId) === String(id) ? { ...item, status: nextStatus } : item))
+        setSelectedEval((current) => current ? { ...current, status: nextStatus } : current)
+        try {
+          const template = await formExecutionService.getEvaluationTemplate(Number(id))
+          if (template.valid) {
+            setChapters(
+              (template.data.completeness?.chapters ?? [])
+                .filter((chapter) => chapter.status !== 'not_applicable')
+                .map((chapter) => ({ h1Id: chapter.h1Id, name: chapter.name })),
+            )
+          }
+        } catch {
+          setChapters([])
+        }
       }
     } catch (e: any) {
       if (e?.response?.status === 404) {
@@ -474,9 +514,12 @@ function ReportsPanel({ role, notify, onOpenOfficialReport }: any) {
     const data = new FormData(event.currentTarget)
     setBusy(true)
     try {
+      const action = String(data.get('action'))
+      const flaggedSections = data.getAll('flaggedSections').map(String).filter(Boolean)
       const result = await reportsService.review(report.reportId, {
-        action: String(data.get('action')) as any,
+        action: action as any,
         comments: String(data.get('comments')),
+        ...(action === 'SOLICITAR_CORRECCION' && flaggedSections.length ? { flaggedSections } : {}),
       })
       if (result.valid) {
         notify('Review decision recorded successfully in the logbook.')
@@ -529,6 +572,17 @@ function ReportsPanel({ role, notify, onOpenOfficialReport }: any) {
       setBusy(false)
     }
   }
+
+  const phaseLabel = report ? reportWorkflowLabel(reportWorkflowPhase(report)) : ''
+  const returned = report?.status === 'EN_CORRECCION' || report?.status === 'DEVUELTO'
+  const fullReturn = report?.correctionScope === 'COMPLETA' || report?.status === 'DEVUELTO'
+  const flagged = Array.isArray(report?.flaggedSections) ? report.flaggedSections : []
+  const narrativeFields = !returned || fullReturn
+    ? REPORT_NARRATIVE_SECTIONS
+    : REPORT_NARRATIVE_SECTIONS.filter((section) => flagged.includes(section.id))
+  const latestReturn = reviews.find((item) => item.action === 'DEVOLVER' || item.action === 'SOLICITAR_CORRECCION')
+  const feedbackLines = String(latestReturn?.comments || '').split(/\n+/).map((line) => line.trim()).filter(Boolean)
+  const chapterFlags = flagged.filter((id) => String(id).startsWith('chapter:') || id === 'evidences')
 
   return <div className="ops-grid reports-live">
     <section className="card ops-card">
@@ -590,9 +644,9 @@ function ReportsPanel({ role, notify, onOpenOfficialReport }: any) {
       ) : report ? (
         /* Caso C: Informe existente */
         <div className="report-live">
-          <mark>{label(report.status)}</mark>
+          <mark>{phaseLabel}</mark>
           <h2>{report.institution?.name ?? report.evaluation?.institution?.name ?? selectedEval?.institution?.name ?? 'Health Inspection Report'}</h2>
-          <p>Version {report.version} · {report.locked ? '🔒 Locked for review' : '✏️ Editable draft'}</p>
+          <p>Version {report.version} · {report.locked ? '🔒 Locked for review' : report.status === 'BORRADOR' ? '✏️ Editable draft' : '✏️ Open for correction'}</p>
           <p>Assigned evaluator: {selectedEval?.technician?.person?.name ?? report.evaluation?.technician?.person?.name ?? 'Not assigned'}</p>
           <h3>Findings and Non-Conformities</h3>
           <p>{report.noConformidades || 'No non-conformities were recorded.'}</p>
@@ -633,14 +687,35 @@ function ReportsPanel({ role, notify, onOpenOfficialReport }: any) {
           <h2>Coordinator Review (RF-17)</h2>
           <form className="ops-form" onSubmit={decision}>
             <label>Health Decision
-              <select name="action" defaultValue="APROBAR">
+              <select name="action" value={decisionAction} onChange={(event) => setDecisionAction(event.target.value)}>
                 <option value="APROBAR">Approve Report and Issue Certificate</option>
                 <option value="SOLICITAR_CORRECCION">Request Corrections from Evaluator</option>
-                <option value="DEVOLVER">Return Report</option>
+                <option value="DEVOLVER">Return for full resubmission</option>
               </select>
             </label>
+            {decisionAction === 'SOLICITAR_CORRECCION' && (
+              <fieldset className="ops-flags">
+                <legend>Flag the sections to correct</legend>
+                <p className="ops-help">Leave these unchecked to ask for narrative corrections only. The field answers stay in place unless you flag a chapter or return the evaluation for a full resubmission.</p>
+                {REPORT_NARRATIVE_SECTIONS.map((section) => (
+                  <label key={section.id} className="ops-check">
+                    <input type="checkbox" name="flaggedSections" value={section.id} />
+                    {section.label}
+                  </label>
+                ))}
+                {chapters.map((chapter) => (
+                  <label key={chapter.h1Id} className="ops-check">
+                    <input type="checkbox" name="flaggedSections" value={`chapter:${chapter.h1Id}`} />
+                    {chapter.name}
+                  </label>
+                ))}
+              </fieldset>
+            )}
+            {decisionAction === 'DEVOLVER' && (
+              <p className="ops-help">This reopens the same evaluation for a full resubmission. Answers, evidence, and notes stay on the record.</p>
+            )}
             <label>Review Observations
-              <textarea name="comments" required placeholder="Justify the decision or detail the necessary corrections..." />
+              <textarea name="comments" required={decisionAction !== 'APROBAR'} placeholder="Justify the decision or detail the necessary corrections..." />
             </label>
             <button className="primary" disabled={busy}>Record Decision</button>
           </form>
@@ -678,51 +753,103 @@ function ReportsPanel({ role, notify, onOpenOfficialReport }: any) {
           <h2>Coordinator Review (RF-17)</h2>
           <div style={{ padding: '1rem', background: '#fffbeb', borderRadius: '8px', border: '1px solid #fde68a', color: '#92400e', fontSize: '0.85rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700, marginBottom: '0.4rem' }}>
-              <span>✏️</span> {report.status === 'DEVUELTO' ? 'Report Returned' : 'In Correction by Evaluator'}
+              <span>✏️</span> {fullReturn ? 'Returned for full resubmission' : 'Returned for correction'}
             </div>
             <p style={{ margin: 0, color: '#b45309', lineHeight: '1.4' }}>
-              The report is with the evaluator to address observations. The review will be available again as soon as the technician resubmits the correction.
+              The same evaluation is back with the evaluator. Previous answers and evidence were kept. Review opens again after they resubmit.
             </p>
           </div>
         </section>
       )}
 
-      {/* Técnico Evaluador: Acciones de corrección */}
-      {report && role === 'TECNICO_EVALUADOR' && (
+      {/* Técnico Evaluador: envío inicial o corrección del mismo expediente */}
+      {report && role === 'TECNICO_EVALUADOR' && report.status === 'BORRADOR' && (
         <section className="card ops-card">
-          <h2>Corrections Management</h2>
-          <p className="ops-help">Submitted reports remain locked until the coordinator requests a correction.</p>
-          {!report.locked && (
-            <form className="ops-form" onSubmit={correct}>
-              <label>Executive Summary
-                <textarea name="resumenEjecutivo" defaultValue={report.resumenEjecutivo ?? ''} />
+          <h2>Submit for review</h2>
+          <p className="ops-help">The field record is locked after you submit. The coordinator can return this same evaluation if something must be corrected.</p>
+          <form className="ops-form" onSubmit={correct} key={`draft-${report.reportId}-${report.version}`}>
+            {REPORT_NARRATIVE_SECTIONS.map((section) => (
+              <label key={section.id}>{section.label}
+                <textarea name={section.field} defaultValue={report[section.field] ?? ''} />
               </label>
-              <label>Findings
-                <textarea name="hallazgos" defaultValue={report.hallazgos ?? ''} />
-              </label>
-              <label>Non-Conformities
-                <textarea name="noConformidades" defaultValue={report.noConformidades ?? ''} />
-              </label>
-              <label>Recommendations
-                <textarea name="recomendaciones" defaultValue={report.recomendaciones ?? ''} />
-              </label>
+            ))}
+            <button className="secondary ops-wide" disabled={busy}>Save Changes</button>
+          </form>
+          <button className="primary" disabled={busy} onClick={() => void technicianAction('submit')}>
+            Submit for Review
+          </button>
+        </section>
+      )}
+
+      {report && role === 'TECNICO_EVALUADOR' && (report.status === 'ENVIADO' || report.status === 'APROBADO') && (
+        <section className="card ops-card">
+          <h2>{phaseLabel}</h2>
+          <p className="ops-help">
+            {report.status === 'APROBADO'
+              ? 'This review is closed. The evaluation, evidence, and report stay on the record.'
+              : 'The coordinator has this submission. The field record stays locked until they return it for correction.'}
+          </p>
+          <button className="primary" disabled>Submit for Review</button>
+        </section>
+      )}
+
+      {report && role === 'TECNICO_EVALUADOR' && returned && (
+        <section className="card ops-card" id="correction-feedback">
+          <h2>{fullReturn ? 'Returned for full resubmission' : 'Returned for correction'}</h2>
+          <p className="ops-help">
+            {fullReturn
+              ? 'This is the same evaluation, not a new visit. Update the record using the coordinator’s observations, then resubmit it.'
+              : 'This is the same evaluation. Change only the flagged sections. Everything else stays as you submitted it.'}
+          </p>
+
+          <h3>1. Review feedback</h3>
+          {feedbackLines.length > 0 ? (
+            <ul className="ops-timeline">
+              {feedbackLines.map((line) => <li key={line}>{line}</li>)}
+            </ul>
+          ) : (
+            <p className="ops-help">The coordinator did not leave a written observation.</p>
+          )}
+          {(flagged.length > 0 || fullReturn) && (
+            <>
+              <h3>Required corrections</h3>
+              <ul className="ops-timeline">
+                {fullReturn
+                  ? <li>Review the whole assessment on this same record.</li>
+                  : flagged.map((id) => <li key={id}>{sectionLabel(id, chapters)}</li>)}
+              </ul>
+            </>
+          )}
+
+          <h3>2. Edit the flagged sections</h3>
+          {narrativeFields.length > 0 && (
+            <form className="ops-form" onSubmit={correct} key={`correction-${report.reportId}-${report.version}`}>
+              {narrativeFields.map((section) => (
+                <label key={section.id}>{section.label}
+                  <textarea name={section.field} defaultValue={report[section.field] ?? ''} />
+                </label>
+              ))}
               <button className="secondary ops-wide" disabled={busy}>Save Changes</button>
             </form>
           )}
+          {(fullReturn || chapterFlags.length > 0) && onOpenField && (
+            <button type="button" className="secondary ops-wide" onClick={() => onOpenField(report.evaluationId)}>
+              Edit the flagged sections
+            </button>
+          )}
+
+          <h3>3. Resubmit evaluation</h3>
           <button
             className="primary"
-            disabled={busy || report.status !== 'BORRADOR'}
-            onClick={() => void technicianAction('submit')}
-          >
-            Submit for Review
-          </button>
-          <button
-            className="secondary ops-wide"
-            disabled={busy || (report.status !== 'EN_CORRECCION' && report.status !== 'DEVUELTO')}
+            disabled={busy || !correctionReady(report)}
             onClick={() => void technicianAction('resend')}
           >
-            Resubmit Correction
+            Resubmit evaluation
           </button>
+          {!correctionReady(report) && (
+            <p className="ops-help">Save a change to a required section before resubmitting.</p>
+          )}
+          <button className="secondary ops-wide" disabled>Submit for Review</button>
         </section>
       )}
 
