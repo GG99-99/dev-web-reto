@@ -42,19 +42,19 @@ const FORM_RESPONSES: {
 }[] = [
   {
     evaluationReason: EVAL_REASONS.PANADERIA_INICIAL,
-    name: 'Ficha BPM — Panadería El Sol (inicial)',
-    motive: 'Solicitud inicial de certificación BPM',
+    name: 'BPM form — Panadería El Sol (initial)',
+    motive: 'Initial BPM certification request',
     representCedula: '003-0000005-5',
-    foodName: 'Bizcocho de vainilla',
+    foodName: 'Vanilla cake',
     // Mayoría conforme -> riesgo BAJO
     pattern: ['C', 'C', 'C', 'CP', 'C', 'C', 'N/A', 'C'],
   },
   {
     evaluationReason: EVAL_REASONS.DISTRIBUIDORA_RUTINA,
-    name: 'Ficha BPM — Distribuidora Caribe (rutina)',
-    motive: 'Inspección de rutina programada',
+    name: 'BPM form — Distribuidora Caribe (routine)',
+    motive: 'Scheduled routine inspection',
     representCedula: '003-0000001-1',
-    foodName: 'Habichuelas enlatadas',
+    foodName: 'Canned beans',
     // Mezcla con no conformidades -> riesgo MEDIO/ALTO
     pattern: ['C', 'NC', 'CP', 'NC', 'C', 'NC', 'CP', 'C'],
   },
@@ -93,7 +93,7 @@ export async function seedFormResponses() {
   );
   const asks = await collectAsks(template.formTemplateId);
   if (asks.length === 0) {
-    throw new Error('[seed] La plantilla activa no tiene preguntas; revisa form-templates.seeder');
+    throw new Error('[seed] The active template has no questions; check form-templates.seeder');
   }
 
   for (const item of FORM_RESPONSES) {

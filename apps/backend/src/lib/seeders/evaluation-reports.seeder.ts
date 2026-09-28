@@ -34,13 +34,13 @@ const REPORTS: {
   {
     evaluationReason: EVAL_REASONS.PANADERIA_INICIAL,
     resumenEjecutivo:
-      'El establecimiento cumple con la mayoría de los requisitos de Buenas Prácticas de Manufactura evaluados. Se identificaron observaciones menores subsanables en el corto plazo.',
+      'The establishment meets most of the Good Manufacturing Practice requirements that were evaluated. Minor observations were identified that can be corrected in the short term.',
     hallazgos:
-      'Infraestructura en buen estado general. Personal con certificados de salud vigentes. Registros de limpieza y desinfección disponibles y actualizados.',
+      'Infrastructure is in good overall condition. Staff have current health certificates. Cleaning and disinfection records are available and up to date.',
     noConformidades:
-      'Cumplimiento parcial en la señalización de higiene en el área de despacho. No se evidenció registro documentado del programa anual de capacitación en BPM.',
+      'Partial compliance on hygiene signage in the dispatch area. There was no documented record of the annual GMP training program.',
     recomendaciones:
-      'Instalar avisos alusivos al lavado de manos en el área de despacho. Documentar y archivar el cronograma anual de capacitación del personal manipulador.',
+      'Post handwashing notices in the dispatch area. Document and file the annual training schedule for food handlers.',
     status: 'APROBADO',
     version: 2,
     locked: true,
@@ -49,13 +49,13 @@ const REPORTS: {
   {
     evaluationReason: EVAL_REASONS.DISTRIBUIDORA_RUTINA,
     resumenEjecutivo:
-      'Inspección de rutina con hallazgos relevantes en el control de la cadena de frío. Se requiere plan de acción correctiva.',
+      'Routine inspection with relevant findings in cold-chain control. A corrective action plan is required.',
     hallazgos:
-      'El almacén mantiene orden general y separación adecuada de tarimas. Se observaron deficiencias en el monitoreo de temperatura.',
+      'The warehouse keeps general order and adequate pallet separation. Deficiencies were observed in temperature monitoring.',
     noConformidades:
-      'Termómetro de la cámara de frío sin certificado de calibración vigente. Registros de temperatura incompletos en los últimos 30 días.',
+      'Cold-room thermometer has no current calibration certificate. Temperature records are incomplete for the last 30 days.',
     recomendaciones:
-      'Calibrar los equipos de medición de temperatura y conservar el certificado. Implementar registro de temperatura dos veces por turno con responsable asignado.',
+      'Calibrate temperature-measuring equipment and keep the certificate. Record temperature twice per shift with an assigned person responsible.',
     status: 'ENVIADO',
     version: 1,
     locked: true,

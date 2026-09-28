@@ -20,11 +20,11 @@ import { daysFromNow, logSeed, required } from './seed.utils';
 // ============================== DATA ==============================
 
 export const EVAL_REASONS = {
-  LACTEOS_INICIAL: 'Inspección inicial BPM — Lácteos del Norte',
-  PANADERIA_INICIAL: 'Inspección inicial BPM — Panadería El Sol',
-  DISTRIBUIDORA_RUTINA: 'Inspección de rutina — Distribuidora Caribe',
-  LACTEOS_ALERTA: 'Inspección por alerta LAPCH — Lácteos del Norte',
-  PANADERIA_DENUNCIA: 'Inspección por denuncia — Panadería El Sol',
+  LACTEOS_INICIAL: 'Initial BPM inspection — Lácteos del Norte',
+  PANADERIA_INICIAL: 'Initial BPM inspection — Panadería El Sol',
+  DISTRIBUIDORA_RUTINA: 'Routine inspection — Distribuidora Caribe',
+  LACTEOS_ALERTA: 'LAPCH alert inspection — Lácteos del Norte',
+  PANADERIA_DENUNCIA: 'Complaint inspection — Panadería El Sol',
 } as const;
 
 const EVALUATIONS: {
@@ -48,7 +48,7 @@ const EVALUATIONS: {
     scheduledDays: -28,
     priority: 'MEDIA',
     status: 'FINALIZADA',
-    observations: 'Inspección completa ejecutada sin incidentes.',
+    observations: 'Full inspection completed with no incidents.',
     startedDays: -28,
     finishedDays: -28,
   },
@@ -60,7 +60,7 @@ const EVALUATIONS: {
     scheduledDays: -1,
     priority: 'BAJA',
     status: 'FINALIZADA',
-    observations: 'Inspección concluida satisfactoriamente, enviada para revisión del coordinador.',
+    observations: 'Inspection completed successfully and sent for coordinator review.',
     startedDays: -1,
     finishedDays: -1,
   },
@@ -72,7 +72,7 @@ const EVALUATIONS: {
     scheduledDays: 3,
     priority: 'ALTA',
     status: 'PROGRAMADA',
-    observations: 'Coordinar acceso con el representante de calidad.',
+    observations: 'Coordinate access with the quality representative.',
   },
   {
     reason: EVAL_REASONS.LACTEOS_ALERTA,
@@ -82,7 +82,7 @@ const EVALUATIONS: {
     scheduledDays: 6,
     priority: 'ALTA',
     status: 'REPROGRAMADA',
-    observations: 'Reprogramada a solicitud de la empresa (planta en mantenimiento).',
+    observations: 'Rescheduled at the company’s request (plant under maintenance).',
   },
   {
     reason: EVAL_REASONS.PANADERIA_DENUNCIA,
@@ -92,7 +92,7 @@ const EVALUATIONS: {
     scheduledDays: -5,
     priority: 'MEDIA',
     status: 'CANCELADA',
-    observations: 'Cancelada: la denuncia fue remitida a otro proceso.',
+    observations: 'Cancelled: the complaint was referred to another process.',
   },
 ];
 

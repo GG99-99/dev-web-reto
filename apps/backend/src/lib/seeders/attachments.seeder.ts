@@ -58,7 +58,7 @@ const ATTACHMENTS: {
     mimeType: 'application/pdf',
     uploadedByCedula: '002-0000001-1',
     createdDays: -21,
-    bpmRequestMotivo: { rnc: '130123456', motivo: 'Solicitud inicial de certificación BPM' },
+    bpmRequestMotivo: { rnc: '130123456', motivo: 'Initial BPM certification request' },
   },
   {
     category: 'DOCUMENTACION_OBLIGATORIA',
@@ -67,7 +67,7 @@ const ATTACHMENTS: {
     mimeType: 'application/pdf',
     uploadedByCedula: '002-0000001-1',
     createdDays: -21,
-    bpmRequestMotivo: { rnc: '130123456', motivo: 'Solicitud inicial de certificación BPM' },
+    bpmRequestMotivo: { rnc: '130123456', motivo: 'Initial BPM certification request' },
   },
   {
     category: 'INFORME_ADJUNTO',

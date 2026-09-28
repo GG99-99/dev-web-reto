@@ -15,12 +15,12 @@ import { logSeed, required } from './seed.utils';
 // ============================== DATA ==============================
 
 const FOODS: { category: string; names: string[] }[] = [
-  { category: 'Lácteos y derivados', names: ['Queso de freír', 'Leche entera UHT', 'Yogur de fresa'] },
-  { category: 'Cárnicos y embutidos', names: ['Salami', 'Pechuga de pollo', 'Longaniza'] },
-  { category: 'Productos de panadería', names: ['Pan de agua', 'Bizcocho de vainilla'] },
-  { category: 'Bebidas no alcohólicas', names: ['Jugo de naranja', 'Agua purificada 5 galones'] },
-  { category: 'Frutas y vegetales frescos', names: ['Lechuga', 'Plátano verde'] },
-  { category: 'Alimentos enlatados y conservas', names: ['Habichuelas enlatadas', 'Salsa de tomate'] },
+  { category: 'Dairy and dairy products', names: ['Frying cheese', 'Whole UHT milk', 'Strawberry yogurt'] },
+  { category: 'Meat and sausages', names: ['Salami', 'Chicken breast', 'Pork sausage'] },
+  { category: 'Bakery products', names: ['Water bread', 'Vanilla cake'] },
+  { category: 'Non-alcoholic beverages', names: ['Orange juice', 'Purified water, 5 gallons'] },
+  { category: 'Fresh fruits and vegetables', names: ['Lettuce', 'Green plantain'] },
+  { category: 'Canned and preserved foods', names: ['Canned beans', 'Tomato sauce'] },
 ];
 
 // ============================ SEEDING =============================

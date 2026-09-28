@@ -32,7 +32,7 @@ const ASSIGNMENTS: {
     assignedToCedula: '001-0000003-3',
     assignedByCedula: '001-0000002-2',
     isReassignment: false,
-    notes: 'Asignación inicial. Planta de alto riesgo, priorizar.',
+    notes: 'Initial assignment. High-risk plant; prioritize.',
     assignedAtDays: -19,
   },
   {
@@ -41,7 +41,7 @@ const ASSIGNMENTS: {
     assignedToCedula: '001-0000003-3',
     assignedByCedula: '001-0000002-2',
     isReassignment: false,
-    notes: 'Asignación inicial.',
+    notes: 'Initial assignment.',
     assignedAtDays: -34,
   },
   {
@@ -51,7 +51,7 @@ const ASSIGNMENTS: {
     assignedToCedula: '001-0000004-4',
     assignedByCedula: '001-0000002-2',
     isReassignment: true,
-    notes: 'Reasignado por carga de trabajo del técnico anterior.',
+    notes: 'Reassigned because of the previous technician’s workload.',
     assignedAtDays: -30,
   },
   {
@@ -60,7 +60,7 @@ const ASSIGNMENTS: {
     assignedToCedula: '001-0000004-4',
     assignedByCedula: '001-0000002-2',
     isReassignment: false,
-    notes: 'Inspección programada de rutina.',
+    notes: 'Scheduled routine inspection.',
     assignedAtDays: -6,
   },
 ];

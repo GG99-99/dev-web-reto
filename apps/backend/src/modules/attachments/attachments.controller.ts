@@ -12,7 +12,7 @@ import { ApiError } from '@/lib/common/ApiError';
 export const attachmentsController = {
   create: async (req: Request, res: Response) => {
     if (!req.user) throw ApiError.unauthorized();
-    if (!req.file) throw ApiError.validation('El archivo ("file") es requerido');
+    if (!req.file) throw ApiError.validation('The file ("file") is required');
 
     const { category } = req.validated!.body;
     const data = await attachmentsService.create(req.file, category, req.user.userId);

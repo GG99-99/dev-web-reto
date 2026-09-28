@@ -63,7 +63,7 @@ export const bpmRequestsController = {
 
   addAttachment: async (req: Request, res: Response) => {
     if (!req.user) throw ApiError.unauthorized();
-    if (!req.file) throw ApiError.validation('El archivo ("file") es requerido');
+    if (!req.file) throw ApiError.validation('The file ("file") is required');
     const { id } = req.validated!.params;
     const data = await bpmRequestsService.addAttachment(id, { userId: req.user.userId, role: req.user.role, personId: req.user.personId }, req.file);
     return res.status(201).json(ok(data));

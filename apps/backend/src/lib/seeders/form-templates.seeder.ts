@@ -31,66 +31,66 @@ interface H3Seed { name: string; asks: string[]; h4s?: H4Seed[] }
 interface H2Seed { name: string; asks: string[]; h3s?: H3Seed[] }
 interface H1Seed { name: string; asks: string[]; h2s?: H2Seed[] }
 
-const TEMPLATE_NAME = 'Ficha Inspección BPM v1.00';
+const TEMPLATE_NAME = 'BPM Inspection Form v1.00';
 
 const TREE: H1Seed[] = [
   {
-    name: '1. ESTABLECIMIENTO',
-    asks: ['El establecimiento cuenta con permiso sanitario vigente'],
+    name: '1. ESTABLISHMENT',
+    asks: ['The establishment has a current sanitary permit'],
     h2s: [
       {
-        name: '1.1 Ubicación y alrededores',
-        asks: ['Los alrededores están libres de acumulación de basura'],
+        name: '1.1 Location and surroundings',
+        asks: ['The surroundings are free of accumulated garbage'],
         h3s: [
           {
-            name: '1.1.1 Ubicación del establecimiento',
+            name: '1.1.1 Establishment location',
             asks: [
-              'Está alejado de focos de contaminación',
-              'Las vías de acceso están pavimentadas o tratadas contra el polvo',
+              'It is away from sources of contamination',
+              'Access roads are paved or treated against dust',
             ],
           },
           {
-            name: '1.1.2 Estructura física',
-            asks: ['La estructura es de material resistente y de fácil limpieza'],
+            name: '1.1.2 Physical structure',
+            asks: ['The structure is made of durable material that is easy to clean'],
             h4s: [
               {
-                name: '1.1.2.1 Paredes',
+                name: '1.1.2.1 Walls',
                 asks: [
-                  'Las paredes son lisas, impermeables y de color claro',
-                  'Las uniones pared-piso son redondeadas (sanitarias)',
+                  'Walls are smooth, waterproof, and light-colored',
+                  'Wall-to-floor joints are rounded (sanitary coving)',
                 ],
               },
               {
-                name: '1.1.2.2 Pisos',
+                name: '1.1.2.2 Floors',
                 asks: [
-                  'Los pisos son impermeables y antideslizantes',
-                  'Los pisos tienen pendiente hacia los desagües',
+                  'Floors are waterproof and non-slip',
+                  'Floors slope toward the drains',
                 ],
               },
               {
-                name: '1.1.2.3 Techos',
-                asks: ['Los techos impiden la acumulación de suciedad y condensación'],
+                name: '1.1.2.3 Ceilings',
+                asks: ['Ceilings prevent the buildup of dirt and condensation'],
               },
             ],
           },
         ],
       },
       {
-        name: '1.2 Servicios básicos',
-        asks: ['Existe suministro continuo de agua potable'],
+        name: '1.2 Basic services',
+        asks: ['There is a continuous supply of potable water'],
         h3s: [
           {
-            name: '1.2.1 Agua',
+            name: '1.2.1 Water',
             asks: [
-              'El agua utilizada cumple con los parámetros de potabilidad',
-              'Se llevan registros de cloración del agua',
+              'The water used meets potability parameters',
+              'Water chlorination records are kept',
             ],
           },
           {
-            name: '1.2.2 Manejo de residuos',
+            name: '1.2.2 Waste handling',
             asks: [
-              'Los residuos sólidos se almacenan en recipientes tapados',
-              'La disposición final de residuos es adecuada',
+              'Solid waste is stored in covered containers',
+              'Final waste disposal is adequate',
             ],
           },
         ],
@@ -98,55 +98,55 @@ const TREE: H1Seed[] = [
     ],
   },
   {
-    name: '2. PERSONAL MANIPULADOR',
-    asks: ['El personal cuenta con certificado de salud vigente'],
+    name: '2. FOOD HANDLERS',
+    asks: ['Staff have a current health certificate'],
     h2s: [
       {
-        name: '2.1 Higiene del personal',
-        asks: ['El personal usa uniforme limpio y completo'],
+        name: '2.1 Personnel hygiene',
+        asks: ['Staff wear a clean, complete uniform'],
         h3s: [
           {
-            name: '2.1.1 Prácticas higiénicas',
+            name: '2.1.1 Hygienic practices',
             asks: [
-              'El personal se lava las manos al ingresar al área de proceso',
-              'El personal no usa joyas ni maquillaje en el área de proceso',
-              'Existen avisos alusivos a la higiene en lugares visibles',
+              'Staff wash their hands when entering the processing area',
+              'Staff do not wear jewelry or makeup in the processing area',
+              'Hygiene notices are posted in visible places',
             ],
           },
           {
-            name: '2.1.2 Capacitación',
-            asks: ['Existe un programa de capacitación en BPM documentado'],
+            name: '2.1.2 Training',
+            asks: ['There is a documented GMP training program'],
           },
         ],
       },
     ],
   },
   {
-    name: '3. PROCESO Y PRODUCCIÓN',
-    asks: ['Existe documentación del proceso productivo'],
+    name: '3. PROCESS AND PRODUCTION',
+    asks: ['Production process documentation exists'],
     h2s: [
       {
-        name: '3.1 Materias primas',
-        asks: ['Las materias primas se inspeccionan al recibirlas'],
+        name: '3.1 Raw materials',
+        asks: ['Raw materials are inspected on receipt'],
         h3s: [
           {
-            name: '3.1.1 Almacenamiento',
+            name: '3.1.1 Storage',
             asks: [
-              'Las materias primas se almacenan sobre tarimas separadas de la pared',
-              'Se aplica el principio PEPS (primero en entrar, primero en salir)',
+              'Raw materials are stored on pallets away from the wall',
+              'The FIFO principle (first in, first out) is applied',
             ],
           },
         ],
       },
       {
-        name: '3.2 Control de temperatura',
-        asks: ['Los equipos de frío cuentan con termómetro visible'],
+        name: '3.2 Temperature control',
+        asks: ['Cold equipment has a visible thermometer'],
         h3s: [
           {
-            name: '3.2.1 Cadena de frío',
+            name: '3.2.1 Cold chain',
             asks: [
-              'Se registran las temperaturas de refrigeración al menos 2 veces al día',
-              'Los productos refrigerados se mantienen entre 0 °C y 5 °C',
+              'Refrigeration temperatures are recorded at least twice a day',
+              'Refrigerated products are kept between 0 °C and 5 °C',
             ],
           },
         ],

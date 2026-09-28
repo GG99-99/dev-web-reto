@@ -121,16 +121,16 @@ export async function seedAll() {
     try {
       await step.run();
     } catch (error) {
-      console.error(`\n[seed] ❌ Falló el seeder "${step.name}"`);
+      console.error(`\n[seed] Seeder "${step.name}" failed`);
       throw error;
     }
   }
 
   const seconds = ((Date.now() - startedAt) / 1000).toFixed(1);
   console.log('='.repeat(70));
-  console.log(`SEED COMPLETADO en ${seconds}s`);
-  console.log(`Contraseña de todos los usuarios de prueba: ${SEED_PASSWORD}`);
-  console.log('Usuarios: admin@salud.gob.do (ADMIN) · coordinador@salud.gob.do (COORDINADOR)');
+  console.log(`SEED COMPLETED in ${seconds}s`);
+  console.log(`Password for every test user: ${SEED_PASSWORD}`);
+  console.log('Users: admin@salud.gob.do (ADMIN) · coordinador@salud.gob.do (COORDINADOR)');
   console.log('          tecnico1@salud.gob.do / tecnico2@salud.gob.do (TECNICO_EVALUADOR)');
   console.log('          admin@lacteosdelnorte.do (ADMIN_EMPRESA) · delegado@lacteosdelnorte.do');
   console.log('='.repeat(70));

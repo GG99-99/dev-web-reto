@@ -15,12 +15,12 @@ import { logSeed } from './seed.utils';
 // ============================== DATA ==============================
 
 const CATEGORIES = [
-  'Lácteos y derivados',
-  'Cárnicos y embutidos',
-  'Productos de panadería',
-  'Bebidas no alcohólicas',
-  'Frutas y vegetales frescos',
-  'Alimentos enlatados y conservas',
+  'Dairy and dairy products',
+  'Meat and sausages',
+  'Bakery products',
+  'Non-alcoholic beverages',
+  'Fresh fruits and vegetables',
+  'Canned and preserved foods',
 ];
 
 // ============================ SEEDING =============================

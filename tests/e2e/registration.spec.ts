@@ -92,7 +92,7 @@ test.describe('Registration approval and rejection', () => {
         await expect(applicantPage.locator('.app-shell')).toBeVisible({ timeout: 20_000 });
         await waitForCompanyPortalAny(applicantPage);
         await expect(applicantPage.getByRole('button', { name: /my bpm requests/i })).toBeVisible();
-        await expect(applicantPage.getByRole('heading', { name: /portal de autogestión/i })).toBeVisible();
+        await expect(applicantPage.getByRole('heading', { name: /company self-service portal/i })).toBeVisible();
       });
     } finally {
       await applicant.close();

@@ -25,26 +25,26 @@ const COMPLAINTS: {
   resultado: 'PROCEDE' | 'NO_PROCEDE' | 'REMISION_OTRO_PROCESO' | null;
 }[] = [
   {
-    tipoDenuncia: 'Condiciones higiénicas deficientes',
+    tipoDenuncia: 'Poor hygienic conditions',
     fechaRecepcionDays: -12,
-    denunciante: 'Ciudadano anónimo',
-    descripcion: 'Reporta presencia de roedores en el área de despacho.',
+    denunciante: 'Anonymous citizen',
+    descripcion: 'Reports rodents in the dispatch area.',
     rnc: '130987654',
     resultado: 'PROCEDE',
   },
   {
-    tipoDenuncia: 'Producto en mal estado',
+    tipoDenuncia: 'Spoiled product',
     fechaRecepcionDays: -6,
     denunciante: 'María Fernández',
-    descripcion: 'Compró leche con olor fermentado dentro de la fecha de vencimiento.',
+    descripcion: 'Bought milk with a fermented smell while still within the expiration date.',
     rnc: '130123456',
     resultado: null,
   },
   {
-    tipoDenuncia: 'Publicidad engañosa',
+    tipoDenuncia: 'Misleading advertising',
     fechaRecepcionDays: -3,
-    denunciante: 'Asociación de Consumidores',
-    descripcion: 'Etiquetado con declaración nutricional no comprobable.',
+    denunciante: 'Consumer Association',
+    descripcion: 'Labeling includes a nutrition claim that cannot be verified.',
     rnc: null, // sin empresa asociada: generate-case debe fallar con 400
     resultado: 'REMISION_OTRO_PROCESO',
   },

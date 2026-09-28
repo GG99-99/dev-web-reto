@@ -19,7 +19,7 @@ const INSTITUTIONS = [
   {
     name: 'Lácteos del Norte SRL',
     nombreComercial: 'Lácteos del Norte',
-    actividadEconomica: 'Procesamiento y envasado de productos lácteos',
+    actividadEconomica: 'Processing and packaging of dairy products',
     rnc: '130123456',
     streetName: 'Av. Estrella Sadhalá',
     streetNum: '45',
@@ -31,7 +31,7 @@ const INSTITUTIONS = [
   {
     name: 'Panadería El Sol EIRL',
     nombreComercial: 'Panadería El Sol',
-    actividadEconomica: 'Elaboración de productos de panadería y repostería',
+    actividadEconomica: 'Production of bakery and pastry products',
     rnc: '130987654',
     streetName: 'Calle Duarte',
     streetNum: '12',
@@ -43,7 +43,7 @@ const INSTITUTIONS = [
   {
     name: 'Distribuidora Caribe SA',
     nombreComercial: 'Distribuidora Caribe',
-    actividadEconomica: 'Almacenamiento y distribución de alimentos envasados',
+    actividadEconomica: 'Storage and distribution of packaged foods',
     rnc: '130555777',
     streetName: 'Autopista Duarte Km 12',
     streetNum: '3',

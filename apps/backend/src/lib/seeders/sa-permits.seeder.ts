@@ -28,13 +28,13 @@ const SA_PERMITS: {
   valid: boolean;
 }[] = [
   {
-    formResponseName: 'Ficha BPM — Panadería El Sol (inicial)',
+    formResponseName: 'BPM form — Panadería El Sol (initial)',
     rnc: '130987654',
     expirationDays: 330,
     valid: true,
   },
   {
-    formResponseName: 'Ficha BPM — Distribuidora Caribe (rutina)',
+    formResponseName: 'BPM form — Distribuidora Caribe (routine)',
     rnc: '130555777',
     expirationDays: -10, // vencido
     valid: false,

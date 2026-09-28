@@ -37,7 +37,7 @@ export interface SyncQueueItem {
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     if (typeof window === 'undefined' || !window.indexedDB) {
-      reject(new Error('IndexedDB no está disponible'));
+      reject(new Error('IndexedDB is not available'));
       return;
     }
 

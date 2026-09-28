@@ -35,7 +35,7 @@ export const formExecutionModel = {
     return prisma.$transaction(async (tx) => {
       const formResponse = await tx.formResponse.create({
         data: {
-          name: `Ejecución evaluación #${evaluationId}`,
+          name: `Evaluation run #${evaluationId}`,
           createAt: new Date(),
           formTemplateId: data.formTemplateId,
           institutionId: data.institutionId,

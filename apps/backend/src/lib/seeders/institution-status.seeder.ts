@@ -30,17 +30,17 @@ const INSTITUTION_STATUSES: {
     rnc: '130987654',
     validUntilDays: 330,
     questions: [
-      { question: '¿Posee certificación BPM vigente?', type: 'BOOLEAN', value: 'true' },
-      { question: 'Nivel de riesgo asignado', type: 'TEXT', value: 'BAJO' },
-      { question: 'Frecuencia de inspección', type: 'TEXT', value: 'ANUAL' },
+      { question: 'Does it have a current BPM certification?', type: 'BOOLEAN', value: 'true' },
+      { question: 'Assigned risk level', type: 'TEXT', value: 'LOW' },
+      { question: 'Inspection frequency', type: 'TEXT', value: 'ANNUAL' },
     ],
   },
   {
     rnc: '130123456',
     validUntilDays: -30, // vencida: útil para probar filtros de vigencia
     questions: [
-      { question: '¿Posee certificación BPM vigente?', type: 'BOOLEAN', value: 'false' },
-      { question: 'Motivo', type: 'TEXT', value: 'Certificación vencida, en proceso de renovación' },
+      { question: 'Does it have a current BPM certification?', type: 'BOOLEAN', value: 'false' },
+      { question: 'Reason', type: 'TEXT', value: 'Certification expired, renewal in progress' },
     ],
   },
 ];

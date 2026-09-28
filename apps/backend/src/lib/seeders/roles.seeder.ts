@@ -14,11 +14,11 @@ import { logSeed } from './seed.utils';
 // ============================== DATA ==============================
 
 const ROLES: { name: UserRole; description: string }[] = [
-  { name: 'ADMIN', description: 'Administrador del sistema' },
-  { name: 'ADMIN_EMPRESA', description: 'Administrador de una empresa/institución' },
-  { name: 'USUARIO_DELEGADO', description: 'Usuario delegado por el Admin Empresa' },
-  { name: 'COORDINADOR', description: 'Coordinador de evaluaciones' },
-  { name: 'TECNICO_EVALUADOR', description: 'Técnico que ejecuta evaluaciones en campo' },
+  { name: 'ADMIN', description: 'System administrator' },
+  { name: 'ADMIN_EMPRESA', description: 'Administrator of a company or institution' },
+  { name: 'USUARIO_DELEGADO', description: 'User delegated by the company administrator' },
+  { name: 'COORDINADOR', description: 'Evaluation coordinator' },
+  { name: 'TECNICO_EVALUADOR', description: 'Technician who carries out field evaluations' },
 ];
 
 // ============================ SEEDING =============================
@@ -30,6 +30,9 @@ export async function seedRoles() {
   for (const role of ROLES) {
     const existing = await prisma.role.findUnique({ where: { name: role.name } });
     if (existing) {
+      if (existing.description !== role.description) {
+        await prisma.role.update({ where: { name: role.name }, data: { description: role.description } });
+      }
       skipped++;
       continue;
     }

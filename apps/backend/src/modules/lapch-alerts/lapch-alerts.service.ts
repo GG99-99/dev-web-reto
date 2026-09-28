@@ -55,7 +55,7 @@ export const lapchAlertsService = {
   close: async (alertId: number) => {
     const alert = await lapchAlertsService.getById(alertId);
     if (!alert.resultado) {
-      throw ApiError.validation('No se puede cerrar una alerta sin un resultado definido (PATCH .../resultado primero)');
+      throw ApiError.validation('An alert cannot be closed without a defined result (PATCH .../resultado first)');
     }
     return alert;
   },

@@ -55,7 +55,7 @@ export function verifyRefreshToken(token: string): RefreshTokenPayload {
 export function verifyTempToken(token: string): TempTokenPayload {
   const decoded = jwt.verify(token, ACCESS_SECRET) as unknown as TempTokenPayload;
   if (decoded.purpose !== '2fa') {
-    throw new Error('Token temporal inválido');
+    throw new Error('Invalid temporary token');
   }
   return decoded;
 }

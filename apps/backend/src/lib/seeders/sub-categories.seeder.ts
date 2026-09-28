@@ -19,27 +19,27 @@ import { logSeed, required } from './seed.utils';
 // ============================== DATA ==============================
 
 const SUB_CATEGORIES: { category: string; name: string; risk: number }[] = [
-  { category: 'Lácteos y derivados', name: 'Leche cruda', risk: 3 },
-  { category: 'Lácteos y derivados', name: 'Leche pasteurizada', risk: 2 },
-  { category: 'Lácteos y derivados', name: 'Quesos frescos', risk: 3 },
-  { category: 'Lácteos y derivados', name: 'Yogur', risk: 2 },
+  { category: 'Dairy and dairy products', name: 'Raw milk', risk: 3 },
+  { category: 'Dairy and dairy products', name: 'Pasteurized milk', risk: 2 },
+  { category: 'Dairy and dairy products', name: 'Fresh cheeses', risk: 3 },
+  { category: 'Dairy and dairy products', name: 'Yogurt', risk: 2 },
 
-  { category: 'Cárnicos y embutidos', name: 'Carne fresca de res', risk: 3 },
-  { category: 'Cárnicos y embutidos', name: 'Pollo fresco', risk: 3 },
-  { category: 'Cárnicos y embutidos', name: 'Embutidos cocidos', risk: 2 },
+  { category: 'Meat and sausages', name: 'Fresh beef', risk: 3 },
+  { category: 'Meat and sausages', name: 'Fresh chicken', risk: 3 },
+  { category: 'Meat and sausages', name: 'Cooked sausages', risk: 2 },
 
-  { category: 'Productos de panadería', name: 'Pan sin relleno', risk: 1 },
-  { category: 'Productos de panadería', name: 'Repostería con crema', risk: 3 },
+  { category: 'Bakery products', name: 'Unfilled bread', risk: 1 },
+  { category: 'Bakery products', name: 'Cream-filled pastry', risk: 3 },
 
-  { category: 'Bebidas no alcohólicas', name: 'Jugos pasteurizados', risk: 2 },
-  { category: 'Bebidas no alcohólicas', name: 'Agua embotellada', risk: 2 },
-  { category: 'Bebidas no alcohólicas', name: 'Refrescos carbonatados', risk: 1 },
+  { category: 'Non-alcoholic beverages', name: 'Pasteurized juices', risk: 2 },
+  { category: 'Non-alcoholic beverages', name: 'Bottled water', risk: 2 },
+  { category: 'Non-alcoholic beverages', name: 'Carbonated soft drinks', risk: 1 },
 
-  { category: 'Frutas y vegetales frescos', name: 'Vegetales de hoja verde', risk: 3 },
-  { category: 'Frutas y vegetales frescos', name: 'Frutas con cáscara', risk: 1 },
+  { category: 'Fresh fruits and vegetables', name: 'Leafy vegetables', risk: 3 },
+  { category: 'Fresh fruits and vegetables', name: 'Fruits with peel', risk: 1 },
 
-  { category: 'Alimentos enlatados y conservas', name: 'Conservas de baja acidez', risk: 3 },
-  { category: 'Alimentos enlatados y conservas', name: 'Conservas ácidas', risk: 1 },
+  { category: 'Canned and preserved foods', name: 'Low-acid preserves', risk: 3 },
+  { category: 'Canned and preserved foods', name: 'Acid preserves', risk: 1 },
 ];
 
 // ============================ SEEDING =============================
