@@ -33,6 +33,8 @@ export declare function saveLocalDraft(evaluationId: number, answers: FormAnswer
  * Obtiene el borrador local de una evaluación (IndexedDB con fallback en localStorage).
  */
 export declare function getLocalDraft(evaluationId: number): Promise<LocalDraft | null>;
+/** Removes a local draft so a reset evaluation does not reopen old answers. */
+export declare function deleteLocalDraft(evaluationId: number): Promise<void>;
 /**
  * Guarda en caché el árbol completo de la plantilla BPM para uso offline.
  */

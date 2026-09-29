@@ -1,3 +1,4 @@
+import { type FormAnswers } from '@reto/shared';
 import type { Evaluation } from './App';
 import './App.css';
 import './FieldAssessment.css';
@@ -6,7 +7,7 @@ type LiveFieldProps = {
     item?: Evaluation;
     live: boolean;
     inform: (message: string) => void;
-    onViewReport?: (evaluationId: number, answers?: import('@reto/shared').FormAnswers) => void;
+    onViewReport?: (evaluationId: number, answers?: FormAnswers) => void;
     onEvaluationUpdated?: (evaluationId: number, patch: Partial<Evaluation>) => void;
 };
 export interface StructuredQuestion {
