@@ -422,3 +422,9 @@
   justify-content: flex-end;
   gap: 10px;
 }
+
+.gov-score-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}

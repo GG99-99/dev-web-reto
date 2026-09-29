@@ -286,19 +286,19 @@ export default function UserApprovalPanel({ notify }: UserApprovalPanelProps) {
                         </div>
                       </div>
                     </td>
-                    <td>
+                    <td data-label="National ID">
                       <code>{user.person?.cedula ?? '—'}</code>
                     </td>
-                    <td>{user.person?.phone ?? '—'}</td>
-                    <td>
+                    <td data-label="Phone">{user.person?.phone ?? '—'}</td>
+                    <td data-label="Role">
                       <span className="uap-role-pill">{user.role?.name ?? 'NO_ROLE'}</span>
                     </td>
-                    <td>
+                    <td data-label="Registered">
                       <small style={{ color: '#535f73' }}>
                         {user.createdAt ? new Date(user.createdAt).toLocaleDateString('es-DO') : '—'}
                       </small>
                     </td>
-                    <td>
+                    <td data-label="Status">
                       {isPending && (
                         <span className="uap-status-badge pending">
                           <span className="uap-status-dot" />
@@ -318,7 +318,7 @@ export default function UserApprovalPanel({ notify }: UserApprovalPanelProps) {
                         </span>
                       )}
                     </td>
-                    <td style={{ textAlign: 'right' }}>
+                    <td data-label="Actions" style={{ textAlign: 'right' }}>
                       <div className="uap-actions-cell" style={{ justifyContent: 'flex-end' }}>
                         {isPending && (
                           <>

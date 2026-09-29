@@ -16,11 +16,22 @@ export const personModel = {
     return prisma.person.findUnique({ where: { email } });
   },
 
-  /** Usado por auth para validar credenciales: trae la Person + su User (password incluida). */
+  /**
+   * Person + User for login and password recovery.
+   * Exact match first, then a case-insensitive match so "Ana@Org.com" still
+   * finds the account stored as "ana@org.com".
+   */
   getWithUserByEmail: async (email: string) => {
-    return prisma.person.findUnique({
-      where: { email },
-      include: { user: { include: { role: true } } },
+    const normalized = email.trim();
+    const include = { user: { include: { role: true } } } as const;
+    const exact = await prisma.person.findUnique({
+      where: { email: normalized },
+      include,
+    });
+    if (exact || !normalized) return exact;
+    return prisma.person.findFirst({
+      where: { email: { equals: normalized, mode: 'insensitive' } },
+      include,
     });
   },
 

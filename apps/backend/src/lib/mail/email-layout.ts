@@ -44,6 +44,8 @@ export function renderOperationalEmail(options: {
   heading: string;
   paragraphs: string[];
   details?: EmailDetail[];
+  /** Optional branded button. Only http(s) links are rendered. */
+  action?: { label: string; href: string };
   footnote?: string;
 }): string {
   const paragraphs = options.paragraphs
@@ -77,6 +79,20 @@ export function renderOperationalEmail(options: {
       </table>`
     : '';
 
+  const actionHref = options.action?.href.trim() ?? '';
+  const actionLabel = options.action?.label.trim() ?? '';
+  const action =
+    actionLabel && /^https?:\/\//i.test(actionHref)
+      ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:4px 0 18px;">
+          <tr>
+            <td style="border-radius:8px;background:#00236f;">
+              <a href="${escapeHtml(actionHref)}" style="display:inline-block;padding:12px 20px;color:#ffffff;font-size:14px;font-weight:800;text-decoration:none;border-radius:8px;">${escapeHtml(actionLabel)}</a>
+            </td>
+          </tr>
+        </table>
+        <p style="margin:0 0 16px;font-size:13px;line-height:1.55;color:#64748b;">If the button does not open, copy this link into your browser:<br><a href="${escapeHtml(actionHref)}" style="color:#167eba;word-break:break-all;">${escapeHtml(actionHref)}</a></p>`
+      : '';
+
   const footnote = options.footnote?.trim()
     ? `<p style="margin:0;font-size:13px;line-height:1.55;color:#64748b;">${escapeHtml(options.footnote.trim())}</p>`
     : '';
@@ -98,6 +114,7 @@ export function renderOperationalEmail(options: {
             <h1 style="margin:0 0 16px;color:#00236f;font-size:20px;line-height:1.35;font-weight:800;">${escapeHtml(options.heading)}</h1>
             ${paragraphs}
             ${details}
+            ${action}
             ${footnote}
           </td>
         </tr>

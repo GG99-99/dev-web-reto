@@ -75,5 +75,6 @@
   .cc-btn-white { width: 100%; justify-content: center; }
   .cc-lifecycle { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .cc-schedule > div { grid-template-columns: 46px minmax(0, 1fr); }
-  .cc-schedule mark { grid-column: 2; justify-self: start; }
+  .cc-schedule span { min-width: 0; }
+  .cc-schedule mark { grid-column: 1 / -1; justify-self: start; }
 }

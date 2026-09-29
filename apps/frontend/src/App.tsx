@@ -32,6 +32,7 @@ import {
   setRefreshTokenProvider,
 } from "./services/httpClient";
 import "./App.css";
+import "./mobile.css";
 import { deriveLifecycleStatus } from "@reto/shared";
 import { statusLabel } from "./statusLabels";
 import {
@@ -60,7 +61,7 @@ type View =
   | "operations"
   | "company"
   | "governance";
-type AuthMode = "signin" | "signup" | "forgot" | "twoFactor";
+type AuthMode = "signin" | "signup" | "forgot" | "twoFactor" | "reset";
 type Session = {
   accessToken: string;
   refreshToken: string;
@@ -160,6 +161,18 @@ const date = (value?: string) =>
       }).format(new Date(value))
     : "Not scheduled";
 
+function recoveryTokenFromLocation() {
+  if (typeof window === "undefined") return "";
+  return new URLSearchParams(window.location.search).get("reset")?.trim() ?? "";
+}
+
+function clearRecoveryQuery() {
+  const url = new URL(window.location.href);
+  if (!url.searchParams.has("reset")) return;
+  url.searchParams.delete("reset");
+  window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}` || "/");
+}
+
 function App() {
   const [session, setSession] = useState<Session | null>(() => {
     try {
@@ -184,6 +197,9 @@ function App() {
   const [menu, setMenu] = useState(false);
   const [login, setLogin] = useState(false);
   const [notice, setNotice] = useState("");
+  const [holdForRecovery, setHoldForRecovery] = useState(() =>
+    Boolean(recoveryTokenFromLocation()),
+  );
   const [cases, setCases] = useState<CaseItem[]>([]);
   const [companyRequests, setCompanyRequests] = useState<CompanyRequestCard[]>([]);
   const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
@@ -432,11 +448,19 @@ function App() {
   }, [session, view]);
   const visibleCases = cases;
   const visibleEvaluations = evaluations;
-  if (!session)
+  if (!session || holdForRecovery)
     return (
       <AuthPortal
         initialMessage={notice}
+        recoveryToken={recoveryTokenFromLocation()}
+        onRecoveryClosed={(message) => {
+          clearRecoveryQuery();
+          setHoldForRecovery(false);
+          if (message) setNotice(message);
+        }}
         onSignedIn={(value) => {
+          clearRecoveryQuery();
+          setHoldForRecovery(false);
           saveSession(value);
           setNotice("");
           setView(
@@ -450,6 +474,14 @@ function App() {
   const visibleNav = navForRole(session.role);
   return (
     <div className="app-shell">
+      {menu && (
+        <button
+          type="button"
+          className="sidebar-backdrop"
+          aria-label="Close navigation"
+          onClick={() => setMenu(false)}
+        />
+      )}
       <aside className={`sidebar ${menu ? "sidebar--open" : ""}`}>
         <div className="brand">
           <b>R</b> RADAR<span>Sanitary</span>
@@ -774,13 +806,19 @@ function errorMessage(error: unknown, fallback: string) {
 function AuthPortal({
   initialMessage,
   onSignedIn,
+  recoveryToken = "",
+  onRecoveryClosed,
 }: {
   initialMessage: string;
   onSignedIn: (value: Session) => void;
+  recoveryToken?: string;
+  onRecoveryClosed?: (message?: string) => void;
 }) {
-  const [mode, setMode] = useState<AuthMode>("signin");
+  const [mode, setMode] = useState<AuthMode>(recoveryToken ? "reset" : "signin");
   const [usuario, setUsuario] = useState("");
   const [password, setPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
   const [code, setCode] = useState("");
   const [tempToken, setTempToken] = useState("");
   const [notice, setNotice] = useState(initialMessage);
@@ -946,14 +984,54 @@ function AuthPortal({
     setBusy(true);
     setNotice("");
     try {
-      await authService.forgotPassword({ email: usuario });
-      setNotice(
-        "If this address belongs to an account, recovery instructions have been sent.",
-      );
+      await authService.forgotPassword({ email: usuario.trim() });
+      const message =
+        "If this address belongs to an account, recovery instructions have been sent.";
+      setNotice(message);
       setMode("signin");
+      onRecoveryClosed?.(message);
     } catch {
       setNotice(
         "We could not start password recovery. Please try again later.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function submitReset(event: FormEvent) {
+    event.preventDefault();
+    setNotice("");
+    if (newPassword.length < 8) {
+      setNotice("Use a password with at least 8 characters.");
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      setNotice("Your passwords do not match.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const result = await authService.resetPassword({
+        token: recoveryToken,
+        newPassword,
+      });
+      if (!result.valid) {
+        setNotice("This recovery link is invalid or has expired. Request a new one.");
+        return;
+      }
+      const message = "Your password has been updated. You can sign in with it now.";
+      setNewPassword("");
+      setConfirmNewPassword("");
+      setPassword("");
+      setNotice(message);
+      setMode("signin");
+      onRecoveryClosed?.(message);
+    } catch (error) {
+      const message = (
+        error as { response?: { data?: { error?: { message?: string } } } }
+      )?.response?.data?.error?.message;
+      setNotice(
+        message || "This recovery link is invalid or has expired. Request a new one.",
       );
     } finally {
       setBusy(false);
@@ -964,17 +1042,21 @@ function AuthPortal({
       ? "Create your organisation account"
       : mode === "forgot"
         ? "Reset your password"
-        : mode === "twoFactor"
-          ? "Confirm it is you"
-          : "Sign in to your workspace";
+        : mode === "reset"
+          ? "Choose a new password"
+          : mode === "twoFactor"
+            ? "Confirm it is you"
+            : "Sign in to your workspace";
   const subheading =
     mode === "signup"
       ? "Submit an access request for review. You will be notified when your account is approved."
       : mode === "forgot"
         ? "Enter your work email and we will send recovery instructions."
-        : mode === "twoFactor"
-          ? "Enter the six-digit code from your authenticator app."
-          : "Use your approved email address or national ID to continue.";
+        : mode === "reset"
+          ? "This recovery link expires one hour after it was sent and can be used once."
+          : mode === "twoFactor"
+            ? "Enter the six-digit code from your authenticator app."
+            : "Use your approved email address or national ID to continue.";
   return (
     <main className="auth-page">
       <header className="auth-header">
@@ -1138,7 +1220,63 @@ function AuthPortal({
               <button
                 type="button"
                 className="text auth-link"
-                onClick={() => switchMode("signin")}
+                onClick={() => {
+                  switchMode("signin");
+                  onRecoveryClosed?.();
+                }}
+              >
+                ← Back to sign in
+              </button>
+            </form>
+          )}
+          {mode === "reset" && (
+            <form onSubmit={submitReset}>
+              <label>
+                New password
+                <input
+                  autoFocus
+                  type="password"
+                  value={newPassword}
+                  onChange={(event) => setNewPassword(event.target.value)}
+                  required
+                  minLength={8}
+                  autoComplete="new-password"
+                  placeholder="At least 8 characters"
+                />
+              </label>
+              <label>
+                Confirm password
+                <input
+                  type="password"
+                  value={confirmNewPassword}
+                  onChange={(event) => setConfirmNewPassword(event.target.value)}
+                  required
+                  minLength={8}
+                  autoComplete="new-password"
+                  placeholder="Re-enter your password"
+                />
+              </label>
+              <button className="primary" disabled={busy || !recoveryToken}>
+                {busy ? "Updating…" : "Update password"} <span>→</span>
+              </button>
+              <button
+                type="button"
+                className="text auth-link"
+                onClick={() => {
+                  clearRecoveryQuery();
+                  switchMode("forgot");
+                }}
+              >
+                Request a new recovery email
+              </button>
+              <button
+                type="button"
+                className="text auth-link"
+                onClick={() => {
+                  setNotice("");
+                  setMode("signin");
+                  onRecoveryClosed?.();
+                }}
               >
                 ← Back to sign in
               </button>

@@ -32,6 +32,14 @@ export const authModel = {
   /*******************
   |   PASSWORD RESET  |
    *******************/
+  /** Older unused links stop working once a new recovery email is issued. */
+  retireUnusedPasswordResetTokens: async (userId: number) => {
+    return prisma.passwordResetToken.updateMany({
+      where: { userId, used: false },
+      data: { used: true },
+    });
+  },
+
   createPasswordResetToken: async (userId: number, expiresInMs: number) => {
     const token = crypto.randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + expiresInMs);

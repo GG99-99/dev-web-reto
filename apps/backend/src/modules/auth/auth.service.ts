@@ -14,6 +14,8 @@ import type {
 import { authModel } from './auth.model';
 import { personService } from '../person/person.service';
 import { ApiError } from '@/lib/common/ApiError';
+import { mailService } from '@/lib/mail/mail.service';
+import { renderOperationalEmail } from '@/lib/mail/email-layout';
 import { hashPassword, comparePassword } from '@/lib/auth/password';
 import { generateTotpSecret, verifyTotp, buildOtpAuthUrl } from '@/lib/auth/totp';
 import {
@@ -32,6 +34,16 @@ import {
  */
 
 const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000; // 1 hora
+
+/** Origin placed in recovery links. APP_PUBLIC_URL wins; otherwise the first real CORS origin. */
+function appPublicOrigin(): string {
+  const configured = process.env.APP_PUBLIC_URL?.trim();
+  if (configured) return configured.replace(/\/$/, '');
+  const cors = process.env.CORS_ORIGIN?.split(',')
+    .map((value) => value.trim())
+    .find((value) => value && value !== '*');
+  return (cors || 'http://localhost:5173').replace(/\/$/, '');
+}
 
 /** Construye el par de tokens + AuthenticatedUser una vez pasado el login/2FA. */
 async function buildLoginResponse(userId: number): Promise<LoginResponse> {
@@ -141,14 +153,42 @@ export const authService = {
    *********************/
   forgotPassword: async ({ email }: ForgotPasswordRequest): Promise<void> => {
     const person = await personService.getWithUserByEmail(email);
-    // Never reveal whether the email exists or not (prevents user enumeration).
+    // Same response whether or not the address is registered (no account enumeration).
     if (!person?.user) return;
 
+    await authModel.retireUnusedPasswordResetTokens(person.user.userId);
     const resetToken = await authModel.createPasswordResetToken(person.user.userId, PASSWORD_RESET_TTL_MS);
+    const resetUrl = `${appPublicOrigin()}/?reset=${encodeURIComponent(resetToken.token)}`;
+    const subject = 'Reset your RADAR password';
+    const text = [
+      'We received a request to reset the password for your RADAR account.',
+      'This link expires in 1 hour and can be used only once.',
+      resetUrl,
+      'If you did not request this, you can ignore this message. Your password will stay the same.',
+    ].join('\n\n');
+    const html = renderOperationalEmail({
+      heading: 'Reset your password',
+      paragraphs: [
+        'We received a request to reset the password for your RADAR account.',
+        'Choose a new password with the button below. This link expires in 1 hour and can be used only once.',
+      ],
+      details: [
+        { label: 'Account', value: person.email },
+        { label: 'Expires', value: 'In 1 hour' },
+      ],
+      action: { label: 'Choose a new password', href: resetUrl },
+      footnote: 'If you did not request this, you can ignore this message. Your password will stay the same.',
+    });
 
-    // TODO: No email provider is configured in the monorepo.
-    // The token is logged for development; in production it should be sent via email.
-    console.info(`[auth] password reset token for ${email}: ${resetToken.token}`);
+    const delivered = await mailService.sendMail({
+      to: person.email,
+      subject,
+      text,
+      html,
+    });
+    if (!delivered) {
+      console.info(`[auth] Recovery email was not delivered to ${person.email}. Reset link: ${resetUrl}`);
+    }
   },
 
   resetPassword: async ({ token, newPassword }: ResetPasswordRequest): Promise<void> => {

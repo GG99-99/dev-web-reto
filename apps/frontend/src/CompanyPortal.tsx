@@ -1160,10 +1160,10 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
               )}
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '1.25rem' }}>
+            <div className="cp-establishment-grid">
               {institutions.map((inst) => (
                 <div key={inst.institutionId} style={{ border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem', background: '#ffffff', boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+                  <div className="cp-establishment-head">
                     <div>
                       <h3 style={{ margin: '0 0 0.2rem 0', fontSize: '1.05rem', color: '#00236f' }}>{inst.name}</h3>
                       <small style={{ color: '#64748b' }}>{inst.nombreComercial || 'Trade name not assigned'}</small>
@@ -1195,7 +1195,7 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
 
                   {/* Representatives Section */}
                   <div style={{ borderTop: '1px dashed #cbd5e1', paddingTop: '0.85rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                    <div className="cp-establishment-head">
                       <strong style={{ fontSize: '0.82rem', color: '#00236f', textTransform: 'uppercase' }}>
                         👥 Accredited Representatives
                       </strong>
@@ -1221,7 +1221,7 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
                           const detail = repDetails[repKey] || rep
                           return (
                             <div key={rep.representId} style={{ background: '#f8fafc', padding: '0.45rem 0.65rem', borderRadius: '6px', fontSize: '0.82rem' }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem', alignItems: 'center' }}>
+                              <div className="cp-establishment-head">
                                 <span><strong>{detail.person?.name || rep.person?.name || 'Representative'}</strong></span>
                                 <span style={{ display: 'flex', gap: '0.45rem', alignItems: 'center' }}>
                                   <span style={{ color: '#00236f', fontWeight: 600 }}>{representativeRole(detail.type || detail.tipo || rep.type || rep.tipo)}</span>

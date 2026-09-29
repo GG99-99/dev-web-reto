@@ -1,0 +1,764 @@
+/* Phone layout for a Pixel 6 class viewport (412 CSS px).
+   These rules stay inside max-width: 480px so laptop layouts are unchanged. */
+
+.sidebar-backdrop {
+  display: none;
+}
+
+@media (max-width: 480px) {
+  html,
+  body {
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
+  body {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  img,
+  svg,
+  video {
+    max-width: 100%;
+  }
+
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 4;
+    margin: 0;
+    border: 0;
+    padding: 0;
+    background: rgba(4, 16, 40, 0.48);
+    cursor: pointer;
+  }
+
+  .sidebar {
+    z-index: 6;
+    width: min(300px, 88vw);
+    max-height: 100dvh;
+    overflow-y: auto;
+    padding-bottom: calc(18px + env(safe-area-inset-bottom));
+  }
+
+  .app-shell,
+  .app-shell > main,
+  .workspace,
+  .content,
+  .welcome,
+  .cc,
+  .company-portal,
+  .operations,
+  .admin-governance,
+  .uap-container,
+  .tc-container,
+  .field-container {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .app-shell > main > header {
+    height: auto;
+    min-height: calc(56px + env(safe-area-inset-top));
+    padding-top: env(safe-area-inset-top);
+    gap: 8px;
+  }
+
+  .hamburger {
+    min-width: 44px;
+    min-height: 44px;
+    margin-right: 4px;
+  }
+
+  .header-actions {
+    gap: 8px;
+  }
+
+  .workspace {
+    padding: 16px 14px calc(32px + env(safe-area-inset-bottom));
+  }
+
+  .notice {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .heading h1,
+  .field h1,
+  .welcome h1,
+  .auth-hero h1,
+  .auth-card h2 {
+    overflow-wrap: anywhere;
+  }
+
+  .welcome {
+    padding: 28px 16px 40px;
+    gap: 22px;
+  }
+
+  .welcome h1 {
+    font-size: 32px;
+    letter-spacing: -1.2px;
+  }
+
+  .hero-card {
+    padding: 18px;
+  }
+
+  .hero-card section {
+    margin: 28px auto 22px;
+  }
+
+  /* Shared heroes and toolbars that stay in one row on desktop. */
+  .cp-hero,
+  .gov-hero,
+  .ops-hero,
+  .cc-hero {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.9rem;
+    padding: 1.15rem 1rem;
+  }
+
+  .cp-hero-info h1,
+  .gov-hero-info h1,
+  .ops-hero-info h1,
+  .cc-hero-info h1,
+  .tc-title-area h1,
+  .uap-header h1 {
+    font-size: 1.35rem;
+    overflow-wrap: anywhere;
+  }
+
+  .cp-hero-info p,
+  .gov-hero-info p,
+  .ops-hero-info p {
+    overflow-wrap: anywhere;
+  }
+
+  .cp-hero-actions,
+  .gov-hero-badge {
+    width: 100%;
+  }
+
+  .cp-hero-actions {
+    flex-direction: column;
+  }
+
+  .cp-btn-white,
+  .cc-btn-white {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .gov-hero-badge {
+    justify-content: center;
+  }
+
+  .cp-card,
+  .gov-card,
+  .ops-card,
+  .cc-card,
+  .uap-controls {
+    padding: 1rem;
+  }
+
+  .ops-card .card-head {
+    margin: -1rem -1rem 0.85rem;
+    padding: 0.9rem 1rem 0.75rem;
+  }
+
+  .cc-card-head,
+  .card-head,
+  .gov-card-header,
+  .cp-card-header,
+  .uap-header,
+  .tc-header {
+    align-items: flex-start;
+  }
+
+  .cp-metrics-row,
+  .cc-metrics,
+  .uap-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .cp-nav-tabs,
+  .gov-tabs,
+  .ops-tabs,
+  .uap-filter-tabs {
+    max-width: 100%;
+    flex-wrap: wrap;
+    overflow-x: auto;
+  }
+
+  .gov-tab-btn,
+  .cp-tab-btn,
+  .ops-tabs button,
+  .uap-tab-btn {
+    padding-inline: 0.7rem;
+  }
+
+  .ops-subtabs {
+    width: 100%;
+  }
+
+  .ops-subtabs button {
+    flex: 1 1 auto;
+  }
+
+  .ops-result,
+  .cp-request-row,
+  .cp-attachment-item,
+  .tc-day-agenda-item {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .cp-req-main,
+  .cp-req-title,
+  .cp-req-sub,
+  .ops-result > * {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .cp-req-side {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .notifications-dropdown {
+    position: fixed;
+    top: calc(60px + env(safe-area-inset-top));
+    right: 8px;
+    left: 8px;
+    width: auto;
+    max-width: none;
+  }
+
+  .cp-establishment-grid {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .cp-establishment-head {
+    flex-wrap: wrap;
+  }
+
+  .cp-establishment-head > :first-child {
+    min-width: 0;
+    flex: 1 1 12rem;
+    overflow-wrap: anywhere;
+  }
+
+  .cp-timeline {
+    gap: 0.15rem;
+  }
+
+  .cp-step {
+    min-width: 0;
+    padding: 0 2px;
+  }
+
+  .cp-step-label {
+    font-size: 0.62rem;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+  }
+
+  .cp-modal-backdrop,
+  .uap-modal-backdrop,
+  .gov-modal-overlay,
+  .tc-modal-backdrop,
+  .hdm-backdrop,
+  .irm-backdrop {
+    padding: 0.75rem;
+    align-items: flex-end;
+  }
+
+  .cp-modal-container,
+  .uap-modal,
+  .gov-modal,
+  .tc-modal,
+  .hdm-container {
+    width: 100%;
+    max-height: calc(100dvh - 1.5rem);
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  .gov-modal {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .cp-modal-body,
+  .uap-modal-body,
+  .gov-modal-body,
+  .tc-modal-body,
+  .hdm-body {
+    overflow-y: auto;
+    min-height: 0;
+  }
+
+  .cp-modal-header,
+  .hdm-header,
+  .tc-modal-header,
+  .gov-modal-header {
+    gap: 0.6rem;
+  }
+
+  .cp-modal-header h2,
+  .hdm-header-title,
+  .hdm-header-title h2,
+  .tc-modal-header h2 {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .hdm-header-title h2,
+  .tc-modal-header h2,
+  .cp-modal-header h2 {
+    font-size: 1.05rem;
+  }
+
+  .cp-modal-footer,
+  .tc-modal-footer,
+  .gov-modal-footer,
+  .uap-modal-footer {
+    flex-wrap: wrap;
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+  }
+
+  .cp-modal-footer > *,
+  .tc-modal-footer > *,
+  .gov-modal-footer > * {
+    flex: 1 1 auto;
+  }
+
+  .tc-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Tables stay readable by scrolling inside the card, not the page. */
+  .uap-table,
+  .gov-table {
+    display: block;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .uap-table thead,
+  .gov-table thead {
+    display: none;
+  }
+
+  .uap-table tbody,
+  .gov-table tbody,
+  .uap-table tr,
+  .gov-table tr {
+    display: block;
+  }
+
+  .uap-table tr,
+  .gov-table tr {
+    margin: 0 0 10px;
+    padding: 6px 0;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: #fff;
+  }
+
+  .uap-table td,
+  .gov-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+    width: auto;
+    padding: 7px 12px;
+    border: 0;
+    text-align: right;
+    white-space: normal;
+  }
+
+  .uap-table td::before,
+  .gov-table td::before {
+    content: attr(data-label);
+    flex: 0 0 38%;
+    text-align: left;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: #64748b;
+  }
+
+  .uap-table td:not([data-label]),
+  .gov-table td:not([data-label]),
+  .uap-table td[colspan],
+  .gov-table td[colspan] {
+    display: block;
+    text-align: left;
+  }
+
+  .uap-table td:not([data-label])::before,
+  .gov-table td:not([data-label])::before,
+  .uap-table td[colspan]::before,
+  .gov-table td[colspan]::before {
+    content: none;
+  }
+
+  .uap-actions-cell,
+  .gov-table td[data-label="Actions"] > div {
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+
+  .table,
+  .table > div,
+  .uap-table-wrap,
+  .gov-table-wrapper {
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .uap-search-box {
+    width: 100%;
+  }
+
+  .uap-actions-cell {
+    flex-wrap: wrap;
+  }
+
+  /* Calendar: month stays a week grid, but columns are allowed to shrink. */
+  .tc-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 0.7rem;
+  }
+
+  .tc-nav-group {
+    width: 100%;
+  }
+
+  .tc-month-label {
+    min-width: 0;
+    flex: 1;
+    font-size: 0.95rem;
+  }
+
+  .tc-view-selector {
+    width: 100%;
+  }
+
+  .tc-view-btn {
+    flex: 1;
+    padding-inline: 0.4rem;
+  }
+
+  .tc-calendar-card {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .tc-weekdays-header,
+  .tc-month-grid {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+
+  .tc-weekdays-header {
+    font-size: 0.62rem;
+    letter-spacing: 0;
+    padding: 0.45rem 0;
+  }
+
+  .tc-month-grid {
+    grid-auto-rows: minmax(72px, auto);
+  }
+
+  .tc-day-cell {
+    min-width: 0;
+    min-height: 68px;
+    padding: 0.2rem;
+    overflow: hidden;
+  }
+
+  .tc-day-header {
+    gap: 2px;
+  }
+
+  .tc-day-number {
+    width: 20px;
+    height: 20px;
+    font-size: 0.72rem;
+  }
+
+  .tc-day-count-badge {
+    font-size: 0.6rem;
+    padding: 0 0.25rem;
+  }
+
+  .tc-events-list {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .tc-event-pill {
+    min-width: 0;
+    max-width: 100%;
+    padding: 0.15rem 0.25rem;
+  }
+
+  .tc-event-tech {
+    display: none;
+  }
+
+  .tc-week-grid {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+
+  .tc-week-col {
+    min-width: 0;
+    border-right: 0;
+    border-bottom: 1px solid #edf1fb;
+  }
+
+  .tc-week-col-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .tc-week-col .tc-event-tech {
+    display: block;
+  }
+
+  .tc-day-view-container {
+    padding: 0.85rem;
+  }
+
+  .tc-day-agenda-time {
+    min-width: 0;
+  }
+
+  /* Field assessment */
+  .field-container {
+    padding-bottom: calc(140px + env(safe-area-inset-bottom));
+  }
+
+  .field-sync-bar,
+  .field-hero-panel,
+  .field-eval-selector {
+    padding-inline: 12px;
+  }
+
+  .field-eval-selector {
+    flex-wrap: wrap;
+  }
+
+  .field-eval-selector select {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .sync-device-telemetry,
+  .sync-status-group {
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+
+  .field-risk-widget {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .chapters-sidebar {
+    position: static;
+    top: auto;
+  }
+
+  .criteria-head {
+    flex-wrap: wrap;
+  }
+
+  .criteria-question-text,
+  .chapter-btn-left,
+  .form-progress-panel li b {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .form-progress-panel li {
+    align-items: flex-start;
+  }
+
+  .form-progress-panel li b {
+    white-space: normal;
+  }
+
+  .decision-btn {
+    height: auto;
+    min-height: 48px;
+    white-space: normal;
+    line-height: 1.2;
+    text-align: center;
+  }
+
+  .field-floating-bar {
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+  }
+
+  .floating-bar-left,
+  .floating-bar-right {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .btn-draft-save,
+  .btn-sync-pending,
+  .btn-finish-inspection {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+
+  /* Official report and dossier viewers */
+  .irm-backdrop {
+    padding: 0;
+    align-items: stretch;
+  }
+
+  .irm-container {
+    width: 100%;
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0;
+  }
+
+  .irm-action-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.55rem;
+    padding: calc(0.7rem + env(safe-area-inset-top)) 0.85rem 0.7rem;
+  }
+
+  .irm-action-bar-title {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .irm-action-buttons {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .irm-btn {
+    flex: 1 1 calc(50% - 0.65rem);
+    justify-content: center;
+  }
+
+  .irm-document-scroll {
+    padding: 0.85rem 0.65rem calc(1.25rem + env(safe-area-inset-bottom));
+  }
+
+  .irm-paper {
+    padding: 1.15rem 0.85rem 1.4rem;
+    outline-offset: -5px;
+  }
+
+  .irm-grid-2,
+  .irm-grid-3,
+  .irm-signatures {
+    grid-template-columns: 1fr !important;
+    gap: 0.85rem !important;
+    padding: 0.85rem;
+  }
+
+  .irm-risk-box {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.85rem;
+    padding: 0.9rem 0.7rem;
+  }
+
+  .irm-risk-stat-num {
+    font-size: 1.35rem;
+  }
+
+  .irm-doc-security-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .irm-field {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .hdm-summary-grid,
+  .gov-score-row {
+    grid-template-columns: 1fr;
+  }
+
+  .hdm-body,
+  .hdm-header {
+    padding-inline: 1rem;
+  }
+
+  /* Auth */
+  .auth-header {
+    gap: 10px;
+  }
+
+  .auth-brand {
+    min-width: 0;
+    font-size: 16px;
+  }
+
+  .auth-hero {
+    padding: 24px 18px;
+  }
+
+  .auth-hero h1 {
+    font-size: 32px;
+    letter-spacing: -1.4px;
+  }
+
+  .auth-card {
+    padding: 22px 16px;
+  }
+
+  .auth-step {
+    gap: 8px;
+  }
+
+  .modal {
+    padding: 12px;
+    align-items: end;
+  }
+
+  .modal section {
+    width: 100%;
+    max-height: calc(100dvh - 24px);
+    overflow-y: auto;
+    padding: 24px 18px;
+  }
+}

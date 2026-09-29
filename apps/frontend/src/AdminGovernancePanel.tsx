@@ -280,18 +280,18 @@ export default function AdminGovernancePanel({ notify }: AdminGovernancePanelPro
                     const ruleId = rule.ruleId
                     return (
                       <tr key={ruleId}>
-                        <td>
+                        <td data-label="Level">
                           <span className={`gov-badge ${getRiskBadgeClass(rule.riskLevel)}`}>
                             {rule.riskLevel}
                           </span>
                         </td>
-                        <td><strong>{rule.minScore} pts</strong></td>
-                        <td><strong>{rule.maxScore ?? '∞'} pts</strong></td>
-                        <td>{rule.frequency}</td>
-                        <td>
+                        <td data-label="Minimum score"><strong>{rule.minScore} pts</strong></td>
+                        <td data-label="Maximum score"><strong>{rule.maxScore ?? '∞'} pts</strong></td>
+                        <td data-label="Frequency">{rule.frequency}</td>
+                        <td data-label="Priority">
                           <span className="gov-badge gov-badge-role">{rule.riskLevel}</span>
                         </td>
-                        <td style={{ textAlign: 'right' }}>
+                        <td data-label="Actions" style={{ textAlign: 'right' }}>
                           <button
                             type="button"
                             className="gov-btn gov-btn-secondary"
@@ -372,9 +372,9 @@ export default function AdminGovernancePanel({ notify }: AdminGovernancePanelPro
                         const riskLabel = sub.risk === 3 ? 'ALTO' : sub.risk === 2 ? 'MEDIO' : 'BAJO'
                         return (
                           <tr key={sub.subCategoryId}>
-                            <td style={{ color: '#94a3b8' }}>#{sub.subCategoryId}</td>
-                            <td><strong>{sub.name}</strong></td>
-                            <td>
+                            <td data-label="ID" style={{ color: '#94a3b8' }}>#{sub.subCategoryId}</td>
+                            <td data-label="Subcategory"><strong>{sub.name}</strong></td>
+                            <td data-label="Risk">
                               <span className={`gov-badge ${getRiskBadgeClass(riskLabel)}`}>
                                 Level {sub.risk} ({riskLabel})
                               </span>
@@ -487,23 +487,23 @@ export default function AdminGovernancePanel({ notify }: AdminGovernancePanelPro
                           ID: {u.person?.cedula || 'N/A'}
                         </div>
                       </td>
-                      <td>
+                      <td data-label="Contact">
                         <div>{u.person?.email || 'No email'}</div>
                         <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
                           {u.person?.phone || ''}
                         </div>
                       </td>
-                      <td>
+                      <td data-label="Role">
                         <span className="gov-badge gov-badge-role">
                           {u.role?.name || 'NO_ROLE'}
                         </span>
                       </td>
-                      <td>
+                      <td data-label="Status">
                         <span className={`gov-badge ${getStatusBadgeClass(u.status)}`}>
                           {u.status || 'PENDIENTE_VALIDACION'}
                         </span>
                       </td>
-                      <td style={{ textAlign: 'right' }}>
+                      <td data-label="Actions" style={{ textAlign: 'right' }}>
                         <div style={{ display: 'inline-flex', gap: '6px' }}>
                           {u.status !== 'APROBADO' && (
                             <button
@@ -561,7 +561,7 @@ export default function AdminGovernancePanel({ notify }: AdminGovernancePanelPro
             </div>
             <form onSubmit={handleSaveRule}>
               <div className="gov-modal-body">
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div className="gov-score-row">
                   <div className="gov-form-group">
                     <label htmlFor="minScore">Minimum Score:</label>
                     <input
