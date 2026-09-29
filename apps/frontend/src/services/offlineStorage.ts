@@ -9,12 +9,15 @@
 import type { FormAnswers, FormTemplateTree } from '@reto/shared';
 
 const DB_NAME = 'radar_sanitary_offline_v1';
-const DB_VERSION = 1;
+const DB_VERSION = 3;
 
 const STORES = {
   ANSWERS: 'evaluation_answers',
   TEMPLATES: 'form_templates',
   SYNC_QUEUE: 'sync_queue',
+  ASSIGNED_EVALUATIONS: 'assigned_evaluations',
+  EVALUATION_SETUP: 'evaluation_setup',
+  EVIDENCE_QUEUE: 'evidence_queue',
 } as const;
 
 export interface LocalDraft {
@@ -31,6 +34,24 @@ export interface SyncQueueItem {
   id?: number;
   evaluationId: number;
   answers: FormAnswers;
+  queuedAt: string;
+  startData?: { representId: number; foodId: number };
+  finish?: boolean;
+}
+
+export interface PendingEvidence {
+  id?: number;
+  evaluationId: number;
+  file: Blob;
+  fileName: string;
+  type: 'FOTO' | 'VIDEO' | 'DOCUMENTO';
+  comment?: string;
+  latitude?: number;
+  longitude?: number;
+  h1AskId?: number;
+  h2AskId?: number;
+  h3AskId?: number;
+  h4AskId?: number;
   queuedAt: string;
 }
 
@@ -53,6 +74,15 @@ function openDB(): Promise<IDBDatabase> {
       }
       if (!db.objectStoreNames.contains(STORES.SYNC_QUEUE)) {
         db.createObjectStore(STORES.SYNC_QUEUE, { keyPath: 'id', autoIncrement: true });
+      }
+      if (!db.objectStoreNames.contains(STORES.ASSIGNED_EVALUATIONS)) {
+        db.createObjectStore(STORES.ASSIGNED_EVALUATIONS, { keyPath: 'cacheKey' });
+      }
+      if (!db.objectStoreNames.contains(STORES.EVALUATION_SETUP)) {
+        db.createObjectStore(STORES.EVALUATION_SETUP, { keyPath: 'evaluationId' });
+      }
+      if (!db.objectStoreNames.contains(STORES.EVIDENCE_QUEUE)) {
+        db.createObjectStore(STORES.EVIDENCE_QUEUE, { keyPath: 'id', autoIncrement: true });
       }
     };
 
@@ -85,12 +115,83 @@ function lsGet<T>(key: string): T | null {
 const ASSIGNED_EVALUATIONS_KEY = 'radar_assigned_evaluations';
 
 /** Mirrors the technician workload so a later visit can restore a started inspection. */
-export function saveAssignedEvaluations(items: unknown[]): void {
+export async function saveAssignedEvaluations(items: unknown[]): Promise<void> {
   lsSet(ASSIGNED_EVALUATIONS_KEY, items);
+  try {
+    const db = await openDB();
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(STORES.ASSIGNED_EVALUATIONS, 'readwrite');
+      const request = tx.objectStore(STORES.ASSIGNED_EVALUATIONS).put({ cacheKey: 'current', items });
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  } catch (error) {
+    console.warn('Fallo al cachear evaluaciones asignadas en IndexedDB:', error);
+  }
 }
 
-export function getAssignedEvaluations<T = unknown>(): T[] {
+export async function getAssignedEvaluations<T = unknown>(): Promise<T[]> {
+  try {
+    const db = await openDB();
+    const result = await new Promise<{ items?: T[] } | undefined>((resolve, reject) => {
+      const request = db.transaction(STORES.ASSIGNED_EVALUATIONS, 'readonly')
+        .objectStore(STORES.ASSIGNED_EVALUATIONS).get('current');
+      request.onsuccess = () => resolve(request.result as { items?: T[] } | undefined);
+      request.onerror = () => reject(request.error);
+    });
+    if (Array.isArray(result?.items)) return result.items;
+  } catch (error) {
+    console.warn('Fallo al leer evaluaciones asignadas de IndexedDB:', error);
+  }
+
   return lsGet<T[]>(ASSIGNED_EVALUATIONS_KEY) ?? [];
+}
+
+export interface OfflineEvaluationSetup {
+  evaluationId: number;
+  formTemplateId?: number;
+  template?: FormTemplateTree;
+  context?: unknown;
+  representatives?: unknown[];
+  categories?: unknown[];
+  foodsByCategory?: Record<string, unknown[]>;
+}
+
+export async function saveEvaluationSetup(
+  evaluationId: number,
+  patch: Omit<OfflineEvaluationSetup, 'evaluationId'>,
+): Promise<void> {
+  const key = `radar_evaluation_setup_${evaluationId}`;
+  const previous = lsGet<OfflineEvaluationSetup>(key);
+  const setup: OfflineEvaluationSetup = { ...previous, ...patch, evaluationId };
+  lsSet(key, setup);
+  try {
+    const db = await openDB();
+    await new Promise<void>((resolve, reject) => {
+      const request = db.transaction(STORES.EVALUATION_SETUP, 'readwrite')
+        .objectStore(STORES.EVALUATION_SETUP).put(setup);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  } catch (error) {
+    console.warn('Fallo al cachear configuración de evaluación en IndexedDB:', error);
+  }
+}
+
+export async function getEvaluationSetup(evaluationId: number): Promise<OfflineEvaluationSetup | null> {
+  try {
+    const db = await openDB();
+    const result = await new Promise<OfflineEvaluationSetup | undefined>((resolve, reject) => {
+      const request = db.transaction(STORES.EVALUATION_SETUP, 'readonly')
+        .objectStore(STORES.EVALUATION_SETUP).get(evaluationId);
+      request.onsuccess = () => resolve(request.result as OfflineEvaluationSetup | undefined);
+      request.onerror = () => reject(request.error);
+    });
+    if (result) return result;
+  } catch (error) {
+    console.warn('Fallo al leer configuración de evaluación de IndexedDB:', error);
+  }
+  return lsGet<OfflineEvaluationSetup>(`radar_evaluation_setup_${evaluationId}`);
 }
 
 export async function saveLocalDraft(
@@ -423,14 +524,21 @@ export const DEFAULT_BPM_TEMPLATE: FormTemplateTree = ({
 /**
  * Agrega un lote de respuestas a la cola de sincronización cuando se detecta modo offline.
  */
-export async function enqueueSync(evaluationId: number, answers: FormAnswers): Promise<void> {
+export async function enqueueSync(
+  evaluationId: number,
+  answers: FormAnswers,
+  startData?: { representId: number; foodId: number },
+): Promise<void> {
+  const previousQueue = lsGet<SyncQueueItem[]>('radar_sync_queue') ?? [];
+  const previous = previousQueue.find((q) => q.evaluationId === evaluationId);
   const item: SyncQueueItem = {
     evaluationId,
     answers,
     queuedAt: new Date().toISOString(),
+    startData: startData ?? previous?.startData,
   };
 
-  const queue = lsGet<SyncQueueItem[]>('radar_sync_queue') ?? [];
+  const queue = previousQueue;
   // Actualizar si ya hay un pendiente para esta evaluación
   const existingIdx = queue.findIndex((q) => q.evaluationId === evaluationId);
   if (existingIdx >= 0) {
@@ -463,6 +571,79 @@ export async function enqueueSync(evaluationId: number, answers: FormAnswers): P
   } catch (error) {
     console.warn('Fallo al encolar en IndexedDB:', error);
   }
+}
+
+export async function enqueueFinish(evaluationId: number, answers: FormAnswers): Promise<void> {
+  const queue = lsGet<SyncQueueItem[]>('radar_sync_queue') ?? [];
+  const existing = queue.find((item) => item.evaluationId === evaluationId);
+  if (existing) {
+    existing.answers = answers;
+    existing.finish = true;
+  } else {
+    queue.push({ evaluationId, answers, finish: true, queuedAt: new Date().toISOString() });
+  }
+  lsSet('radar_sync_queue', queue);
+
+  try {
+    const db = await openDB();
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(STORES.SYNC_QUEUE, 'readwrite');
+      const store = tx.objectStore(STORES.SYNC_QUEUE);
+      const request = store.openCursor();
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        const cursor = request.result;
+        if (!cursor) {
+          store.add(existing ?? queue[queue.length - 1]);
+          return;
+        }
+        if ((cursor.value as SyncQueueItem).evaluationId === evaluationId) {
+          cursor.update(existing ?? queue[queue.length - 1]);
+          return;
+        }
+        cursor.continue();
+      };
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch (error) {
+    console.warn('Fallo al encolar finalización en IndexedDB:', error);
+  }
+}
+
+export async function enqueueEvidence(item: Omit<PendingEvidence, 'id' | 'queuedAt'>): Promise<void> {
+  const db = await openDB();
+  await new Promise<void>((resolve, reject) => {
+    const request = db.transaction(STORES.EVIDENCE_QUEUE, 'readwrite')
+      .objectStore(STORES.EVIDENCE_QUEUE)
+      .add({ ...item, queuedAt: new Date().toISOString() });
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+}
+
+export async function getPendingEvidence(): Promise<PendingEvidence[]> {
+  try {
+    const db = await openDB();
+    return await new Promise<PendingEvidence[]>((resolve, reject) => {
+      const request = db.transaction(STORES.EVIDENCE_QUEUE, 'readonly')
+        .objectStore(STORES.EVIDENCE_QUEUE).getAll();
+      request.onsuccess = () => resolve(request.result as PendingEvidence[]);
+      request.onerror = () => reject(request.error);
+    });
+  } catch {
+    return [];
+  }
+}
+
+export async function removePendingEvidence(id: number): Promise<void> {
+  const db = await openDB();
+  await new Promise<void>((resolve, reject) => {
+    const request = db.transaction(STORES.EVIDENCE_QUEUE, 'readwrite')
+      .objectStore(STORES.EVIDENCE_QUEUE).delete(id);
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
 }
 
 /**

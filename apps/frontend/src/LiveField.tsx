@@ -241,10 +241,14 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
 
     async function loadTemplate() {
       if (!isOnline) {
-        const cachedId = loadedTemplateId.current
-        if (!cachedId) return
-        const cached = await offlineStorage.getCachedTemplateTree(cachedId)
-        if (!cancelled && cached) setTemplate(cached)
+        const setup = await offlineStorage.getEvaluationSetup(evalId)
+        if (!cancelled && setup) {
+          loadedTemplateId.current = setup.formTemplateId ?? null
+          if (setup.template) setTemplate(setup.template)
+          if (setup.context) setCaseContext(setup.context as FormCaseContext)
+          if (setup.representatives) setRepresentatives(setup.representatives)
+          if (setup.categories) setCategories(setup.categories)
+        }
         return
       }
 
@@ -254,6 +258,11 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
         loadedTemplateId.current = res.data.formTemplateId
         setTemplate(res.data.template)
         setCaseContext(res.data.context ?? {})
+        await offlineStorage.saveEvaluationSetup(evalId, {
+          formTemplateId: res.data.formTemplateId,
+          template: res.data.template,
+          context: res.data.context ?? {},
+        })
         await offlineStorage.saveCachedTemplateTree(res.data.template)
         const firstRequired = (res.data.completeness?.chapters ?? []).find((chapter) => chapter.status !== 'not_applicable')
         const firstId = firstRequired?.h1Id ?? res.data.template?.h1s?.[0]?.h1Id
@@ -405,13 +414,31 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
       const instId = (activeItem as any).institutionId ?? (activeItem as any).institution?.institutionId
       if (instId && isOnline) {
         void institutionsService.getById(instId).then((r) => {
-          if (!cancelled && r.valid) setRepresentatives(r.data.representantes ?? [])
+          if (!cancelled && r.valid) {
+            const reps = r.data.representantes ?? []
+            setRepresentatives(reps)
+            void offlineStorage.saveEvaluationSetup(evalId, { representatives: reps })
+          }
         }).catch(() => {})
       }
 
       if (isOnline) {
-        void catalogsService.listCategories().then((r) => {
-          if (!cancelled && r.valid) setCategories(r.data)
+        void Promise.all([catalogsService.listCategories(), catalogsService.listFoods()]).then(([categoryRes, foodRes]) => {
+          if (cancelled) return
+          const categoriesData = categoryRes.valid ? categoryRes.data : []
+          const foodsByCategory = foodRes.valid
+            ? foodRes.data.reduce<Record<string, any[]>>((grouped, food) => {
+                const categoryId = String(food.categoryId)
+                ;(grouped[categoryId] ??= []).push(food)
+                return grouped
+              }, {})
+            : undefined
+          if (categoryRes.valid) setCategories(categoriesData)
+          if (foodsByCategory) void offlineStorage.saveEvaluationSetup(evalId, {
+            categories: categoriesData,
+            foodsByCategory,
+          })
+          else if (categoryRes.valid) void offlineStorage.saveEvaluationSetup(evalId, { categories: categoriesData })
         }).catch(() => {})
       }
     }
@@ -543,6 +570,25 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
   // Sincronizar cola offline
   const checkAndFlushSyncQueue = async () => {
     const queue = await offlineStorage.getPendingSyncQueue()
+    const pendingEvidence = await offlineStorage.getPendingEvidence()
+    if (!queue.length && pendingEvidence.length) {
+      setBusy(true)
+      let syncedEvidence = 0
+      for (const evidence of pendingEvidence) {
+        try {
+          const evidenceRes = await evidencesService.upload(evidence.evaluationId, evidence)
+          if (evidenceRes.valid && evidence.id !== undefined) {
+            await offlineStorage.removePendingEvidence(evidence.id)
+            syncedEvidence++
+          }
+        } catch {
+          // Intentar luego
+        }
+      }
+      setBusy(false)
+      if (syncedEvidence > 0) inform(`PWA sync completed: ${syncedEvidence} evidence file(s) uploaded.`)
+      return
+    }
     if (!queue.length) return
 
     setBusy(true)
@@ -550,10 +596,25 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
 
     for (const item of queue) {
       try {
+        if (item.startData) {
+          const startRes = await formExecutionService.start(item.evaluationId, item.startData)
+          if (!startRes.valid) continue
+        }
         const res = await formExecutionService.saveAnswers(item.evaluationId, {
           answers: item.answers,
         })
         if (res.valid) {
+          const pendingEvidence = (await offlineStorage.getPendingEvidence())
+            .filter((evidence) => evidence.evaluationId === item.evaluationId)
+          for (const evidence of pendingEvidence) {
+            const evidenceRes = await evidencesService.upload(item.evaluationId, evidence)
+            if (!evidenceRes.valid) throw new Error(evidenceRes.error.message)
+            if (evidence.id !== undefined) await offlineStorage.removePendingEvidence(evidence.id)
+          }
+          if (item.finish) {
+            const finishRes = await formExecutionService.finish(item.evaluationId)
+            if (!finishRes.valid) throw new Error(finishRes.error.message)
+          }
           await offlineStorage.removeSyncQueueItem(item.evaluationId)
           synced++
         }
@@ -642,8 +703,24 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
       return
     }
     try {
+      if (!isOnline) {
+        const setup = activeItem ? await offlineStorage.getEvaluationSetup(activeItem.evaluationId) : null
+        const cachedFoods = setup?.foodsByCategory?.[catId]
+        if (cachedFoods) {
+          setFoods(cachedFoods)
+          return
+        }
+      }
       const res = await catalogsService.listFoods(Number(catId))
-      if (res.valid) setFoods(res.data)
+      if (res.valid) {
+        setFoods(res.data)
+        if (activeItem) {
+          const setup = await offlineStorage.getEvaluationSetup(activeItem.evaluationId)
+          void offlineStorage.saveEvaluationSetup(activeItem.evaluationId, {
+            foodsByCategory: { ...(setup?.foodsByCategory ?? {}), [catId]: res.data },
+          })
+        }
+      }
     } catch {
       inform('Could not load food items for this category.')
     }
@@ -674,7 +751,20 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
       onEvaluationUpdated?.(activeItem.evaluationId, { status: 'EN_PROCESO' })
       inform('Assessment officially started. You can begin rating the criteria.')
     } catch (err: any) {
-      inform(err?.response?.data?.message || 'Error starting the assessment.')
+      if (!isOnline) {
+        const answersList = packAnswers()
+        startedLocally.current.add(activeItem.evaluationId)
+        setStarted(true)
+        await offlineStorage.saveLocalDraft(activeItem.evaluationId, answersList, notes, { started: true })
+        await offlineStorage.enqueueSync(activeItem.evaluationId, answersList, {
+          representId: Number(representId),
+          foodId: Number(foodId),
+        })
+        await refreshPendingSyncCount()
+        inform('Assessment started locally. It will be registered when connection is restored.')
+      } else {
+        inform(err?.response?.data?.message || 'Error starting the assessment.')
+      }
     } finally {
       setBusy(false)
     }
@@ -716,7 +806,21 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
       setEvidences((current) => [...current, res.data])
       inform(`Evidence successfully uploaded with GPS coordinates (${gps?.lat.toFixed(4)}, ${gps?.lng.toFixed(4)}).`)
     } catch {
-      inform('Could not upload evidence at this time.')
+      if (!isOnline) {
+        await offlineStorage.enqueueEvidence({
+          evaluationId: activeItem.evaluationId,
+          file,
+          fileName: file.name,
+          type,
+          comment: questionComment,
+          latitude: gps?.lat,
+          longitude: gps?.lng,
+          ...askParams,
+        })
+        inform('Evidence saved on the device. It will upload when connection is restored.')
+      } else {
+        inform('Could not upload evidence at this time.')
+      }
     } finally {
       setBusy(false)
     }
@@ -757,6 +861,14 @@ export default function LiveField({ items = [], item, live, inform, onViewReport
     try {
       // Guardar últimas respuestas primero
       const answersList = packAnswers()
+
+      if (!isOnline) {
+        await offlineStorage.saveLocalDraft(activeItem.evaluationId, answersList, notes, { started: true, finished: true })
+        await offlineStorage.enqueueFinish(activeItem.evaluationId, answersList)
+        setFinished(true)
+        inform('Assessment finished locally. It will be finalized when connection is restored.')
+        return
+      }
 
       await formExecutionService.saveAnswers(activeItem.evaluationId, { answers: answersList })
 

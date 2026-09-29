@@ -360,7 +360,7 @@ function App() {
         if (evaluationResponse?.valid) {
           const items = evaluationResponse.data.items as unknown as Evaluation[];
           setEvaluations(items);
-          saveAssignedEvaluations(items);
+          void saveAssignedEvaluations(items);
         }
         if (dashboardResponse.valid) {
           const data = dashboardResponse.data as unknown as Record<
@@ -371,8 +371,12 @@ function App() {
             data.evaluacionesProgramadas ??
             data.evaluacionesAsignadas ??
             data.evaluaciones;
-          if (!evaluationResponse?.valid && Array.isArray(dashboardEvaluations))
-            setEvaluations(dashboardEvaluations as Evaluation[]);
+          if (!evaluationResponse?.valid && Array.isArray(dashboardEvaluations)) {
+            const items = dashboardEvaluations as Evaluation[];
+            setEvaluations(items);
+            if (activeSession.role === "TECNICO_EVALUADOR")
+              void saveAssignedEvaluations(items);
+          }
           const companyRequests = Array.isArray(data.misSolicitudes)
             ? (data.misSolicitudes as Array<Record<string, unknown>>)
             : [];
@@ -430,7 +434,7 @@ function App() {
       } catch {
         if (!cancelled) {
           if (typeof navigator !== "undefined" && navigator.onLine === false) {
-            const cached = getAssignedEvaluations<Evaluation>();
+            const cached = await getAssignedEvaluations<Evaluation>();
             if (cached.length) setEvaluations(cached);
           }
           setNotice(

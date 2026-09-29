@@ -34,7 +34,7 @@ async function listSubcategories(categoryId: number): Promise<ApiResponse<SubCat
 }
 
 /** `GET /catalogs/foods?categoryId=` — Autenticado. */
-async function listFoods(categoryId: number): Promise<ApiResponse<Food[]>> {
+async function listFoods(categoryId?: number): Promise<ApiResponse<Food[]>> {
   const { data } = await httpClient.get<ApiResponse<Food[]>>('/catalogs/foods', {
     params: { categoryId },
   });

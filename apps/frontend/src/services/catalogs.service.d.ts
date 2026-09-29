@@ -7,7 +7,7 @@ declare function listCategories(): Promise<ApiResponse<Category[]>>;
  */
 declare function listSubcategories(categoryId: number): Promise<ApiResponse<SubCategory[]>>;
 /** `GET /catalogs/foods?categoryId=` — Autenticado. */
-declare function listFoods(categoryId: number): Promise<ApiResponse<Food[]>>;
+declare function listFoods(categoryId?: number): Promise<ApiResponse<Food[]>>;
 /** `GET /catalogs/health-areas` — Autenticado. */
 declare function listHealthAreas(): Promise<ApiResponse<HealthArea[]>>;
 /**

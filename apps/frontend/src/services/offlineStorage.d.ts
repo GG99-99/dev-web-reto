@@ -21,10 +21,41 @@ export interface SyncQueueItem {
     evaluationId: number;
     answers: FormAnswers;
     queuedAt: string;
+    startData?: {
+        representId: number;
+        foodId: number;
+    };
+    finish?: boolean;
+}
+export interface PendingEvidence {
+    id?: number;
+    evaluationId: number;
+    file: Blob;
+    fileName: string;
+    type: 'FOTO' | 'VIDEO' | 'DOCUMENTO';
+    comment?: string;
+    latitude?: number;
+    longitude?: number;
+    h1AskId?: number;
+    h2AskId?: number;
+    h3AskId?: number;
+    h4AskId?: number;
+    queuedAt: string;
 }
 /** Mirrors the technician workload so a later visit can restore a started inspection. */
-export declare function saveAssignedEvaluations(items: unknown[]): void;
-export declare function getAssignedEvaluations<T = unknown>(): T[];
+export declare function saveAssignedEvaluations(items: unknown[]): Promise<void>;
+export declare function getAssignedEvaluations<T = unknown>(): Promise<T[]>;
+export interface OfflineEvaluationSetup {
+    evaluationId: number;
+    formTemplateId?: number;
+    template?: FormTemplateTree;
+    context?: unknown;
+    representatives?: unknown[];
+    categories?: unknown[];
+    foodsByCategory?: Record<string, unknown[]>;
+}
+export declare function saveEvaluationSetup(evaluationId: number, patch: Omit<OfflineEvaluationSetup, 'evaluationId'>): Promise<void>;
+export declare function getEvaluationSetup(evaluationId: number): Promise<OfflineEvaluationSetup | null>;
 export declare function saveLocalDraft(evaluationId: number, answers: FormAnswers, notes?: Record<string, string>, flags?: {
     started?: boolean;
     finished?: boolean;
@@ -47,7 +78,14 @@ export declare const DEFAULT_BPM_TEMPLATE: FormTemplateTree;
 /**
  * Agrega un lote de respuestas a la cola de sincronización cuando se detecta modo offline.
  */
-export declare function enqueueSync(evaluationId: number, answers: FormAnswers): Promise<void>;
+export declare function enqueueSync(evaluationId: number, answers: FormAnswers, startData?: {
+    representId: number;
+    foodId: number;
+}): Promise<void>;
+export declare function enqueueFinish(evaluationId: number, answers: FormAnswers): Promise<void>;
+export declare function enqueueEvidence(item: Omit<PendingEvidence, 'id' | 'queuedAt'>): Promise<void>;
+export declare function getPendingEvidence(): Promise<PendingEvidence[]>;
+export declare function removePendingEvidence(id: number): Promise<void>;
 /**
  * Obtiene todos los pendientes de la cola de sincronización.
  */

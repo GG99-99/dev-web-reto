@@ -1,4 +1,4 @@
-const CACHE = 'radar-shell-v2';
+const CACHE = 'radar-shell-v3';
 const STATIC_ASSETS = ['/', '/index.html', '/favicon.svg', '/manifest.webmanifest'];
 
 self.addEventListener('install', (event) => {
@@ -31,7 +31,9 @@ self.addEventListener('fetch', (event) => {
           void caches.open(CACHE).then((cache) => cache.put(event.request, copy));
           return response;
         })
-        .catch(() => caches.match('/index.html') || caches.match('/'));
+        .catch(() => event.request.mode === 'navigate'
+          ? caches.match('/index.html').then((cached) => cached || caches.match('/'))
+          : Response.error())
     })
   );
 });

@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { evaluationsService } from './services';
+import { getAssignedEvaluations } from './services/offlineStorage';
 import type { EvaluationListItem } from '@reto/shared';
 import './TechnicianCalendar.css';
 
@@ -111,6 +112,28 @@ export default function TechnicianCalendar({ role, onOpenField, notify }: Techni
             technicianName: evaluatorName(item),
           });
         });
+      } else if (role === 'TECNICO_EVALUADOR' && typeof navigator !== 'undefined' && !navigator.onLine) {
+        const cachedItems = await getAssignedEvaluations<EvaluationListItem>();
+        const monthStart = startOfMonth.getTime();
+        const monthEnd = endOfMonth.getTime();
+        cachedItems
+          .filter((item) => {
+            const scheduledTime = new Date(item.scheduledDate).getTime();
+            return scheduledTime >= monthStart && scheduledTime <= monthEnd;
+          })
+          .forEach((item) => {
+            mergedEvents.push({
+              evaluationId: item.evaluationId,
+              scheduledDate: new Date(item.scheduledDate),
+              status: item.status,
+              priority: item.priority ?? 'MEDIUM',
+              reason: item.reason ?? 'GMP Sanitary Inspection',
+              observations: item.observations ?? '',
+              institutionName: item.institution?.name ?? `Establishment #${item.institutionId}`,
+              address: item.institution?.streetName ?? 'Dominican Republic',
+              technicianName: evaluatorName(item),
+            });
+          });
       }
 
       setEvents(mergedEvents);
