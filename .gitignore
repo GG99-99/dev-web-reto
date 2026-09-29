@@ -39,3 +39,11 @@ pnpm-lock.yaml
 packages/db/tsconfig.tsbuildinfo
 *.tsbuildinfo
 
+.env
+apps/frontend/tsconfig.node.tsbuildinfo
+packages/shared/tsconfig.tsbuildinfo
+apps/frontend/tsconfig.node.tsbuildinfo
+packages/db/tsconfig.tsbuildinfo
+packages/shared/tsconfig.tsbuildinfo
+apps/frontend/tsconfig.node.tsbuildinfo
+packages/shared/tsconfig.tsbuildinfo

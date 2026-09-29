@@ -10,6 +10,7 @@ import { readAnswers } from '../form-execution/form-execution.model';
 import { assertEvaluationFormComplete, loadEvaluationForm } from '../form-execution/form-completeness';
 import { notificationsService } from '../notifications/notifications.service';
 import { notifyInstitution } from '../lifecycle/request-lifecycle';
+import { renderOperationalEmail } from '@/lib/mail/email-layout';
 import { ApiError } from '@/lib/common/ApiError';
 import {
   DEFAULT_PARTIAL_SECTIONS,
@@ -445,6 +446,16 @@ export const reportsService = {
         evaluation.technicianId,
         `Evaluation #${evaluation.evaluationId} returned for correction`,
         `${feedback} ${scopeText}`,
+        renderOperationalEmail({
+          heading: 'An evaluation was returned for correction',
+          paragraphs: [scopeText],
+          details: [
+            { label: 'Evaluation', value: `#${evaluation.evaluationId}` },
+            { label: 'What to correct', value: feedback },
+            { label: 'Scope', value: full ? 'Full resubmission' : 'Flagged sections only' },
+          ],
+          footnote: 'Sign in to RADAR, open the field assessment, and resubmit after the requested changes.',
+        }),
       );
       const requestId = evaluation.case?.bpmRequest?.bpmRequestId;
       await notifyInstitution(

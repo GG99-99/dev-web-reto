@@ -18,8 +18,9 @@ JWT_TEMP_EXPIRES_IN="5m"
 # Ejemplo con Gmail: host smtp.gmail.com, puerto 587, secure=false, y usar
 # una "contraseña de aplicación" en SMTP_PASS (no la contraseña normal).
 SMTP_HOST="smtp.gmail.com"
-SMTP_PORT="587"
-SMTP_SECURE="false"
+# 465 (SMTP_SECURE=true) when port 587 is blocked by the local network.
+SMTP_PORT="465"
+SMTP_SECURE="true"
 SMTP_USER="tucorreo@gmail.com"
 SMTP_PASS="contraseña-de-aplicación"   # no la contraseña normal de Gmail
 MAIL_FROM="RETO <tucorreo@gmail.com>"

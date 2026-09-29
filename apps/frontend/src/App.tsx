@@ -76,6 +76,11 @@ type CaseItem = {
   technician?: { person?: { name?: string } };
   openedAt?: string;
 };
+type CompanyRequestCard = {
+  id: number;
+  name: string;
+  status: string;
+};
 export type Evaluation = {
   evaluationId: number;
   scheduledDate: string;
@@ -180,6 +185,7 @@ function App() {
   const [login, setLogin] = useState(false);
   const [notice, setNotice] = useState("");
   const [cases, setCases] = useState<CaseItem[]>([]);
+  const [companyRequests, setCompanyRequests] = useState<CompanyRequestCard[]>([]);
   const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
   const [metrics, setMetrics] = useState({
     pending: 0,
@@ -285,6 +291,7 @@ function App() {
       saveSession(null);
       setView("overview");
       setCases([]);
+      setCompanyRequests([]);
       setEvaluations([]);
       setMetrics({ pending: 0, alerts: 0, complaints: 0 });
       setNotice("You have been signed out.");
@@ -300,6 +307,7 @@ function App() {
       saveSession(null);
       setView("overview");
       setCases([]);
+      setCompanyRequests([]);
       setEvaluations([]);
       setMetrics({ pending: 0, alerts: 0, complaints: 0 });
       setNotice("Your session expired. Please sign in again.");
@@ -356,6 +364,18 @@ function App() {
             activeSession.role === "ADMIN_EMPRESA" ||
             activeSession.role === "USUARIO_DELEGADO"
           ) {
+            setCompanyRequests(
+              companyRequests.flatMap((request) => {
+                const id = Number(request.bpmRequestId);
+                if (!Number.isFinite(id)) return [];
+                const institution = request.institution as { name?: string } | null | undefined;
+                return [{
+                  id,
+                  name: institution?.name ?? `Request #${id}`,
+                  status: String(request.lifecycleStatus ?? request.status ?? "PENDIENTE_ASIGNACION"),
+                }];
+              }),
+            );
             const companyCases = companyRequests.flatMap((request) => {
               const linked = request.case as CaseItem & { caseId?: number } | null | undefined;
               if (!linked?.caseId) return [];
@@ -369,6 +389,8 @@ function App() {
               }];
             });
             setCases(companyCases);
+          } else {
+            setCompanyRequests([]);
           }
           const awaitingDecision = companyRequests.filter((request) => {
             const status = String(request.lifecycleStatus ?? request.status ?? "");
@@ -624,6 +646,7 @@ function App() {
             <Overview
               items={visibleEvaluations}
               cases={visibleCases}
+              requests={companyRequests}
               metrics={metrics}
               loading={loading}
               role={session.role}
@@ -1261,9 +1284,47 @@ function AuthPortal({
   );
 }
 
+function companyAttentionRank(status: string) {
+  if (status === "EN_CORRECCION" || status === "DEVUELTO") return 0;
+  if (status === "BORRADOR") return 1;
+  if (status === "RECHAZADA" || status === "RECHAZADO") return 2;
+  if (status === "APROBADA" || status === "APROBADO" || status === "CERRADO") return 3;
+  return 4;
+}
+
+function companyAttentionDetail(status: string) {
+  switch (status) {
+    case "BORRADOR":
+      return "Draft — submit it from the company portal";
+    case "EN_CORRECCION":
+    case "DEVUELTO":
+      return "Returned for correction — review it in the company portal";
+    case "PENDIENTE_ASIGNACION":
+      return "Submitted — waiting for an evaluator";
+    case "ASIGNADO":
+      return "An evaluator has been assigned";
+    case "EN_PROCESO":
+      return "Field assessment is underway";
+    case "FINALIZADA":
+    case "ENVIADO":
+    case "EN_REVISION":
+      return "Under review by the health authority";
+    case "APROBADA":
+    case "APROBADO":
+    case "CERRADO":
+      return "Decision available in the company portal";
+    case "RECHAZADA":
+    case "RECHAZADO":
+      return "This request was not approved";
+    default:
+      return statusLabel(status);
+  }
+}
+
 function Overview({
   items,
   cases,
+  requests,
   metrics,
   loading,
   role,
@@ -1272,6 +1333,7 @@ function Overview({
 }: {
   items: Evaluation[];
   cases: CaseItem[];
+  requests: CompanyRequestCard[];
   metrics: { pending: number; alerts: number; complaints: number };
   loading: boolean;
   role: Role;
@@ -1280,6 +1342,10 @@ function Overview({
 }) {
   const isCompany = role === "ADMIN_EMPRESA" || role === "USUARIO_DELEGADO";
   const isTechnician = role === "TECNICO_EVALUADOR";
+  const workspace = isCompany ? "company" : isTechnician ? "field" : "cases";
+  const companyAttention = [...requests]
+    .sort((a, b) => companyAttentionRank(a.status) - companyAttentionRank(b.status) || b.id - a.id)
+    .slice(0, 4);
   const primaryAction = isCompany
     ? "View requests"
     : isTechnician
@@ -1302,7 +1368,7 @@ function Overview({
           type="button"
           className="cc-btn-white"
           onClick={() =>
-            go(isCompany ? "company" : isTechnician ? "field" : "cases")
+            go(workspace)
           }
         >
           {primaryAction} <span>→</span>
@@ -1403,27 +1469,61 @@ function Overview({
           ) : (
             <Empty
               label="No scheduled assessments yet"
-              action={isCompany ? "Review requests" : "Open cases"}
-              go={() => go(isCompany ? "company" : "cases")}
+              action={isCompany ? "Review requests" : isTechnician ? "Open field work" : "Open cases"}
+              go={() => go(workspace)}
             />
           )}
         </section>
         <section className="cc-card">
           <div className="cc-card-head">
             <div>
-              <small className="eyebrow">Priority queue</small>
-              <h2>Needs attention</h2>
+              <small className="eyebrow">{isCompany ? "Your requests" : "Priority queue"}</small>
+              <h2>{isCompany ? "Company activity" : "Needs attention"}</h2>
             </div>
-            <mark>{cases.length}</mark>
+            {isCompany ? (
+              <button type="button" className="text" onClick={() => go("company")}>
+                Open portal →
+              </button>
+            ) : (
+              <mark>{cases.length}</mark>
+            )}
           </div>
-          {cases.length ? (
+          {isCompany ? (
+            companyAttention.length ? (
+              <div className="cc-queue">
+                {companyAttention.map((item) => (
+                  <button
+                    type="button"
+                    className="cc-attention"
+                    key={item.id}
+                    onClick={() => go("company")}
+                  >
+                    <i className={item.status === "EN_CORRECCION" || item.status === "DEVUELTO" || item.status === "RECHAZADA" ? "red" : item.status === "BORRADOR" ? "amber" : "blue"} />
+                    <span>
+                      <b>{item.name}</b>
+                      <small>
+                        Request #{item.id} · {companyAttentionDetail(item.status)}
+                      </small>
+                    </span>
+                    →
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <Empty
+                label="No company requests yet"
+                action="Open company portal"
+                go={() => go("company")}
+              />
+            )
+          ) : cases.length ? (
             <div className="cc-queue">
               {cases.slice(0, 3).map((item) => (
                 <button
                   type="button"
                   className="cc-attention"
                   key={item.caseId}
-                  onClick={() => go("cases")}
+                  onClick={() => go(workspace)}
                 >
                   <i className={item.priority === "ALTA" ? "red" : "amber"} />
                   <span>
@@ -1437,13 +1537,7 @@ function Overview({
               ))}
             </div>
           ) : (
-            <Empty
-              label={
-                isCompany
-                  ? "No urgent company actions"
-                  : "Nothing requires immediate action"
-              }
-            />
+            <Empty label="Nothing requires immediate action" />
           )}
         </section>
       </div>
@@ -1451,9 +1545,8 @@ function Overview({
         <div className="cc-card-head">
           <div>
             <small className="eyebrow">Workflow coverage</small>
-            <h2>Case lifecycle</h2>
+            <h2>{isCompany ? "Request progress" : "Case lifecycle"}</h2>
           </div>
-          <small className="cc-session">Current API session</small>
         </div>
         <div className="cc-lifecycle">
           {[

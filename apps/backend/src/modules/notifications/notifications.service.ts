@@ -1,5 +1,6 @@
 import { notificationsModel } from './notifications.model';
 import { mailService } from '@/lib/mail/mail.service';
+import { renderOperationalEmail } from '@/lib/mail/email-layout';
 import { ApiError } from '@/lib/common/ApiError';
 import { normalizePagination, paginate } from '@/lib/common/response';
 
@@ -36,7 +37,12 @@ export const notificationsService = {
 
     const email = await notificationsModel.getUserEmail(userId);
     if (email) {
-      await mailService.sendMail({ to: email, subject: title, text: message, html });
+      const htmlBody = html ?? renderOperationalEmail({
+        heading: title,
+        paragraphs: message.split(/\n{2,}/),
+        footnote: 'Sign in to RADAR to open the full record. This message was sent because your account is part of this sanitary process.',
+      });
+      await mailService.sendMail({ to: email, subject: title, text: message, html: htmlBody });
     }
 
     return notification;

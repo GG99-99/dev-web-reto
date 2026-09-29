@@ -14,35 +14,62 @@ import nodemailer, { type Transporter } from 'nodemailer';
  * credenciales), el servicio NO lanza error: solo registra el correo en
  * consola. Así el flujo de negocio (asignaciones, notificaciones, etc.)
  * nunca se rompe por falta de configuración de correo.
+ * Si el puerto configurado no conecta (587 suele estar bloqueado), reintenta
+ * por 465 con TLS implícito, o al revés.
  * ---------------------------------------------------------------------------
  */
 
 let transporter: Transporter | null = null;
 let transporterInitialized = false;
 
+function smtpAuth() {
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS?.replace(/\s+/g, '');
+  return user && pass ? { user, pass } : undefined;
+}
+
+function createSmtpTransport(port: number, secure: boolean): Transporter {
+  return nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port,
+    secure,
+    requireTLS: !secure,
+    auth: smtpAuth(),
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 20000,
+    tls: { minVersion: 'TLSv1.2' },
+  });
+}
+
 function getTransporter(): Transporter | null {
   if (transporterInitialized) return transporter;
   transporterInitialized = true;
 
-  const { SMTP_HOST, SMTP_PORT, SMTP_SECURE, SMTP_USER, SMTP_PASS } = process.env;
-
-  if (!SMTP_HOST) {
+  if (!process.env.SMTP_HOST) {
     console.warn('[mail] SMTP_HOST no está configurado; los correos solo se registrarán en consola.');
     return null;
   }
 
-  transporter = nodemailer.createTransport({
-    host: SMTP_HOST,
-    port: SMTP_PORT ? Number(SMTP_PORT) : 587,
-    secure: SMTP_SECURE === 'true', // true para puerto 465, false para el resto (STARTTLS)
-    auth: SMTP_USER && SMTP_PASS ? { user: SMTP_USER, pass: SMTP_PASS } : undefined,
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 15000,
-  });
+  const port = process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : 587;
+  const secure = process.env.SMTP_SECURE === 'true' || port === 465;
+  transporter = createSmtpTransport(port, secure);
 
-  console.log(`[mail] Cliente SMTP inicializado (${SMTP_HOST}:${SMTP_PORT ? Number(SMTP_PORT) : 587}, secure: ${SMTP_SECURE === 'true'})`);
+  console.log(`[mail] Cliente SMTP inicializado (${process.env.SMTP_HOST}:${port}, secure: ${secure})`);
   return transporter;
+}
+
+/** Port 587 is often blocked on local networks. Implicit TLS on 465 is the other Gmail path. */
+function fallbackTransport(error: unknown): Transporter | null {
+  const code = typeof error === 'object' && error && 'code' in error ? String(error.code) : '';
+  if (!['ETIMEDOUT', 'ECONNREFUSED', 'ESOCKET', 'ECONNRESET'].includes(code)) return null;
+  if (!process.env.SMTP_HOST || !smtpAuth()) return null;
+
+  const currentPort = process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : 587;
+  const nextPort = currentPort === 465 ? 587 : 465;
+  const next = createSmtpTransport(nextPort, nextPort === 465);
+  console.warn(`[mail] Puerto ${currentPort} no respondió (${code}). Reintentando por ${nextPort}.`);
+  return next;
 }
 
 export interface SendMailInput {
@@ -67,11 +94,24 @@ export const mailService = {
       return false;
     }
 
+    const payload = { from, to, subject, text, html };
     try {
-      const info = await client.sendMail({ from, to, subject, text, html });
+      const info = await client.sendMail(payload);
       console.log(`[mail] ✅ Correo enviado exitosamente a: ${to} | Asunto: "${subject}" | MsgId: ${info.messageId}`);
       return true;
     } catch (error) {
+      const fallback = fallbackTransport(error);
+      if (fallback) {
+        try {
+          const info = await fallback.sendMail(payload);
+          transporter = fallback;
+          console.log(`[mail] ✅ Correo enviado exitosamente a: ${to} | Asunto: "${subject}" | MsgId: ${info.messageId}`);
+          return true;
+        } catch (fallbackError) {
+          console.error(`[mail] ❌ Error enviando correo a ${to}:`, fallbackError);
+          return false;
+        }
+      }
       console.error(`[mail] ❌ Error enviando correo a ${to}:`, error);
       return false;
     }

@@ -38,7 +38,6 @@
 .cc-card-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 0.85rem; border-bottom: 1px solid #f0f2f8; padding-bottom: 0.85rem; }
 .cc-card-head h2 { margin: 0; font-size: 1.15rem; font-weight: 700; color: #171b26; letter-spacing: -0.02em; }
 .cc-card .eyebrow { color: #00236f; margin-bottom: 0.2rem; }
-.cc-session { color: #6d7d90; font-size: 0.78rem; font-weight: 700; }
 .cc-schedule { display: grid; }
 .cc-schedule > div { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 0.85rem 0.15rem; border-bottom: 1px solid #f0f2f8; }
 .cc-schedule > div:last-child { border-bottom: 0; }
@@ -53,6 +52,7 @@
 .cc-attention:hover { background: #f4f6fb; border-radius: 8px; }
 .cc-attention i { width: 8px; height: 8px; border-radius: 50%; background: #dc8a19; flex: none; }
 .cc-attention i.red { background: #d94b4b; }
+.cc-attention i.blue { background: #167eba; }
 .cc-attention span { flex: 1; min-width: 0; }
 .cc-attention b { display: block; color: #171b26; font-size: 0.92rem; }
 .cc-attention small { display: block; margin-top: 3px; color: #6d7d90; font-size: 0.78rem; font-weight: 600; }
