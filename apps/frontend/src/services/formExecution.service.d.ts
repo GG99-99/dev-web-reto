@@ -1,4 +1,10 @@
-import type { ApiResponse, FormTemplateTree, StartEvaluationRequest, FormAnswersPayload, EvaluationExecutionDetail, FinishEvaluationResponse } from '@reto/shared';
+import type { ApiResponse, FormTemplateTree, FormCaseContext, FormCompleteness, StartEvaluationRequest, FormAnswersPayload, EvaluationExecutionDetail, FinishEvaluationResponse } from '@reto/shared';
+export interface EvaluationFormTemplate {
+    formTemplateId: number;
+    context: FormCaseContext;
+    template: FormTemplateTree;
+    completeness: FormCompleteness;
+}
 /**
  * `GET /form-templates` — ADMIN, COORDINADOR. Lista plantillas activas.
  *
@@ -13,12 +19,7 @@ declare function listTemplates(): Promise<ApiResponse<FormTemplateTree[]>>;
  * `GET /form-templates/:id/tree` — Todos los roles operativos.
  * Árbol completo `h1 → h2 → h3 → h4` con sus `*_ask`.
  */
-declare function getEvaluationTemplate(evaluationId: number): Promise<ApiResponse<{
-    formTemplateId: number;
-    context: import('@reto/shared').FormCaseContext;
-    template: FormTemplateTree;
-    completeness: import('@reto/shared').FormCompleteness;
-}>>;
+declare function getEvaluationTemplate(evaluationId: number): Promise<ApiResponse<EvaluationFormTemplate>>;
 declare function getTemplateTree(id: number): Promise<ApiResponse<FormTemplateTree>>;
 /**
  * `POST /evaluations/:id/start` — TECNICO_EVALUADOR asignado.

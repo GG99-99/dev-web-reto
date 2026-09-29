@@ -66,6 +66,13 @@ declare function update(id: number, body: UpdateInstitutionRequest): Promise<Api
  * ```
  */
 declare function addRepresentative(institutionId: number, body: CreateRepresentRequest): Promise<ApiResponse<Represent>>;
+/** `GET /institutions/:id/representatives/available` — representantes reutilizables. */
+declare function listAvailableRepresentatives(id: number): Promise<ApiResponse<Represent[]>>;
+/** `POST /institutions/:id/representatives/link` — vincula una persona existente. */
+declare function linkRepresentative(institutionId: number, body: {
+    personId: number;
+    type: 'LEGAL' | 'CALIDAD' | 'CONTACTO';
+}): Promise<ApiResponse<Represent>>;
 /** `PATCH /representatives/:id` — ADMIN_EMPRESA. */
 declare function updateRepresentative(id: number, body: Partial<CreateRepresentRequest>): Promise<ApiResponse<Represent>>;
 /** `DELETE /representatives/:id` — ADMIN_EMPRESA. */
@@ -91,6 +98,8 @@ export declare const institutionsService: {
     create: typeof create;
     update: typeof update;
     addRepresentative: typeof addRepresentative;
+    listAvailableRepresentatives: typeof listAvailableRepresentatives;
+    linkRepresentative: typeof linkRepresentative;
     updateRepresentative: typeof updateRepresentative;
     deleteRepresentative: typeof deleteRepresentative;
     listProvinces: typeof listProvinces;

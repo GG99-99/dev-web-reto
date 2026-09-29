@@ -43,6 +43,11 @@ export const CreateRepresentSchema = z.object({
   type: z.enum(['LEGAL', 'CALIDAD', 'CONTACTO']),
 });
 
+export const LinkRepresentSchema = z.object({
+  personId: z.coerce.number().int().positive(),
+  type: z.enum(['LEGAL', 'CALIDAD', 'CONTACTO']),
+});
+
 export const UpdateRepresentSchema = z.object({
   person: PersonInputSchema.partial().optional(),
   type: z.enum(['LEGAL', 'CALIDAD', 'CONTACTO']).optional(),

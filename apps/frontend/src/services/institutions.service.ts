@@ -142,6 +142,26 @@ async function addRepresentative(
   return data;
 }
 
+/** `GET /institutions/:id/representatives/available` — representantes reutilizables. */
+async function listAvailableRepresentatives(id: number): Promise<ApiResponse<Represent[]>> {
+  const { data } = await httpClient.get<ApiResponse<Represent[]>>(
+    `/institutions/${id}/representatives/available`,
+  );
+  return data;
+}
+
+/** `POST /institutions/:id/representatives/link` — vincula una persona existente. */
+async function linkRepresentative(
+  institutionId: number,
+  body: { personId: number; type: 'LEGAL' | 'CALIDAD' | 'CONTACTO' },
+): Promise<ApiResponse<Represent>> {
+  const { data } = await httpClient.post<ApiResponse<Represent>>(
+    `/institutions/${institutionId}/representatives/link`,
+    body,
+  );
+  return data;
+}
+
 /** `PATCH /representatives/:id` — ADMIN_EMPRESA. */
 async function updateRepresentative(
   id: number,
@@ -186,6 +206,8 @@ export const institutionsService = {
   create,
   update,
   addRepresentative,
+  listAvailableRepresentatives,
+  linkRepresentative,
   updateRepresentative,
   deleteRepresentative,
   listProvinces,

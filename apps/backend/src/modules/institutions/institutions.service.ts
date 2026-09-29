@@ -101,6 +101,18 @@ export const institutionsService = {
     return institutionsModel.addRepresentative(institutionId, data.person as Prisma.PersonCreateInput, data.type);
   },
 
+  getAvailableRepresentatives: async (institutionId: number) => {
+    await institutionsService.getById(institutionId);
+    return institutionsModel.getAvailableRepresentatives(institutionId);
+  },
+
+  linkRepresentative: async (institutionId: number, data: { personId: number; type: 'LEGAL' | 'CALIDAD' | 'CONTACTO' }) => {
+    await institutionsService.getById(institutionId);
+    const linked = await institutionsModel.linkRepresentative(institutionId, data.personId, data.type);
+    if (!linked) throw ApiError.notFound('Representative person not found');
+    return linked;
+  },
+
   updateRepresentative: async (
     representId: number,
     data: { person?: Prisma.PersonUpdateInput; type?: 'LEGAL' | 'CALIDAD' | 'CONTACTO' },
