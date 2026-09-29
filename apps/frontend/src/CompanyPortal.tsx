@@ -159,6 +159,8 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
   const [showNewInstitutionModal, setShowNewInstitutionModal] = useState(false)
   const [showAddRepresentModal, setShowAddRepresentModal] = useState(false)
   const [selectedInstForRep, setSelectedInstForRep] = useState<number | null>(null)
+  const [availableRepresentatives, setAvailableRepresentatives] = useState<any[]>([])
+  const [representativeMode, setRepresentativeMode] = useState<'select' | 'new'>('select')
 
   const [instFormError, setInstFormError] = useState('')
   const [repFormError, setRepFormError] = useState('')
@@ -573,6 +575,44 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
       notify(msg)
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const handleLinkRepresentative = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setRepFormError('')
+    if (!selectedInstForRep) return
+    const form = new FormData(e.currentTarget)
+    const type = String(form.get('tipo') || 'CALIDAD') as 'LEGAL' | 'CALIDAD' | 'CONTACTO'
+    const personId = Number(form.get('personId'))
+    setSubmitting(true)
+    try {
+      const res = await institutionsService.linkRepresentative(selectedInstForRep, { personId, type })
+      if (res.valid) {
+        notify('Representative assigned successfully.')
+        setShowAddRepresentModal(false)
+        await loadData()
+      }
+    } catch (err: any) {
+      const msg = apiErrorMessage(err, 'Error assigning representative.')
+      setRepFormError(msg)
+      notify(msg)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const openAddRepresentative = async (institutionId: number) => {
+    setSelectedInstForRep(institutionId)
+    setRepresentativeMode('select')
+    setRepFormError('')
+    setShowAddRepresentModal(true)
+    try {
+      const res = await institutionsService.listAvailableRepresentatives(institutionId)
+      if (res.valid) setAvailableRepresentatives(res.data)
+    } catch (err: any) {
+      setAvailableRepresentatives([])
+      setRepFormError(apiErrorMessage(err, 'Could not load available representatives.'))
     }
   }
 
@@ -1092,8 +1132,7 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
                           className="cp-btn-secondary"
                           style={{ fontSize: '0.75rem', padding: '0.2rem 0.6rem' }}
                           onClick={() => {
-                            setSelectedInstForRep(inst.institutionId)
-                            setShowAddRepresentModal(true)
+                            void openAddRepresentative(inst.institutionId)
                           }}
                         >
                           ➕ Add
@@ -1432,9 +1471,17 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
                 ×
               </button>
             </div>
-            <form onSubmit={handleAddRepresentative}>
+            <form onSubmit={representativeMode === 'select' ? handleLinkRepresentative : handleAddRepresentative}>
               <div className="cp-modal-body cp-form">
                 {repFormError && <div style={{padding:'0.6rem 0.85rem',background:'#fff0f0',border:'1px solid #fca5a5',borderRadius:'6px',color:'#b91c1c',fontSize:'0.82rem',marginBottom:'0.75rem'}}>{repFormError}</div>}
+                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.9rem' }}>
+                  <button type="button" className="cp-btn-secondary" onClick={() => setRepresentativeMode('select')} disabled={representativeMode === 'select'}>
+                    Select existing
+                  </button>
+                  <button type="button" className="cp-btn-secondary" onClick={() => setRepresentativeMode('new')} disabled={representativeMode === 'new'}>
+                    Register new
+                  </button>
+                </div>
                 <label>
                   Representative Type *
                   <select name="tipo" defaultValue="CALIDAD">
@@ -1444,6 +1491,19 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
                   </select>
                 </label>
 
+                {representativeMode === 'select' ? (
+                  <label>
+                    Available Representative *
+                    <select name="personId" required defaultValue="">
+                      <option value="">Select a representative</option>
+                      {availableRepresentatives.map((rep: any) => (
+                        <option key={rep.personId} value={rep.personId}>
+                          {rep.person?.name || `Representative #${rep.personId}`} ({rep.person?.cedula})
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : <>
                 <div className="cp-form-row">
                   <label>
                     Full Name *
@@ -1470,6 +1530,7 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
                   Position in Company
                   <input name="cargo" placeholder="e.g. Quality Assurance Manager" />
                 </label>
+                </>}
               </div>
 
               <div className="cp-modal-footer">
@@ -1485,7 +1546,7 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
                   disabled={submitting}
                   className="cp-btn-primary"
                 >
-                  {submitting ? 'Saving…' : 'Assign Representative'}
+                  {submitting ? 'Saving…' : representativeMode === 'select' ? 'Assign Representative' : 'Register Representative'}
                 </button>
               </div>
             </form>

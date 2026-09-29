@@ -126,6 +126,28 @@ export const institutionsModel = {
     });
   },
 
+  getAvailableRepresentatives: async (institutionId: number) => {
+    return prisma.represent.findMany({
+      where: { institutionId: { not: institutionId } },
+      distinct: ['personId'],
+      include: { person: true },
+      orderBy: { person: { name: 'asc' } },
+    });
+  },
+
+  linkRepresentative: async (institutionId: number, personId: number, type: 'LEGAL' | 'CALIDAD' | 'CONTACTO') => {
+    const person = await prisma.person.findUnique({ where: { personId } });
+    if (!person) return null;
+
+    const existing = await prisma.represent.findFirst({ where: { institutionId, personId } });
+    if (existing) return existing;
+
+    return prisma.represent.create({
+      data: { institutionId, personId, type },
+      include: { person: true },
+    });
+  },
+
   getRepresentativeById: async (representId: number) => {
     return prisma.represent.findUnique({ where: { representId }, include: { person: true } });
   },

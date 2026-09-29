@@ -6,6 +6,7 @@ import {
   CreateInstitutionSchema,
   UpdateInstitutionSchema,
   CreateRepresentSchema,
+  LinkRepresentSchema,
   UpdateRepresentSchema,
   IdParamSchema,
 } from './institutions.schemas';
@@ -55,6 +56,19 @@ institutionsRouter
     validateReq(IdParamSchema, 'params'),
     validateReq(CreateRepresentSchema, 'body'),
     institutionsController.addRepresentative,
+  )
+  .get(
+    '/institutions/:id/representatives/available',
+    validateRole('ADMIN_EMPRESA'),
+    validateReq(IdParamSchema, 'params'),
+    institutionsController.getAvailableRepresentatives,
+  )
+  .post(
+    '/institutions/:id/representatives/link',
+    validateRole('ADMIN_EMPRESA'),
+    validateReq(IdParamSchema, 'params'),
+    validateReq(LinkRepresentSchema, 'body'),
+    institutionsController.linkRepresentative,
   )
 
   .patch(

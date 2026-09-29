@@ -84,7 +84,16 @@ export const casesModel = {
     };
 
     const [items, total] = await Promise.all([
-      prisma.case.findMany({ where, include: { institution: true }, skip, take, orderBy }),
+      prisma.case.findMany({
+        where,
+        include: {
+          institution: true,
+          technician: { include: { person: true } },
+        },
+        skip,
+        take,
+        orderBy,
+      }),
       prisma.case.count({ where }),
     ]);
 

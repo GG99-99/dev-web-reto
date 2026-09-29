@@ -66,6 +66,22 @@ export const institutionsController = {
     return res.status(201).json(ok(data));
   },
 
+  getAvailableRepresentatives: async (req: Request, res: Response) => {
+    if (!req.user) throw ApiError.unauthorized();
+    const { id } = req.validated!.params;
+    await institutionsService.assertAccess(req.user.personId, req.user.role, id);
+    const data = await institutionsService.getAvailableRepresentatives(id);
+    return res.status(200).json(ok(data));
+  },
+
+  linkRepresentative: async (req: Request, res: Response) => {
+    if (!req.user) throw ApiError.unauthorized();
+    const { id } = req.validated!.params;
+    await institutionsService.assertAccess(req.user.personId, req.user.role, id);
+    const data = await institutionsService.linkRepresentative(id, req.validated!.body);
+    return res.status(201).json(ok(data));
+  },
+
   updateRepresentative: async (req: Request, res: Response) => {
     if (!req.user) throw ApiError.unauthorized();
     const { id } = req.validated!.params; // representId
