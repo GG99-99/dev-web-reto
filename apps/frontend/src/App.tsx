@@ -34,6 +34,15 @@ import {
 import "./App.css";
 import { deriveLifecycleStatus } from "@reto/shared";
 import { statusLabel } from "./statusLabels";
+import {
+  allowFormattedKey,
+  formatNationalId,
+  formatPhoneInput,
+  isValidEmail,
+  isValidNationalId,
+  isValidPersonName,
+  isValidPhone,
+} from "./inputFormat";
 
 type Role =
   | "ADMIN"
@@ -753,7 +762,7 @@ function AuthPortal({
   const [tempToken, setTempToken] = useState("");
   const [notice, setNotice] = useState(initialMessage);
   const [busy, setBusy] = useState(false);
-  const [signup, setSignup] = useState({
+  const emptySignup = {
     name: "",
     email: "",
     cedula: "",
@@ -761,7 +770,9 @@ function AuthPortal({
     password: "",
     confirmPassword: "",
     roleId: "2",
-  });
+  };
+  const [signup, setSignup] = useState(emptySignup);
+  const [signupFormKey, setSignupFormKey] = useState(0);
   const [authLetter, setAuthLetter] = useState<File | null>(null);
   const setSignupField = (key: keyof typeof signup, value: string) =>
     setSignup((current) => ({ ...current, [key]: value }));
@@ -835,6 +846,22 @@ function AuthPortal({
   async function submitSignUp(event: FormEvent) {
     event.preventDefault();
     setNotice("");
+    if (!isValidPersonName(signup.name)) {
+      setNotice("Enter your full name.");
+      return;
+    }
+    if (!isValidEmail(signup.email)) {
+      setNotice("Enter a valid work email address.");
+      return;
+    }
+    if (!isValidNationalId(signup.cedula)) {
+      setNotice("National ID must use the format 000-0000000-0.");
+      return;
+    }
+    if (!isValidPhone(signup.phone)) {
+      setNotice("Enter a valid phone number, such as (809) 555-0101 or +44 20 7946 0958.");
+      return;
+    }
     if (signup.password.length < 8) {
       setNotice("Use a password with at least 8 characters.");
       return;
@@ -873,6 +900,9 @@ function AuthPortal({
       }
       setUsuario(signup.email);
       setPassword("");
+      setSignup(emptySignup);
+      setAuthLetter(null);
+      setSignupFormKey((key) => key + 1);
       setNotice(
         "Registration received. An administrator must approve your account before you can sign in.",
       );
@@ -1092,7 +1122,7 @@ function AuthPortal({
             </form>
           )}
           {mode === "signup" && (
-            <form onSubmit={submitSignUp}>
+            <form key={signupFormKey} onSubmit={submitSignUp} autoComplete="off">
               <div className="auth-form-grid">
                 <label>
                   Full name
@@ -1103,7 +1133,7 @@ function AuthPortal({
                       setSignupField("name", event.target.value)
                     }
                     required
-                    autoComplete="name"
+                    autoComplete="off"
                     placeholder="Your full name"
                   />
                 </label>
@@ -1116,7 +1146,7 @@ function AuthPortal({
                       setSignupField("email", event.target.value)
                     }
                     required
-                    autoComplete="email"
+                    autoComplete="off"
                     placeholder="name@organisation.com"
                   />
                 </label>
@@ -1124,11 +1154,15 @@ function AuthPortal({
                   National ID
                   <input
                     value={signup.cedula}
+                    onKeyDown={(event) => allowFormattedKey(event, { maxDigits: 11 })}
                     onChange={(event) =>
-                      setSignupField("cedula", event.target.value)
+                      setSignupField("cedula", formatNationalId(event.target.value))
                     }
                     required
+                    inputMode="numeric"
+                    autoComplete="off"
                     placeholder="000-0000000-0"
+                    aria-describedby="signup-cedula-hint"
                   />
                 </label>
                 <label>
@@ -1136,15 +1170,25 @@ function AuthPortal({
                   <input
                     type="tel"
                     value={signup.phone}
+                    onKeyDown={(event) =>
+                      allowFormattedKey(event, {
+                        allowPlus: true,
+                        maxDigits: event.currentTarget.value.includes("+") ? 15 : 10,
+                      })
+                    }
                     onChange={(event) =>
-                      setSignupField("phone", event.target.value)
+                      setSignupField("phone", formatPhoneInput(event.target.value))
                     }
                     required
-                    autoComplete="tel"
-                    placeholder="(000) 000-0000"
+                    inputMode="tel"
+                    autoComplete="off"
+                    placeholder="(809) 555-0101"
                   />
                 </label>
               </div>
+              <p id="signup-cedula-hint" className="auth-fineprint" style={{ marginTop: 0 }}>
+                National ID uses 000-0000000-0. Phone accepts a local number or an international number starting with +.
+              </p>
               <label>
                 Account type
                 <select

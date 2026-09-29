@@ -138,7 +138,7 @@ describe('Users', () => {
           person: {
             name: `Test User ${unique}`,
             email: `test-${unique}@example.com`,
-            cedula: `099-${unique.slice(-7)}-9`,
+            cedula: uniqueCedula(),
             phone: '809-555-9999',
           },
           password: 'Password123!',

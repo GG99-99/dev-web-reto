@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { PaginationQuerySchema, IdParamSchema } from '@/lib/common/schemas';
+import { isValidNationalId, isValidPhone, isValidRnc, isValidStreetNumber } from '@/lib/common/fieldFormats';
 
 /**
  * institutions.schemas.ts
@@ -17,25 +18,24 @@ export const GetInstitutionsQuerySchema = PaginationQuerySchema.extend({
 });
 
 export const CreateInstitutionSchema = z.object({
-  name: z.string().min(1),
-  streetName: z.string().min(1),
-  // streetNum is a free-text field in DR — addresses can be alphanumeric (e.g. "42-B", "S/N").
-  streetNum: z.string().optional(),
-  phoneNumber: z.string().min(1),
-  email: z.string().email(),
-  rnc: z.string().min(1),
-  nombreComercial: z.string().optional(),
-  actividadEconomica: z.string().optional(),
+  name: z.string().trim().min(2, 'Enter the legal company name'),
+  streetName: z.string().trim().min(2, 'Enter the street or avenue'),
+  streetNum: z.string().trim().refine(isValidStreetNumber, 'Street number must contain digits only').optional(),
+  phoneNumber: z.string().trim().refine(isValidPhone, 'Enter a valid phone number'),
+  email: z.string().trim().email('Enter a valid email address'),
+  rnc: z.string().trim().refine(isValidRnc, 'RNC must be exactly 9 digits'),
+  nombreComercial: z.string().trim().optional(),
+  actividadEconomica: z.string().trim().min(2, 'Enter the economic activity').optional(),
   municipalityId: z.coerce.number().int().positive(),
 });
 
 export const UpdateInstitutionSchema = CreateInstitutionSchema.partial();
 
 const PersonInputSchema = z.object({
-  name: z.string().min(1),
-  cedula: z.string().min(1),
-  phone: z.string().min(1),
-  email: z.string().email(),
+  name: z.string().trim().min(2, 'Enter the full name'),
+  cedula: z.string().trim().refine(isValidNationalId, 'National ID must use the format 000-0000000-0'),
+  phone: z.string().trim().refine(isValidPhone, 'Enter a valid phone number'),
+  email: z.string().trim().email('Enter a valid email address'),
 });
 
 export const CreateRepresentSchema = z.object({

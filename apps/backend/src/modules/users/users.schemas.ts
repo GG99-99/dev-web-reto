@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { PaginationQuerySchema } from '@/lib/common/schemas';
+import { isValidNationalId, isValidPhone } from '@/lib/common/fieldFormats';
 
 /**
  * users.schemas.ts
@@ -15,10 +16,10 @@ export const GetUsersQuerySchema = PaginationQuerySchema.extend({
 });
 
 const PersonInputSchema = z.object({
-  name: z.string().min(1),
-  cedula: z.string().min(1),
-  phone: z.string().min(1),
-  email: z.string().email(),
+  name: z.string().trim().min(2, 'Enter the full name'),
+  cedula: z.string().trim().refine(isValidNationalId, 'National ID must use the format 000-0000000-0'),
+  phone: z.string().trim().refine(isValidPhone, 'Enter a valid phone number'),
+  email: z.string().trim().email('Enter a valid email address'),
 });
 
 export const RegisterUserSchema = z.object({

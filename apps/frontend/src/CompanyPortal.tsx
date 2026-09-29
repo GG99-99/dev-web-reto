@@ -16,6 +16,19 @@ import {
   statusLabel,
 } from './statusLabels'
 import './CompanyPortal.css'
+import {
+  allowFormattedKey,
+  formatNationalId,
+  formatPhoneInput,
+  formatRnc,
+  formatStreetNumber,
+  isValidEmail,
+  isValidNationalId,
+  isValidPersonName,
+  isValidPhone,
+  isValidRnc,
+  isValidStreetNumber,
+} from './inputFormat'
 
 type Role = 'ADMIN' | 'ADMIN_EMPRESA' | 'USUARIO_DELEGADO' | 'COORDINADOR' | 'TECNICO_EVALUADOR'
 
@@ -43,22 +56,30 @@ function apiErrorMessage(err: any, fallback: string): string {
   return fallback
 }
 
-function allowRncKey(e: { key: string; ctrlKey: boolean; metaKey: boolean; altKey: boolean; preventDefault: () => void }) {
-  if (e.ctrlKey || e.metaKey || e.altKey) return
-  const navigation = ['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Enter', 'Home', 'End']
-  if (navigation.includes(e.key)) return
-  if (!/^[0-9-]$/.test(e.key)) e.preventDefault()
+function maskedChange(format: (value: string) => string) {
+  return (event: { currentTarget: HTMLInputElement }) => {
+    event.currentTarget.value = format(event.currentTarget.value)
+  }
 }
 
-function sanitizeRncPaste(e: { clipboardData: DataTransfer; preventDefault: () => void; currentTarget: HTMLInputElement }) {
-  const text = e.clipboardData.getData('text')
-  if (/^[0-9-]*$/.test(text)) return
-  e.preventDefault()
-  const cleaned = text.replace(/[^0-9-]/g, '')
-  const input = e.currentTarget
-  const start = input.selectionStart ?? input.value.length
-  const end = input.selectionEnd ?? start
-  input.setRangeText(cleaned, start, end, 'end')
+function validateEstablishment(body: {
+  name: string
+  rnc: string
+  actividadEconomica?: string
+  streetName: string
+  streetNum?: string
+  phoneNumber: string
+  email: string
+}, requireActivity: boolean) {
+  if (!isValidPersonName(body.name)) return 'Enter the legal company name.'
+  if (!isValidRnc(body.rnc)) return 'RNC must be exactly 9 digits.'
+  if (requireActivity && !body.actividadEconomica) return 'Enter the economic activity.'
+  if (body.actividadEconomica && body.actividadEconomica.trim().length < 2) return 'Enter the economic activity.'
+  if (!body.streetName || body.streetName.trim().length < 2) return 'Enter the street or avenue.'
+  if (!isValidStreetNumber(body.streetNum || '')) return 'Street number must contain digits only.'
+  if (!isValidPhone(body.phoneNumber)) return 'Enter a valid phone number, such as (809) 555-0101 or +44 20 7946 0958.'
+  if (!isValidEmail(body.email)) return 'Enter a valid email address.'
+  return ''
 }
 
 function buildStatusHistory(request: any) {
@@ -159,6 +180,8 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
   const [showNewInstitutionModal, setShowNewInstitutionModal] = useState(false)
   const [showAddRepresentModal, setShowAddRepresentModal] = useState(false)
   const [selectedInstForRep, setSelectedInstForRep] = useState<number | null>(null)
+  const [openRepKey, setOpenRepKey] = useState<string | null>(null)
+  const [repDetails, setRepDetails] = useState<Record<string, any>>({})
 
   const [instFormError, setInstFormError] = useState('')
   const [repFormError, setRepFormError] = useState('')
@@ -466,15 +489,20 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
     }
 
     const body = {
-      name: String(form.get('name') || ''),
-      nombreComercial: String(form.get('nombreComercial') || ''),
-      rnc: String(form.get('rnc') || ''),
-      actividadEconomica: String(form.get('actividadEconomica') || ''),
-      streetName: String(form.get('streetName') || ''),
-      streetNum: String(form.get('streetNum') || ''),
-      phoneNumber: String(form.get('phoneNumber') || ''),
-      email: String(form.get('email') || ''),
+      name: String(form.get('name') || '').trim(),
+      nombreComercial: String(form.get('nombreComercial') || '').trim(),
+      rnc: formatRnc(String(form.get('rnc') || '')),
+      actividadEconomica: String(form.get('actividadEconomica') || '').trim(),
+      streetName: String(form.get('streetName') || '').trim(),
+      streetNum: formatStreetNumber(String(form.get('streetNum') || '')),
+      phoneNumber: String(form.get('phoneNumber') || '').trim(),
+      email: String(form.get('email') || '').trim(),
       municipalityId,
+    }
+    const establishmentError = validateEstablishment(body, true)
+    if (establishmentError) {
+      setInstFormError(establishmentError)
+      return
     }
 
     setSubmitting(true)
@@ -508,14 +536,19 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
     setEditFormError('')
     const form = new FormData(e.currentTarget)
     const body = {
-      name: String(form.get('name') || ''),
-      nombreComercial: String(form.get('nombreComercial') || '') || undefined,
-      rnc: String(form.get('rnc') || ''),
-      actividadEconomica: String(form.get('actividadEconomica') || '') || undefined,
-      streetName: String(form.get('streetName') || ''),
-      streetNum: String(form.get('streetNum') || '') || undefined,
-      phoneNumber: String(form.get('phoneNumber') || ''),
-      email: String(form.get('email') || ''),
+      name: String(form.get('name') || '').trim(),
+      nombreComercial: String(form.get('nombreComercial') || '').trim() || undefined,
+      rnc: formatRnc(String(form.get('rnc') || '')),
+      actividadEconomica: String(form.get('actividadEconomica') || '').trim() || undefined,
+      streetName: String(form.get('streetName') || '').trim(),
+      streetNum: formatStreetNumber(String(form.get('streetNum') || '')) || undefined,
+      phoneNumber: String(form.get('phoneNumber') || '').trim(),
+      email: String(form.get('email') || '').trim(),
+    }
+    const establishmentError = validateEstablishment(body, false)
+    if (establishmentError) {
+      setEditFormError(establishmentError)
+      return
     }
     setSubmitting(true)
     try {
@@ -548,15 +581,29 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
     const form = new FormData(e.currentTarget)
     const rawTipo = String(form.get('tipo') || 'CALIDAD')
     const type = (rawTipo === 'CONTACTO_PRINCIPAL' ? 'CONTACTO' : rawTipo) as 'LEGAL' | 'CALIDAD' | 'CONTACTO'
-    const body = {
-      person: {
-        name: String(form.get('name') || ''),
-        email: String(form.get('email') || ''),
-        phone: String(form.get('phone') || ''),
-        cedula: String(form.get('cedula') || ''),
-      },
-      type,
+    const person = {
+      name: String(form.get('name') || '').trim(),
+      email: String(form.get('email') || '').trim(),
+      phone: String(form.get('phone') || '').trim(),
+      cedula: formatNationalId(String(form.get('cedula') || '')),
     }
+    if (!isValidPersonName(person.name)) {
+      setRepFormError('Enter the representative full name.')
+      return
+    }
+    if (!isValidNationalId(person.cedula)) {
+      setRepFormError('National ID must use the format 000-0000000-0.')
+      return
+    }
+    if (!isValidEmail(person.email)) {
+      setRepFormError('Enter a valid email address.')
+      return
+    }
+    if (!isValidPhone(person.phone)) {
+      setRepFormError('Enter a valid phone number, such as (809) 555-0101 or +44 20 7946 0958.')
+      return
+    }
+    const body = { person, type }
 
     setSubmitting(true)
     try {
@@ -578,6 +625,32 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
 
   const selectedLifecycle = requestLifecycle(selectedReqDetail)
   const currentStage = lifecycleStage(selectedLifecycle)
+  const timelineProgress = currentStage > 0 ? Math.min((currentStage - 1) / 4, 1) : 0
+  const stepState = (step: number) => {
+    if (currentStage < 1 || currentStage < step) return ''
+    return currentStage === step ? 'done active' : 'done'
+  }
+
+  const toggleRepresentative = async (institutionId: number, rep: any) => {
+    const key = `${institutionId}-${rep.representId}`
+    if (openRepKey === key) {
+      setOpenRepKey(null)
+      return
+    }
+    setOpenRepKey(key)
+    if (rep.person?.cedula || rep.person?.email || rep.person?.phone) {
+      setRepDetails((current) => ({ ...current, [key]: rep }))
+      return
+    }
+    try {
+      const res = await institutionsService.getById(institutionId)
+      const list = res?.data?.representantes ?? res?.data?.represents ?? []
+      const full = list.find((item: any) => item.representId === rep.representId) || rep
+      setRepDetails((current) => ({ ...current, [key]: full }))
+    } catch {
+      setRepDetails((current) => ({ ...current, [key]: rep }))
+    }
+  }
 
   const getBadgeClass = (st?: string) => {
     switch (st) {
@@ -807,24 +880,24 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
                 </div>
 
                 {/* Timeline Stepper */}
-                <div className="cp-timeline">
-                  <div className={`cp-step ${currentStage >= 1 ? 'done' : ''} ${currentStage === 1 ? 'active' : ''}`}>
+                <div className="cp-timeline" style={{ '--cp-progress': timelineProgress }}>
+                  <div className={`cp-step ${stepState(1)}`}>
                     <div className="cp-step-circle">1</div>
                     <span className="cp-step-label">Draft</span>
                   </div>
-                  <div className={`cp-step ${currentStage >= 2 ? 'done' : ''} ${currentStage === 2 ? 'active' : ''}`}>
+                  <div className={`cp-step ${stepState(2)}`}>
                     <div className="cp-step-circle">2</div>
                     <span className="cp-step-label">Submitted</span>
                   </div>
-                  <div className={`cp-step ${currentStage >= 3 ? 'done' : ''} ${currentStage === 3 ? 'active' : ''}`}>
+                  <div className={`cp-step ${stepState(3)}`}>
                     <div className="cp-step-circle">3</div>
                     <span className="cp-step-label">Assigned</span>
                   </div>
-                  <div className={`cp-step ${currentStage >= 4 ? 'done' : ''} ${currentStage === 4 ? 'active' : ''}`}>
+                  <div className={`cp-step ${stepState(4)}`}>
                     <div className="cp-step-circle">4</div>
                     <span className="cp-step-label">{currentStage >= 5 ? 'In Field' : fieldStepLabel}</span>
                   </div>
-                  <div className={`cp-step ${currentStage >= 5 ? 'done' : ''} ${currentStage === 5 ? 'active' : ''}`}>
+                  <div className={`cp-step ${stepState(5)}`}>
                     <div className="cp-step-circle">5</div>
                     <span className="cp-step-label">Decision</span>
                   </div>
@@ -1103,12 +1176,39 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
 
                     {(inst.representantes ?? inst.represents ?? []).length > 0 ? (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                        {(inst.representantes ?? inst.represents ?? []).map((rep: any) => (
-                          <div key={rep.representId} style={{ background: '#f8fafc', padding: '0.45rem 0.65rem', borderRadius: '6px', fontSize: '0.82rem', display: 'flex', justifyContent: 'space-between', gap: '0.75rem' }}>
-                            <span><strong>{rep.person?.name || 'Representative'}</strong></span>
-                            <span style={{ color: '#00236f', fontWeight: 600 }}>{representativeRole(rep.type || rep.tipo)}</span>
-                          </div>
-                        ))}
+                        {(inst.representantes ?? inst.represents ?? []).map((rep: any) => {
+                          const repKey = `${inst.institutionId}-${rep.representId}`
+                          const open = openRepKey === repKey
+                          const detail = repDetails[repKey] || rep
+                          return (
+                            <div key={rep.representId} style={{ background: '#f8fafc', padding: '0.45rem 0.65rem', borderRadius: '6px', fontSize: '0.82rem' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem', alignItems: 'center' }}>
+                                <span><strong>{detail.person?.name || rep.person?.name || 'Representative'}</strong></span>
+                                <span style={{ display: 'flex', gap: '0.45rem', alignItems: 'center' }}>
+                                  <span style={{ color: '#00236f', fontWeight: 600 }}>{representativeRole(detail.type || detail.tipo || rep.type || rep.tipo)}</span>
+                                  {canManageEstablishments && (
+                                    <button
+                                      type="button"
+                                      className="cp-btn-secondary"
+                                      style={{ fontSize: '0.72rem', padding: '0.15rem 0.45rem' }}
+                                      onClick={() => void toggleRepresentative(inst.institutionId, rep)}
+                                    >
+                                      {open ? 'Hide details' : 'View details'}
+                                    </button>
+                                  )}
+                                </span>
+                              </div>
+                              {open && canManageEstablishments && (
+                                <div style={{ marginTop: '0.45rem', display: 'grid', gap: '0.2rem', color: '#334155' }}>
+                                  <div><strong>National ID:</strong> {detail.person?.cedula || '—'}</div>
+                                  <div><strong>Phone:</strong> {detail.person?.phone || '—'}</div>
+                                  <div><strong>Email:</strong> {detail.person?.email || '—'}</div>
+                                  <div><strong>Role:</strong> {representativeRole(detail.type || detail.tipo)}</div>
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })}
                       </div>
                     ) : (
                       <p style={{ fontSize: '0.8rem', color: '#94a3b8', margin: 0 }}>
@@ -1335,7 +1435,15 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
                 <div className="cp-form-row">
                   <label>
                     RNC *
-                    <input name="rnc" required placeholder="e.g. 1301234567" onKeyDown={allowRncKey} onPaste={sanitizeRncPaste} inputMode="numeric" />
+                    <input
+                      name="rnc"
+                      required
+                      placeholder="130123456"
+                      inputMode="numeric"
+                      autoComplete="off"
+                      onKeyDown={(event) => allowFormattedKey(event, { maxDigits: 9 })}
+                      onChange={maskedChange(formatRnc)}
+                    />
                   </label>
                   <label>
                     Economic Activity *
@@ -1381,14 +1489,29 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
                   </label>
                   <label>
                     Street Number
-                    <input name="streetNum" placeholder="e.g. 42-B" />
+                    <input
+                      name="streetNum"
+                      placeholder="42"
+                      inputMode="numeric"
+                      autoComplete="off"
+                      onKeyDown={(event) => allowFormattedKey(event, { maxDigits: 6 })}
+                      onChange={maskedChange(formatStreetNumber)}
+                    />
                   </label>
                 </div>
 
                 <div className="cp-form-row">
                   <label>
                     Phone *
-                    <input name="phoneNumber" required placeholder="e.g. 809-555-1234" />
+                    <input
+                      name="phoneNumber"
+                      required
+                      placeholder="(809) 555-1234"
+                      inputMode="tel"
+                      autoComplete="off"
+                      onKeyDown={(event) => allowFormattedKey(event, { allowPlus: true, maxDigits: event.currentTarget.value.includes('+') ? 15 : 10 })}
+                      onChange={maskedChange(formatPhoneInput)}
+                    />
                   </label>
                   <label>
                     Email *
@@ -1451,7 +1574,15 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
                   </label>
                   <label>
                     National ID / Document *
-                    <input name="cedula" required placeholder="e.g. 001-1234567-8" />
+                    <input
+                      name="cedula"
+                      required
+                      placeholder="000-0000000-0"
+                      inputMode="numeric"
+                      autoComplete="off"
+                      onKeyDown={(event) => allowFormattedKey(event, { maxDigits: 11 })}
+                      onChange={maskedChange(formatNationalId)}
+                    />
                   </label>
                 </div>
 
@@ -1462,7 +1593,15 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
                   </label>
                   <label>
                     Phone *
-                    <input name="phone" required placeholder="e.g. 809-555-8899" />
+                    <input
+                      name="phone"
+                      required
+                      placeholder="(809) 555-8899"
+                      inputMode="tel"
+                      autoComplete="off"
+                      onKeyDown={(event) => allowFormattedKey(event, { allowPlus: true, maxDigits: event.currentTarget.value.includes('+') ? 15 : 10 })}
+                      onChange={maskedChange(formatPhoneInput)}
+                    />
                   </label>
                 </div>
 
@@ -1509,15 +1648,15 @@ export default function CompanyPortal({ role, notify, onOpenOfficialReport }: Co
                   <label>Trade Name<input name="nombreComercial" defaultValue={editingInstitution.nombreComercial || ''} /></label>
                 </div>
                 <div className="cp-form-row">
-                  <label>RNC *<input name="rnc" required defaultValue={editingInstitution.rnc} onKeyDown={allowRncKey} onPaste={sanitizeRncPaste} inputMode="numeric" /></label>
+                  <label>RNC *<input name="rnc" required defaultValue={formatRnc(editingInstitution.rnc || '')} inputMode="numeric" autoComplete="off" onKeyDown={(event) => allowFormattedKey(event, { maxDigits: 9 })} onChange={maskedChange(formatRnc)} /></label>
                   <label>Economic Activity<input name="actividadEconomica" defaultValue={editingInstitution.actividadEconomica || ''} /></label>
                 </div>
                 <div className="cp-form-row">
                   <label>Street / Avenue *<input name="streetName" required defaultValue={editingInstitution.streetName || ''} /></label>
-                  <label>Street Number<input name="streetNum" defaultValue={editingInstitution.streetNum || ''} /></label>
+                  <label>Street Number<input name="streetNum" defaultValue={formatStreetNumber(editingInstitution.streetNum || '')} inputMode="numeric" autoComplete="off" onKeyDown={(event) => allowFormattedKey(event, { maxDigits: 6 })} onChange={maskedChange(formatStreetNumber)} /></label>
                 </div>
                 <div className="cp-form-row">
-                  <label>Phone *<input name="phoneNumber" required defaultValue={editingInstitution.phoneNumber || ''} /></label>
+                  <label>Phone *<input name="phoneNumber" required defaultValue={formatPhoneInput(editingInstitution.phoneNumber || '')} inputMode="tel" autoComplete="off" onKeyDown={(event) => allowFormattedKey(event, { allowPlus: true, maxDigits: event.currentTarget.value.includes('+') ? 15 : 10 })} onChange={maskedChange(formatPhoneInput)} /></label>
                   <label>Email *<input type="email" name="email" required defaultValue={editingInstitution.email || ''} /></label>
                 </div>
               </div>
