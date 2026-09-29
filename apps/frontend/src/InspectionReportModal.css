@@ -714,51 +714,50 @@
   font-weight: 800;
 }
 
-/* Security Barcode Footer */
+/* Official-report QR */
 .irm-doc-security-footer {
   margin-top: 2.75rem;
   padding-top: 1rem;
   border-top: 1px dashed #cbd5e1;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
   position: relative;
   z-index: 1;
+  break-inside: avoid;
+  page-break-inside: avoid;
 }
 
-.irm-barcode-box {
+.irm-qr-seal {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.irm-qr-seal img {
+  width: 112px;
+  height: 112px;
+  image-rendering: pixelated;
+  background: #fff;
+  border: 1px solid #dce5ef;
+  border-radius: 4px;
+}
+
+.irm-qr-seal .irm-security-meta,
+.irm-qr-pending {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 3px;
-}
-
-.irm-barcode-lines {
-  width: 160px;
-  height: 22px;
-  background: repeating-linear-gradient(
-    90deg,
-    #1e293b,
-    #1e293b 2px,
-    transparent 2px,
-    transparent 4px,
-    #1e293b 4px,
-    #1e293b 7px,
-    transparent 7px,
-    transparent 8px,
-    #1e293b 8px,
-    #1e293b 9px,
-    transparent 9px,
-    transparent 12px
-  );
-}
-
-.irm-barcode-text {
-  font-family: 'Courier New', monospace;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   color: #475569;
-  letter-spacing: 0.08em;
-  font-weight: 700;
+  text-align: left;
+}
+
+.irm-qr-seal strong,
+.irm-qr-pending strong {
+  color: #00236f;
+  font-size: 0.82rem;
 }
 
 .irm-security-meta {
@@ -898,5 +897,15 @@
   .irm-signatures {
     page-break-inside: avoid !important;
     break-inside: avoid !important;
+  }
+
+  .irm-doc-security-footer {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  .irm-qr-seal img {
+    width: 28mm !important;
+    height: 28mm !important;
   }
 }

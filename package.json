@@ -12,6 +12,7 @@
     "dev:full": "pnpm db:up && pnpm dev",
     "dev:backend": "pnpm build:packages && pnpm --filter @reto/backend dev",
     "dev:frontend": "pnpm --filter @reto/frontend dev",
+    "prod": "pnpm db:up && pnpm build:packages && pnpm --filter @reto/frontend build && pnpm --filter @reto/backend start",
     "db:up": "docker compose -f docker-pg/docker-compose.yml up -d",
     "db:down": "docker compose -f docker-pg/docker-compose.yml down",
     "db:logs": "docker compose -f docker-pg/docker-compose.yml logs -f postgres",

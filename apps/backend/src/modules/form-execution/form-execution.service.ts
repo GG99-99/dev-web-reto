@@ -33,7 +33,7 @@ export const formExecutionService = {
     return tree;
   },
 
-  getEvaluationTemplate: async (evaluationId: number, requesterId: number, role?: string | null) => {
+  getEvaluationTemplate: async (evaluationId: number, requesterId: number, role?: string | null): Promise<Awaited<ReturnType<typeof getEvaluationFormTemplate>>> => {
     return getEvaluationFormTemplate(evaluationId, requesterId, role);
   },
 

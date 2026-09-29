@@ -18,6 +18,7 @@ import { complaintsRouter } from './modules/complaints/complaints.router';
 import { notificationsRouter } from './modules/notifications/notifications.router';
 import { dashboardRouter } from './modules/dashboard/dashboard.router';
 import { historyRouter } from './modules/history/history.router';
+import { documentsRouter } from './modules/documents/documents.router';
 
 /**
  * api.router.ts
@@ -49,3 +50,4 @@ apiRouter.use(complaintsRouter); // /complaints/*
 apiRouter.use(notificationsRouter); // /notifications/*
 apiRouter.use(dashboardRouter); // /dashboard/{empresa,coordinador,tecnico}
 apiRouter.use(historyRouter); // /history/search
+apiRouter.use(documentsRouter); // /public/documents/verify

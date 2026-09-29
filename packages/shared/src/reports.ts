@@ -192,6 +192,43 @@ export interface OfficialVerdictPreview {
     longitude: number | null;
     askKey: string | null;
   }>;
+  /**
+   * Present on an approved official report. The QR encodes `verificationUrl`.
+   * Null until the coordinator approves the report.
+   */
+  authenticity: DocumentAuthenticitySeal | null;
+}
+
+/** QR seal printed on an official report. Scanning `verificationUrl` checks it. */
+export interface DocumentAuthenticitySeal {
+  verificationUrl: string;
+  qrDataUrl: string;
+  reference: string;
+}
+
+export type DocumentVerificationOutcome = 'confirmed' | 'outdated' | 'rejected';
+
+/** Public facts returned when someone scans an official-report QR. */
+export interface VerifiedOfficialDocument {
+  kind: 'evaluation' | 'case';
+  reference: string;
+  title: string;
+  establishment: string;
+  statusLabel: string;
+  version: number | null;
+  summary: string;
+}
+
+/**
+ * Result of `GET /public/documents/verify`.
+ * `issuedBySystem` is true when the QR was signed by this system, even if the
+ * record has since been replaced. `confirmed` means it matches the current official copy.
+ */
+export interface DocumentVerification {
+  outcome: DocumentVerificationOutcome;
+  issuedBySystem: boolean;
+  message: string;
+  document: VerifiedOfficialDocument | null;
 }
 
 /**

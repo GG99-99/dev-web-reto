@@ -4,6 +4,7 @@ import { reportsService } from './reports.service';
 import { evaluationsService } from '../evaluations/evaluations.service';
 import { ok } from '@/lib/common/response';
 import { ApiError } from '@/lib/common/ApiError';
+import { publicAppOrigin } from '@/lib/http/public-origin';
 
 /**
  * reports.controller.ts
@@ -46,7 +47,7 @@ export const reportsController = {
     const data = await reportsService.preview(evaluation, answers, {
       userId: req.user.userId,
       role: req.user.role ?? '',
-    });
+    }, publicAppOrigin(req));
     return res.status(200).json(ok(data));
   },
 

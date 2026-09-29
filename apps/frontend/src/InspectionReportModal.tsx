@@ -618,14 +618,23 @@ export default function InspectionReportModal({
 
               {/* Pie de Página de Seguridad y Verificación */}
               <div className="irm-doc-security-footer">
-                <div className="irm-barcode-box">
-                  <div className="irm-barcode-lines" />
-                  <span className="irm-barcode-text">RADAR-EBR-SEC-{evaluationId.toString().padStart(6, '0')}</span>
-                </div>
-                <div className="irm-security-meta">
-                  <span>Official Digital Certificate • Single National Health Registry (MISPAS/DIGEMAPS)</span>
-                  <span>Cryptographic Verification: SHA-256: 7e4b9f2d18c0a3e5...{evaluationId.toString().padStart(4, '0')}</span>
-                </div>
+                {verdict.authenticity ? (
+                  <div className="irm-qr-seal">
+                    <a href={verdict.authenticity.verificationUrl} target="_blank" rel="noreferrer">
+                      <img src={verdict.authenticity.qrDataUrl} alt="QR code to verify this official report" />
+                    </a>
+                    <div className="irm-security-meta">
+                      <strong>Verify this official report</strong>
+                      <span>Scan the QR code to confirm RADAR Sanitario issued this document.</span>
+                      <span>{verdict.authenticity.reference}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="irm-qr-pending">
+                    <strong>Verification QR</strong>
+                    <span>The QR code is added when this report is approved as an official record.</span>
+                  </div>
+                )}
               </div>
             </article>
           )}

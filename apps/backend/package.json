@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
-    "start": "node dist/index.js",
+    "start": "node scripts/start-production.mjs",
     "seed": "tsx src/lib/seeders/index.ts",
     "seed:roles": "tsx src/seeders/roles.seeder.ts",
     "seed:risk-rules": "tsx src/seeders/risk-rules.seeder.ts",
@@ -17,13 +17,13 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/morgan": "^1.9.10",
-    "@types/node": "^22.20.2",
-    "@types/bcrypt": "^6.0.0",
     "@types/multer": "^2.0.0",
+    "@types/node": "^22.20.2",
     "@types/nodemailer": "^6.4.19",
     "nodemon": "^3.1.11",
     "tsx": "^4.21.0"
@@ -40,6 +40,7 @@
     "morgan": "^1.12.1",
     "multer": "^2.0.0",
     "nodemailer": "^7.0.9",
+    "qrcode": "^1.5.4",
     "zod": "^4.6.2"
   }
 }

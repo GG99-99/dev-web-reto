@@ -51,6 +51,7 @@ export { formExecutionService } from './formExecution.service';
 export { riskEngineService } from './riskEngine.service';
 export { evidencesService } from './evidences.service';
 export { reportsService } from './reports.service';
+export { documentsService } from './documents.service';
 export { historyService } from './history.service';
 export { notificationsService, type ListNotificationsQuery } from './notifications.service';
 export { catalogsService } from './catalogs.service';

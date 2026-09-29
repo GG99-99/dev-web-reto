@@ -1,0 +1,311 @@
+This is a realistic full-lifecycle journey that exercises the main features of the application across multiple roles. It is not exhaustive, but it covers the most important "system works end-to-end" behavior.
+
+Use this as your test script.
+
+---
+
+1) Start with a new company user
+
+Account to create
+- Full name: Patricia Peña
+- Work email: patricia.pena@aguaclarasur.do
+- National ID: 001-3378291-2
+- Phone: 809-555-4477
+- Password: Password123!
+- Account type: Admin Empresa
+
+Action
+- Go to sign-up / create organisation account
+- Fill in the fields above
+- Upload the authorization letter
+- Submit the request
+
+Expected result
+- Registration succeeds
+- User is created as pending validation
+- User cannot log in yet
+- The system shows a message indicating approval is required
+
+---
+
+2) Approve the new company user as the platform admin
+
+Login as
+- admin@salud.gob.do
+- Password: Password123!
+
+Action
+- Open the user validation/admin area
+- Search for the new email: patricia.pena@aguaclarasur.do
+- Approve the user
+
+Expected result
+- User status changes to approved
+- The system shows a success status
+- The user can now log in
+
+---
+
+3) Log in as the new company admin and create the establishment
+
+Login as
+- patricia.pena@aguaclarasur.do
+- Password: Password123!
+
+Action
+- Go to company dashboard / portal
+- Click "Register Establishment"
+- Fill in:
+  - Legal company name: Agua Clara del Sur, S.R.L.
+  - Trade name: ClaraSur
+  - RNC: 1333000063
+  - Economic activity: Envasado y distribución de agua potable
+  - Province: Santo Domingo
+  - Municipality: Santo Domingo Este
+  - Street: Autopista San Isidro
+  - Street number: 210
+  - Phone: 809-555-4480
+  - Email: calidad@aguaclarasur.do
+- Submit
+
+Expected result
+- Establishment is created successfully
+- It appears in the company's establishment list
+- The system stores the correct location/activity/contact data
+
+---
+
+4) Add an accredited representative
+
+Action
+- In the same establishment, open "Establishments & Representatives"
+- Click "Add"
+- Add representative:
+  - Type: LEGAL
+  - Full name: Miguel Santana
+  - National ID: 001-4489120-9
+  - Email: miguel.santana@aguaclarasur.do
+  - Phone: 809-555-4486
+
+Expected result
+- Representative is created and associated with the establishment
+- The representative appears in the list with type LEGAL
+- The record persists after refresh/reload
+
+---
+
+5) Create a BPM request
+
+Action
+- In the company portal, click "New BPM Request"
+- Select the created establishment
+- Fill:
+  - Type: Bottled water production / beverage plant
+  - Reason: Ampliación de capacidad productiva
+  - Observations: Solicitud por nueva línea de envasado y reforzamiento de control microbiológico
+- Attach required files:
+  - authorization letter
+  - company registration / certificate
+  - product flow map or internal layout
+  - safety / quality document
+- Save as draft if applicable
+- Submit the request
+
+Expected result
+- Request is created successfully
+- Status becomes pending assignment or equivalent
+- A case is created from this BPM request
+- The request appears in the company list and detail view
+
+---
+
+6) Log in as coordinator and process the request
+
+Login as
+- coordinador@salud.gob.do
+- Password: Password123!
+
+Action
+- Open dashboard
+- Review the new pending BPM request / case
+- Check the institution/company details
+- Assign the evaluator
+- Add evaluation date and priority
+- Save schedule
+
+Expected result
+- Coordinator can see the case and information
+- Assignment is created correctly
+- Evaluation is scheduled
+- The technician sees the evaluation in their agenda
+
+---
+
+7) Log in as technician and perform evaluation
+
+Login as
+- tecnico1@salud.gob.do
+- Password: Password123!
+
+Action
+- Open calendar / evaluation list
+- Open the assigned evaluation
+- Start evaluation
+- Fill in:
+  - general info
+  - plant / facility details
+  - process and personnel info
+  - infrastructure and hygiene sections
+- Answer criteria with statuses:
+  - Cumple
+  - No Cumple
+  - No Aplica
+- Add observations/comments
+- Add evidence:
+  - photos
+  - documents
+  - any required attachments
+- Save progress
+- Finish evaluation
+
+Expected result
+- Evaluation opens successfully
+- Form data saves correctly
+- Not all questions are left blank
+- Evidence is uploaded and associated with the evaluation
+- Finalization works without losing data
+
+---
+
+8) Check automatic risk calculation
+
+Action
+During or after the evaluation, inspect the risk result
+
+Expected fields to validate
+- requested score / puntaje obtenido
+- compliance percentage
+- risk level
+- recommended inspection frequency
+
+Expected result
+- Values are calculated automatically
+- The result is coherent with the selected answers
+- The system does not require manual risk entry
+
+---
+
+9) Coordinator reviews and decides outcome
+
+Login as
+- coordinador@salud.gob.do
+
+Action
+- Open the evaluation submitted by the technician
+- Review findings
+- Decide one of:
+  - approve
+  - request corrections
+  - return for revision
+- If corrections are required, check that the technician can fix them
+- Finalize by approving the report or closing the case
+
+Expected result
+- Review flow works properly
+- Corrective comments are visible to the technician
+- After approval, the case moves to final status
+- Final PDF/report is generated and downloadable
+
+---
+
+10) Company user checks final status and history
+
+Login as
+- patricia.pena@aguaclarasur.do
+
+Action
+- Open dashboard
+- Review requests / evaluations / notifications
+- Open the created establishment and historical status
+- Check that the final outcome is visible
+
+Expected result
+- Company user sees only their own data
+- Request/evaluation status is accurate
+- History is visible and consistent
+
+---
+
+11) Security validation during the same journey
+
+This should be done as part of the same run.
+
+Check A: another company cannot see the new establishment
+- Log in as a different company user:
+  - admin@lacteosdelnorte.do
+  - or delegado@lacteosdelnorte.do
+- Attempt to view the list of establishments
+- Expected: they do not see Agua Clara del Sur, S.R.L.
+
+Check B: unauthorized detail access is blocked
+- Try to open the details of the new establishment via URL or direct navigation
+- Expected: access denied / not allowed / no visible record
+
+Check C: forbidden actions are hidden
+- Another company should not see "Edit", "Assign", "Submit", or "Review" controls for this record
+- Expected: those controls are absent or unusable
+
+Check D: role mismatch is blocked
+- A technician should not be able to access coordinator-level management screens
+- A company user should not have access to platform-wide admin panels
+- Expected: 403/redirect/hidden UI
+
+---
+
+12) Optional additional scenarios to include if you want a bit more coverage
+
+These are not required for the main journey, but they add value.
+
+Optional scenario A: create a complaint or LAPCH alert
+- Log in as coordinator
+- Create a complaint or LAPCH alert against the same establishment
+- Attach description and product
+- See whether it triggers a new follow-up or evaluation
+- Expected: the alert is saved and visible in alerts/complaints areas
+
+Optional scenario B: password reset / 2FA
+- Log in as a valid user
+- Trigger password reset
+- Use reset token
+- Change password
+- If 2FA is enabled, test valid/invalid OTP
+- Expected: flow works without breaking session logic
+
+Optional scenario C: invalid data test
+- Try to create an establishment with missing fields
+- Try to submit BPM request without mandatory document
+- Try to use wrong login credentials
+- Expected: validation errors and no partial creation
+
+---
+
+Pass / fail criteria
+
+The journey passes if:
+- each role can access only their intended features
+- the company can create and track its own establishment and BPM request
+- coordinator can assign and review
+- technician can complete and submit the evaluation
+- risk assessment and reports are generated
+- company can see final results
+- other companies cannot see or access the wrong data
+
+---
+
+Best "whole-system" summary
+
+The most meaningful end-to-end journey is:
+
+New company user -> approved by admin -> creates establishment -> adds representative -> creates BPM request -> coordinator assigns technician -> technician performs field assessment -> coordinator reviews and closes -> company checks final status -> access control checked across roles
+
+This one journey demonstrates most of the real business value of the system.

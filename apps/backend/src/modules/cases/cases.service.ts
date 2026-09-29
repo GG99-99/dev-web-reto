@@ -11,6 +11,8 @@ import { ApiError } from '@/lib/common/ApiError';
 import { normalizePagination, paginate, type NormalizedPagination } from '@/lib/common/response';
 import { UPLOADS_DIR } from '@/lib/upload/upload';
 import { buildSimplePdf } from '@/lib/pdf/simple-pdf';
+import { caseReference } from '@/lib/documents/authenticity';
+import { documentsService } from '../documents/documents.service';
 
 /**
  * cases.service.ts
@@ -94,7 +96,7 @@ export const casesService = {
    * RF-19. When `emitirInforme` is true, writes a real PDF and stores it as
    * an Attachment with category INFORME_OFICIAL_PDF.
    */
-  close: async (caseId: number, requesterId: number, resultadoFinal: string, emitirInforme: boolean): Promise<CloseCaseResponse> => {
+  close: async (caseId: number, requesterId: number, resultadoFinal: string, emitirInforme: boolean, origin: string): Promise<CloseCaseResponse> => {
     const existing = await casesService.getById(caseId);
     if (existing.status === 'CERRADO') throw ApiError.conflict('This case is already closed');
     if (await casesModel.hasUnapprovedReport(caseId)) {
@@ -114,7 +116,7 @@ export const casesService = {
     if (emitirInforme) {
       const fileName = `official-report-case-${caseId}.pdf`;
       const storedName = `${crypto.randomUUID()}.pdf`;
-      const pdf = buildSimplePdf(renderClosingSummary(closed as unknown as CaseDetail, resultadoFinal));
+      const pdf = await casesService.buildOfficialPdf(closed as unknown as CaseDetail, origin);
       await fs.mkdir(UPLOADS_DIR, { recursive: true });
       await fs.writeFile(path.join(UPLOADS_DIR, storedName), pdf);
 
@@ -145,6 +147,19 @@ export const casesService = {
     if (!attachment) throw ApiError.notFound('This case does not yet have an official report generated');
     return attachment;
   },
+
+  /** Official closing PDF, including the QR that proves this system issued it. */
+  buildOfficialPdf: async (caseDetail: CaseDetail, origin: string) => {
+    const resultadoFinal = caseDetail.resultadoFinal;
+    if (!resultadoFinal?.trim()) throw ApiError.notFound('This case does not yet have an official report generated');
+    const seal = await documentsService.issueCaseSeal({
+      caseId: caseDetail.caseId,
+      resultadoFinal,
+      establishmentName: caseDetail.institution.name,
+      rnc: caseDetail.institution.rnc ?? '',
+    }, origin);
+    return buildSimplePdf(renderClosingSummary(caseDetail, resultadoFinal), { qrText: seal.verificationUrl });
+  },
 };
 
 function renderClosingSummary(caseDetail: CaseDetail, resultadoFinal: string): string[] {
@@ -163,5 +178,9 @@ function renderClosingSummary(caseDetail: CaseDetail, resultadoFinal: string): s
     '',
     'Final result:',
     resultadoFinal,
+    '',
+    'Document authenticity',
+    'Scan the QR code to confirm this official report was issued by RADAR Sanitario.',
+    `Verification reference: ${caseReference(caseDetail.caseId)}`,
   ];
 }

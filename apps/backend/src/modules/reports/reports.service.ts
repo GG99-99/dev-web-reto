@@ -19,6 +19,7 @@ import {
   normalizeSectionId,
   reopenStaleCorrection,
 } from './correction-policy';
+import { documentsService } from '../documents/documents.service';
 
 /**
  * reports.service.ts
@@ -303,6 +304,7 @@ async function composeVerdict(
       longitude: evidence.longitude,
       askKey: evidenceAskKey(evidence),
     })),
+    authenticity: null,
     scopedAnswers: scoped,
     nextAuto,
   };
@@ -355,10 +357,28 @@ export const reportsService = {
     evaluation: VerdictEvaluation,
     liveAnswers: FormAnswers | undefined,
     requester: { userId: number; role: string },
+    origin: string,
   ) => {
     const verdict = await composeVerdict(evaluation, liveAnswers, requester);
     const { scopedAnswers: _scoped, nextAuto: _auto, ...preview } = verdict;
-    return preview;
+    if (preview.delivery !== 'approved' || preview.reportId == null || preview.reportVersion == null) {
+      return preview;
+    }
+    const authenticity = await documentsService.issueEvaluationSeal({
+      evaluationId: evaluation.evaluationId,
+      reportId: preview.reportId,
+      version: preview.reportVersion,
+      status: 'APROBADO',
+      resumenEjecutivo: preview.narrative.resumenEjecutivo,
+      hallazgos: preview.narrative.hallazgos,
+      noConformidades: preview.narrative.noConformidades,
+      recomendaciones: preview.narrative.recomendaciones,
+      nivelRiesgo: preview.score?.nivelRiesgo ?? '',
+      porcentajeCumplimiento: preview.score?.porcentajeCumplimiento ?? null,
+      establishmentName: preview.establishment.name,
+      rnc: preview.establishment.rnc ?? '',
+    }, origin);
+    return { ...preview, authenticity };
   },
 
   getByEvaluationId: async (evaluationId: number) => {

@@ -1,8 +1,9 @@
-import prisma from '@reto/db';
+import prisma, { type Prisma } from '@reto/db';
 import {
   assessFormCompleteness,
   type FormCaseContext,
   type FormCompleteness,
+  type FormTemplateTree,
 } from '@reto/shared';
 import { ApiError } from '@/lib/common/ApiError';
 import { readAnswers } from './form-execution.model';
@@ -15,7 +16,16 @@ import { formTemplatesModel } from './form-templates.model';
  * origin and establishment type is selected. Chapters are then filtered by
  * the same rules inside assessFormCompleteness.
  */
-export async function loadEvaluationForm(evaluationId: number) {
+type LoadedEvaluationForm = {
+  evaluation: {
+    technicianId: number | null;
+    formResponse: { formTemplateId: number; answers: Prisma.JsonValue } | null;
+  };
+  context: FormCaseContext;
+  template: FormTemplateTree | null;
+};
+
+export async function loadEvaluationForm(evaluationId: number): Promise<LoadedEvaluationForm | null> {
   const evaluation = await prisma.evaluation.findUnique({
     where: { evaluationId },
     include: {
@@ -78,7 +88,16 @@ export async function assertEvaluationFormComplete(evaluationId: number): Promis
   };
 }
 
-export async function getEvaluationFormTemplate(evaluationId: number, requesterId: number, role?: string | null) {
+export async function getEvaluationFormTemplate(
+  evaluationId: number,
+  requesterId: number,
+  role?: string | null,
+): Promise<{
+  formTemplateId: number;
+  context: FormCaseContext;
+  template: FormTemplateTree;
+  completeness: FormCompleteness;
+}> {
   const loaded = await loadEvaluationForm(evaluationId);
   if (!loaded) throw ApiError.notFound('Evaluation not found');
   if (role === 'TECNICO_EVALUADOR' && loaded.evaluation.technicianId !== requesterId) {

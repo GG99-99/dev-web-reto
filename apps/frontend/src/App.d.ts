@@ -1,4 +1,5 @@
 import "./App.css";
+import "./mobile.css";
 export type Evaluation = {
     evaluationId: number;
     scheduledDate: string;

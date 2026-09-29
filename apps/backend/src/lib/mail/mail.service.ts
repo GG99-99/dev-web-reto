@@ -7,7 +7,7 @@ import nodemailer, { type Transporter } from 'nodemailer';
  * Soporte a RF-04 (notificaciones): cada notificación in-app se puede
  * acompañar de un correo real al usuario.
  *
- * Configuración vía variables de entorno (ver env-example.txt):
+ * Configuración vía variables de entorno (ver .env.example):
  *   SMTP_HOST, SMTP_PORT, SMTP_SECURE, SMTP_USER, SMTP_PASS, MAIL_FROM
  *
  * Si SMTP_HOST no está configurado (p. ej. en desarrollo local sin

@@ -5,6 +5,7 @@ import { casesService } from './cases.service';
 import { ok } from '@/lib/common/response';
 import { ApiError } from '@/lib/common/ApiError';
 import { UPLOADS_DIR } from '@/lib/upload/upload';
+import { publicAppOrigin } from '@/lib/http/public-origin';
 
 /**
  * cases.controller.ts
@@ -45,7 +46,7 @@ export const casesController = {
     if (!req.user) throw ApiError.unauthorized();
     const { id } = req.validated!.params;
     const { resultadoFinal, emitirInforme } = req.validated!.body;
-    const data = await casesService.close(id, req.user.userId, resultadoFinal, emitirInforme);
+    const data = await casesService.close(id, req.user.userId, resultadoFinal, emitirInforme, publicAppOrigin(req));
     return res.status(200).json(ok(data));
   },
 
@@ -59,9 +60,13 @@ export const casesController = {
     const filePath = path.join(UPLOADS_DIR, path.basename(attachment.fileUrl));
     let bytes: Buffer;
     try {
-      bytes = await fs.readFile(filePath);
+      bytes = await casesService.buildOfficialPdf(caseDetail, publicAppOrigin(req));
     } catch {
-      throw ApiError.notFound('Official report file is not available');
+      try {
+        bytes = await fs.readFile(filePath);
+      } catch {
+        throw ApiError.notFound('Official report file is not available');
+      }
     }
     res.setHeader('Content-Type', attachment.mimeType || 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${safeName}"`);

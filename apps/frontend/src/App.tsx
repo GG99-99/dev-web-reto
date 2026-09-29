@@ -16,9 +16,11 @@ import OperationsWorkbench from "./OperationsWorkbench";
 import UserApprovalPanel from "./UserApprovalPanel";
 import TechnicianCalendar from "./TechnicianCalendar";
 import InspectionReportModal from "./InspectionReportModal";
+import DocumentCheck from "./DocumentCheck";
 import CompanyPortal from "./CompanyPortal";
 import NotificationsDropdown from "./NotificationsDropdown";
 import AdminGovernancePanel from "./AdminGovernancePanel";
+import PublicComplaintPage from "./PublicComplaintPage";
 import {
   getAssignedEvaluations,
   getPendingSyncQueue,
@@ -166,11 +168,28 @@ function recoveryTokenFromLocation() {
   return new URLSearchParams(window.location.search).get("reset")?.trim() ?? "";
 }
 
+function verificationTokenFromLocation() {
+  if (typeof window === "undefined") return "";
+  return new URLSearchParams(window.location.search).get("verify")?.trim() ?? "";
+}
+
 function clearRecoveryQuery() {
   const url = new URL(window.location.href);
   if (!url.searchParams.has("reset")) return;
   url.searchParams.delete("reset");
   window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}` || "/");
+}
+
+function clearVerificationQuery() {
+  const url = new URL(window.location.href);
+  if (!url.searchParams.has("verify")) return;
+  url.searchParams.delete("verify");
+  window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}` || "/");
+}
+
+function complaintFromLocation() {
+  if (typeof window === "undefined") return false;
+  return new URLSearchParams(window.location.search).get("complaint") === "1";
 }
 
 function App() {
@@ -200,6 +219,8 @@ function App() {
   const [holdForRecovery, setHoldForRecovery] = useState(() =>
     Boolean(recoveryTokenFromLocation()),
   );
+  const [sealToken, setSealToken] = useState(() => verificationTokenFromLocation());
+  const [complaintOpen, setComplaintOpen] = useState(complaintFromLocation);
   const [cases, setCases] = useState<CaseItem[]>([]);
   const [companyRequests, setCompanyRequests] = useState<CompanyRequestCard[]>([]);
   const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
@@ -292,6 +313,15 @@ function App() {
       window.removeEventListener("offline", handleOffline);
       clearInterval(timer);
     };
+  }, []);
+
+  useEffect(() => {
+    const syncLocation = () => {
+      setSealToken(verificationTokenFromLocation());
+      setComplaintOpen(complaintFromLocation());
+    };
+    window.addEventListener("popstate", syncLocation);
+    return () => window.removeEventListener("popstate", syncLocation);
   }, []);
 
   const saveSession = (value: Session | null) => {
@@ -452,11 +482,56 @@ function App() {
   }, [session, view]);
   const visibleCases = cases;
   const visibleEvaluations = evaluations;
+  const openDocumentCheck = (token: string) => {
+    const url = new URL(window.location.href);
+    url.searchParams.set("verify", token);
+    window.history.pushState({}, "", `${url.pathname}${url.search}${url.hash}`);
+    setSealToken(token);
+  };
+  const replaceDocumentCheck = (token: string) => {
+    const url = new URL(window.location.href);
+    url.searchParams.set("verify", token);
+    window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+    setSealToken(token);
+  };
+  const openPublicComplaint = () => {
+    const url = new URL(window.location.href);
+    url.searchParams.set("complaint", "1");
+    window.history.pushState({}, "", `${url.pathname}${url.search}${url.hash}`);
+    setComplaintOpen(true);
+  };
+  const closePublicComplaint = () => {
+    const url = new URL(window.location.href);
+    url.searchParams.delete("complaint");
+    window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}` || "/");
+    setComplaintOpen(false);
+  };
+  if (sealToken)
+    return (
+      <DocumentCheck
+        token={sealToken}
+        signedIn={Boolean(session)}
+        onClose={() => {
+          clearVerificationQuery();
+          setSealToken("");
+        }}
+        onToken={replaceDocumentCheck}
+      />
+    );
+  if (complaintOpen)
+    return (
+      <PublicComplaintPage
+        signedIn={Boolean(session)}
+        onClose={closePublicComplaint}
+      />
+    );
   if (!session || holdForRecovery)
     return (
       <AuthPortal
         initialMessage={notice}
         recoveryToken={recoveryTokenFromLocation()}
+        onVerify={() => openDocumentCheck("scan")}
+        onFileComplaint={openPublicComplaint}
         onRecoveryClosed={(message) => {
           clearRecoveryQuery();
           setHoldForRecovery(false);
@@ -566,6 +641,13 @@ function App() {
             </strong>
           </div>
           <div className="header-actions" style={{ position: "relative" }}>
+            <button
+              type="button"
+              className="secondary"
+              onClick={() => openDocumentCheck("scan")}
+            >
+              Verify QR
+            </button>
             <button
               type="button"
               className="notification"
@@ -812,11 +894,15 @@ function AuthPortal({
   onSignedIn,
   recoveryToken = "",
   onRecoveryClosed,
+  onVerify,
+  onFileComplaint,
 }: {
   initialMessage: string;
   onSignedIn: (value: Session) => void;
   recoveryToken?: string;
   onRecoveryClosed?: (message?: string) => void;
+  onVerify?: () => void;
+  onFileComplaint?: () => void;
 }) {
   const [mode, setMode] = useState<AuthMode>(recoveryToken ? "reset" : "signin");
   const [usuario, setUsuario] = useState("");
@@ -1070,9 +1156,21 @@ function AuthPortal({
             RADAR <em>Sanitary</em>
           </span>
         </a>
-        <a className="auth-help" href="mailto:support@radar.local">
-          Need help?
-        </a>
+        <div className="auth-header-actions">
+          {onFileComplaint && (
+            <button type="button" className="auth-help auth-help-btn" onClick={onFileComplaint}>
+              File a complaint
+            </button>
+          )}
+          {onVerify && (
+            <button type="button" className="auth-help auth-help-btn" onClick={onVerify}>
+              Verify a document
+            </button>
+          )}
+          <a className="auth-help" href="mailto:support@radar.local">
+            Need help?
+          </a>
+        </div>
       </header>
       <section className="auth-layout">
         <aside className="auth-hero">
@@ -1163,6 +1261,15 @@ function AuthPortal({
               >
                 Forgot your password?
               </button>
+              {onFileComplaint && (
+                <button
+                  type="button"
+                  className="secondary auth-full auth-public"
+                  onClick={onFileComplaint}
+                >
+                  File a public complaint
+                </button>
+              )}
               <div className="auth-divider">
                 <span>New to RADAR?</span>
               </div>
@@ -1835,6 +1942,17 @@ function Login({
             {busy ? "Signing in…" : "Sign in"} →
           </button>
         </form>
+        <button
+          type="button"
+          className="secondary auth-full auth-public"
+          onClick={() => {
+            const url = new URL(window.location.href);
+            url.searchParams.set("complaint", "1");
+            window.location.assign(`${url.pathname}${url.search}${url.hash}`);
+          }}
+        >
+          File a public complaint
+        </button>
         <button
           className="text"
           onClick={() =>
